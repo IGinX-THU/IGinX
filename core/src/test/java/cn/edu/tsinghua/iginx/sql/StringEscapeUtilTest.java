@@ -27,30 +27,34 @@ import org.junit.Test;
 public class StringEscapeUtilTest {
   @Test
   public void testUnescapeStringLiteral() {
-    // Backslash escape for single/double-quoted: \' → ', \" → ", \\ → \
+    // Only \quoteChar is escape; \\quoteChar → \ + ' (so 'It\\\\\'s ok' → It\'s ok)
     assertEquals("It's ok", StringEscapeUtil.unescapeStringLiteral("'It\\'s ok'"));
     assertEquals("It's ok", StringEscapeUtil.unescapeStringLiteral("\"It's ok\""));
     assertEquals("It\\'s ok", StringEscapeUtil.unescapeStringLiteral("'It\\\\\'s ok'"));
-    assertEquals("It\\'s ok", StringEscapeUtil.unescapeStringLiteral("\"It\\\\'s ok\""));
+    assertEquals("It\\\\'s ok", StringEscapeUtil.unescapeStringLiteral("\"It\\\\'s ok\""));
 
     assertEquals("It\"s ok", StringEscapeUtil.unescapeStringLiteral("\"It\\\"s ok\""));
-    assertEquals("It\"s ok", StringEscapeUtil.unescapeStringLiteral("'It\"s ok'"));
+    assertEquals("It\\\"s ok", StringEscapeUtil.unescapeStringLiteral("'It\\\"s ok'"));
+    // \"It\\\\\"s ok\": \\" → \ + "; result It\"s ok
     assertEquals("It\\\"s ok", StringEscapeUtil.unescapeStringLiteral("\"It\\\\\"s ok\""));
-    assertEquals("It\\\"s ok", StringEscapeUtil.unescapeStringLiteral("'It\\\\\\\"s ok'"));
+    // 'It\\\\\\\"s ok' → content It\\\"s ok → \\→\\, \\→\\, \"→\"; result It\\\"s ok (three
+    // backslashes)
+    assertEquals("It\\\\\\\"s ok", StringEscapeUtil.unescapeStringLiteral("'It\\\\\\\"s ok'"));
 
-    // Other backslash sequences left as-is (only \', \", \\ are unescaped)
     assertEquals("value\\ntest", StringEscapeUtil.unescapeStringLiteral("'value\\ntest'"));
-    assertEquals("a\\b", StringEscapeUtil.unescapeStringLiteral("'a\\\\b'"));
+    assertEquals("a\\\\b", StringEscapeUtil.unescapeStringLiteral("'a\\\\b'"));
 
+    // \\ stays as \\; result has two backslashes between path segments
     assertEquals(
-        "C:\\temp\\file.txt", StringEscapeUtil.unescapeStringLiteral("\"C:\\\\temp\\\\file.txt\""));
+        "C:\\\\temp\\\\file.txt",
+        StringEscapeUtil.unescapeStringLiteral("\"C:\\\\temp\\\\file.txt\""));
     assertEquals(
         "/home/user/test.py", StringEscapeUtil.unescapeStringLiteral("'/home/user/test.py'"));
     assertEquals("/tmp/file.txt", StringEscapeUtil.unescapeStringLiteral("\"/tmp/file.txt\""));
 
-    // Backtick: backslash escape (\` → `, \\ → \)
     assertEquals("foo`bar", StringEscapeUtil.unescapeStringLiteral("`foo\\`bar`"));
     assertEquals("a`b", StringEscapeUtil.unescapeStringLiteral("`a\\`b`"));
+    // `a\\\\`b`: \\` → \ + `; result a\`b
     assertEquals("a\\`b", StringEscapeUtil.unescapeStringLiteral("`a\\\\`b`"));
 
     // Edge cases

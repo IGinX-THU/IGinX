@@ -1451,7 +1451,8 @@ BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
    ;
 
 fragment BACK_QUOTE_STRING_CONTENT
-   : '\\' . // Backslash escape: \` -> `, \\ -> \
+   : '\\' '\\' '`' // \\` -> \` (avoid truncation e.g. `It\`s ok`)
+   | '\\' . // Backslash escape: \` -> `, \\ -> \
    | ~ ['`\\]
    ;
 
@@ -1460,7 +1461,8 @@ DOUBLE_QUOTE_STRING_LITERAL
    ;
 
 fragment DOUBLE_QUOTE_STRING_CONTENT
-   : '\\' . // Backslash escape: \" -> ", \\ -> \
+   : '\\' '\\' '"' // \\" -> \" (avoid truncation e.g. "It\\"s ok")
+   | '\\' . // Backslash escape: \" -> ", \\ -> \
    | ~ ["\\]
    ;
 
@@ -1469,7 +1471,8 @@ SINGLE_QUOTE_STRING_LITERAL
    ;
 
 fragment SINGLE_QUOTE_STRING_CONTENT
-   : '\\' . // Backslash escape: \' -> ', \\ -> \
+   : '\\' '\\' '\'' // \\' -> \' (avoid truncation e.g. 'It\\'s ok')
+   | '\\' . // Backslash escape: \' -> ', \\ -> \
    | ~ ['\\]
    ;
    //Characters and write it this way for case sensitivity

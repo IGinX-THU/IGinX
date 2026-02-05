@@ -29,6 +29,7 @@ import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransforme
 import cn.edu.tsinghua.iginx.relational.exception.RelationalException;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.strategy.DatabaseStrategy;
+import cn.edu.tsinghua.iginx.relational.tools.SqlStringUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool;
@@ -226,6 +227,6 @@ public abstract class AbstractDatabaseStrategy implements DatabaseStrategy {
 
   @Override
   public String getQuotName(String name) {
-    return String.format("%s%s%s", relationalMeta.getQuote(), name, relationalMeta.getQuote());
+    return SqlStringUtils.wrapWithQuotedContent(name, relationalMeta.getQuote());
   }
 }

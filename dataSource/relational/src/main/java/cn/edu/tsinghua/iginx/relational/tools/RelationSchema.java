@@ -84,6 +84,6 @@ public class RelationSchema {
   }
 
   private static String getQuotName(String name, char quote) {
-    return quote + name + quote;
+    return SqlStringUtils.wrapWithQuotedContent(name, quote);
   }
 }

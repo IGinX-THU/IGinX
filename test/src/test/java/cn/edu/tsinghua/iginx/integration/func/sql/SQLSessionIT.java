@@ -8002,4 +8002,49 @@ public class SQLSessionIT {
             + "Total line number = 3\n";
     executor.executeAndCompare(statement, expected);
   }
+
+  @Test
+  public void testStringLiteralEscapeInSession() {
+    // 使用独立的 measurement，避免影响其他测试
+
+    // 预期得到：It's ok
+    executor.execute("INSERT INTO usr_escape(key, path) VALUES (0, 'It\\'s ok');");
+    executor.execute("INSERT INTO usr_escape(key, path) VALUES (1, 'It\\\'s ok');");
+    executor.execute("INSERT INTO usr_escape(key, path) VALUES (2, \"It's ok\");");
+
+    // 预期得到：It\'s ok
+    executor.execute("INSERT INTO usr_escape(key, path) VALUES (3, 'It\\\\'s ok');");
+    executor.execute("INSERT INTO usr_escape(key, path) VALUES (4, 'It\\\\\'s ok');");
+    executor.execute("INSERT INTO usr_escape(key, path) VALUES (5, \"It\\'s ok\");");
+    executor.execute("INSERT INTO usr_escape(key, path) VALUES (6, \"It\\\'s ok\");");
+
+    // 预期得到：It"s ok
+    executor.execute("INSERT INTO usr_escape(key, path) VALUES (7, \"It\\\"s ok\");");
+    executor.execute("INSERT INTO usr_escape(key, path) VALUES (8, 'It\"s ok');");
+
+    // 预期得到：It\"s ok
+    executor.execute("INSERT INTO usr_escape(key, path) VALUES (9, \"It\\\\\"s ok\");");
+    executor.execute("INSERT INTO usr_escape(key, path) VALUES (10, 'It\\\"s ok');");
+
+    String statement = "SELECT path FROM usr_escape ORDER BY key;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+---------------+\n"
+            + "|key|usr_escape.path|\n"
+            + "+---+---------------+\n"
+            + "|  0|        It's ok|\n"
+            + "|  1|        It's ok|\n"
+            + "|  2|        It's ok|\n"
+            + "|  3|       It\\'s ok|\n"
+            + "|  4|       It\\'s ok|\n"
+            + "|  5|       It\\'s ok|\n"
+            + "|  6|       It\\'s ok|\n"
+            + "|  7|        It\"s ok|\n"
+            + "|  8|        It\"s ok|\n"
+            + "|  9|       It\\\"s ok|\n"
+            + "| 10|       It\\\"s ok|\n"
+            + "+---+---------------+\n"
+            + "Total line number = 11\n";
+    executor.executeAndCompare(statement, expected);
+  }
 }

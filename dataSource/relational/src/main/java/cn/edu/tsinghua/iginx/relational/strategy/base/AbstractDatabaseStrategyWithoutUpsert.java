@@ -31,6 +31,7 @@ import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransforme
 import cn.edu.tsinghua.iginx.relational.exception.RelationalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
+import cn.edu.tsinghua.iginx.relational.tools.SqlStringUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -369,7 +370,7 @@ public abstract class AbstractDatabaseStrategyWithoutUpsert extends AbstractData
     // 注意：这里使用了 Oracle/Dameng 特有的 owner 字段和 all_tables 视图
     String conditionStatement =
         exceptSchema.stream()
-            .map(s -> "'" + s + "'")
+            .map(s -> "'" + SqlStringUtils.escapeSqlQuotedContent(s, '\'') + "'")
             .collect(Collectors.joining(", ", " WHERE owner NOT IN (", ")"));
 
     if (boundaryLevel < 1) {

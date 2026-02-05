@@ -101,17 +101,34 @@ public class FilterTransformer {
     switch (filter.getOp()) {
       case LIKE:
       case LIKE_AND:
-        value = "'^" + filter.getValue().getBinaryVAsString() + "$" + "'";
+        value =
+            "'^"
+                + SqlStringUtils.escapeSqlSingleQuotedLiteral(
+                    filter.getValue().getBinaryVAsString(),
+                    relationalMeta.isStringLiteralBackslashEscape())
+                + "$"
+                + "'";
         return String.format(relationalMeta.getRegexp(), path, value);
       case NOT_LIKE:
       case NOT_LIKE_AND:
-        value = "'^" + filter.getValue().getBinaryVAsString() + "$" + "'";
+        value =
+            "'^"
+                + SqlStringUtils.escapeSqlSingleQuotedLiteral(
+                    filter.getValue().getBinaryVAsString(),
+                    relationalMeta.isStringLiteralBackslashEscape())
+                + "$"
+                + "'";
         return String.format(relationalMeta.getNotRegexp(), path, value);
       default:
         // postgresql does not support "==" but uses "=" instead
         String op = Op.op2StrWithoutAndOr(filter.getOp()).replace("==", "=");
         if (filter.getValue().getDataType() == DataType.BINARY) {
-          value = "'" + filter.getValue().getBinaryVAsString() + "'";
+          value =
+              "'"
+                  + SqlStringUtils.escapeSqlSingleQuotedLiteral(
+                      filter.getValue().getBinaryVAsString(),
+                      relationalMeta.isStringLiteralBackslashEscape())
+                  + "'";
         } else if (!relationalMeta.isSupportBooleanType()
             && filter.getValue().getDataType() == DataType.BOOLEAN) {
           value = filter.getValue().getBoolV() ? "1" : "0";
@@ -161,7 +178,11 @@ public class FilterTransformer {
                 .map(
                     value -> {
                       if (value.getDataType() == DataType.BINARY) {
-                        return "'" + value.getBinaryVAsString() + "'";
+                        return "'"
+                            + SqlStringUtils.escapeSqlSingleQuotedLiteral(
+                                value.getBinaryVAsString(),
+                                relationalMeta.isStringLiteralBackslashEscape())
+                            + "'";
                       } else if (!relationalMeta.isSupportBooleanType()
                           && value.getDataType() == DataType.BOOLEAN) {
                         return value.getBoolV() ? "1" : "0";
@@ -175,6 +196,6 @@ public class FilterTransformer {
   }
 
   private String getQuotName(String name) {
-    return relationalMeta.getQuote() + name + relationalMeta.getQuote();
+    return SqlStringUtils.wrapWithQuotedContent(name, relationalMeta.getQuote());
   }
 }

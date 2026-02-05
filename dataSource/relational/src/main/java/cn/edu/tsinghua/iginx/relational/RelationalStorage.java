@@ -66,6 +66,7 @@ import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.relational.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.relational.tools.QuoteBaseExpressionDecorator;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
+import cn.edu.tsinghua.iginx.relational.tools.SqlStringUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -3146,7 +3147,12 @@ public class RelationalStorage implements IStorage {
               Object rawValue = data.getValue(i, index);
               if (rawValue != null) {
                 if (dataType == DataType.BINARY) {
-                  value = "'" + new String((byte[]) rawValue, StandardCharsets.UTF_8) + "'";
+                  value =
+                      "'"
+                          + SqlStringUtils.escapeSqlSingleQuotedLiteral(
+                              new String((byte[]) rawValue, StandardCharsets.UTF_8),
+                              relationalMeta.isStringLiteralBackslashEscape())
+                          + "'";
                 } else {
                   value = rawValue.toString();
                 }
@@ -3274,7 +3280,12 @@ public class RelationalStorage implements IStorage {
               Object rawValue = data.getValue(i, index);
               if (rawValue != null) {
                 if (dataType == DataType.BINARY) {
-                  value = "'" + new String((byte[]) rawValue, StandardCharsets.UTF_8) + "'";
+                  value =
+                      "'"
+                          + SqlStringUtils.escapeSqlSingleQuotedLiteral(
+                              new String((byte[]) rawValue, StandardCharsets.UTF_8),
+                              relationalMeta.isStringLiteralBackslashEscape())
+                          + "'";
                 } else {
                   value = rawValue.toString();
                 }
@@ -3423,7 +3434,7 @@ public class RelationalStorage implements IStorage {
   }
 
   private String getQuotName(String name) {
-    return quote + name + quote;
+    return SqlStringUtils.wrapWithQuotedContent(name, quote);
   }
 
   private String getQuotColumnNames(String columnNames) {

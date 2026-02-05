@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.exception.RelationalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.strategy.base.AbstractDatabaseStrategy;
+import cn.edu.tsinghua.iginx.relational.tools.SqlStringUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.sql.*;
@@ -70,7 +71,7 @@ public class MySQLPGDatabaseStrategy extends AbstractDatabaseStrategy {
       if (i > 0) {
         sb.append(", ");
       }
-      sb.append("'").append(except.get(i)).append("'");
+      sb.append("'").append(SqlStringUtils.escapeSqlQuotedContent(except.get(i), '\'')).append("'");
     }
     return sb.toString();
   }
@@ -145,7 +146,8 @@ public class MySQLPGDatabaseStrategy extends AbstractDatabaseStrategy {
     }
     String schemaPattern = relationalMeta.getSchemaPattern();
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
-      conditions.add(schemaCol + " LIKE '" + schemaPattern + "'");
+      conditions.add(
+          schemaCol + " LIKE '" + SqlStringUtils.escapeSqlQuotedContent(schemaPattern, '\'') + "'");
     }
     String where = conditions.isEmpty() ? "" : (" WHERE " + String.join(" AND ", conditions));
 

@@ -198,4 +198,9 @@ public abstract class AbstractRelationalMeta {
   public abstract int getMaxSingleRowSizeLimit();
 
   public abstract boolean isJdbcStrictPathEscape();
+
+  /**
+   * 字符串字面量中是否将反斜杠视为转义字符。为 true 时（如 MySQL）生成字面量需先转义 \ 再转义引号； 为 false 时（如 PostgreSQL 标准）仅通过引号加倍转义。
+   */
+  public abstract boolean isStringLiteralBackslashEscape();
 }

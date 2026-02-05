@@ -229,27 +229,27 @@ public class ClientIT {
     assertTrue(client.expectedOutputContains("success"));
 
     // 预期得到：It's ok
-    client.readLine("INSERT INTO usr(path) VALUES ('It\\'s ok');");
+    client.readLine("INSERT INTO usr(key, path) VALUES (0, 'It\\\\'s ok');");
     assertTrue(client.expectedOutputContains("success"));
-    client.readLine("INSERT INTO usr(path) VALUES (\"It's ok\");");
+    client.readLine("INSERT INTO usr(key, path) VALUES (1, \"It's ok\");");
     assertTrue(client.expectedOutputContains("success"));
 
-    // 预期得到：It\\'s ok
-    client.readLine("INSERT INTO usr(path) VALUES ('It\\\\\\'s ok');");
+    // 预期得到：It\'s ok
+    client.readLine("INSERT INTO usr(key, path) VALUES (2, 'It\\\\\\'s ok');");
     assertTrue(client.expectedOutputContains("success"));
-    client.readLine("INSERT INTO usr(path) VALUES (\"It\\\\'s ok\");");
+    client.readLine("INSERT INTO usr(key, path) VALUES (3, \"It\\\\'s ok\");");
+    assertTrue(client.expectedOutputContains("success"));
+
+    // 预期得到：It"s ok
+    client.readLine("INSERT INTO usr(key, path) VALUES (4, \"It\\\"s ok\");");
+    assertTrue(client.expectedOutputContains("success"));
+    client.readLine("INSERT INTO usr(key, path) VALUES (5, 'It\"s ok');");
     assertTrue(client.expectedOutputContains("success"));
 
     // 预期得到：It\"s ok
-    client.readLine("INSERT INTO usr(path) VALUES (\"It\\\"s ok\");");
+    client.readLine("INSERT INTO usr(key, path) VALUES (6, \"It\\\\\\\"s ok\");");
     assertTrue(client.expectedOutputContains("success"));
-    client.readLine("INSERT INTO usr(path) VALUES ('It\"s ok');");
-    assertTrue(client.expectedOutputContains("success"));
-
-    // 预期得到：It\\\"s ok
-    client.readLine("INSERT INTO usr(path) VALUES (\"It\\\\\\\"s ok\");");
-    assertTrue(client.expectedOutputContains("success"));
-    client.readLine("INSERT INTO usr(path) VALUES ('It\\\\\\\"s ok');");
+    client.readLine("INSERT INTO usr(key, path) VALUES (7, 'It\\\\\\\"s ok');");
     assertTrue(client.expectedOutputContains("success"));
 
     // 查询并检查结果中是否包含预期字符串

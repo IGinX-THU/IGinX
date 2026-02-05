@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.iotdb.tools;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.utils.QuotedStringUtils;
 
 public class FilterTransformer {
 
@@ -80,7 +81,12 @@ public class FilterTransformer {
   private static String toString(ValueFilter filter) {
     String value =
         filter.getValue().getDataType() == DataType.BINARY
-            ? "'" + filter.getValue().getBinaryVAsString() + "'"
+            ? "'"
+                + (filter.getValue().getBinaryVAsString() == null
+                    ? ""
+                    : QuotedStringUtils.escapeQuotedContent(
+                        filter.getValue().getBinaryVAsString(), '\''))
+                + "'"
             : filter.getValue().getValue().toString();
 
     switch (filter.getOp()) {
@@ -127,7 +133,10 @@ public class FilterTransformer {
 
     for (Value value : filter.getValues()) {
       if (value.getDataType() == DataType.BINARY) {
-        sb.append("'").append(value.getBinaryVAsString()).append("', ");
+        String s = value.getBinaryVAsString();
+        sb.append("'")
+            .append(s == null ? "" : QuotedStringUtils.escapeQuotedContent(s, '\''))
+            .append("', ");
       } else {
         sb.append(value).append(", ");
       }

@@ -41,7 +41,6 @@ public abstract class AbstractQuoteState implements InputState {
       buffer.append(current);
       validSqlBuffer.append(current);
 
-      // 检查是否遇到结束的引号（仅反斜杠转义 \' 或 \"）
       if (current == quote) {
         boolean isBackslashEscaped = (last == '\\');
         if (!isBackslashEscaped) {

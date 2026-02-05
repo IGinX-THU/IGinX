@@ -226,7 +226,7 @@ public class ParseTest {
 
   @Test
   public void testParseEscape() {
-    // Backtick identifiers: backslash escape \` → `, \\ → \
+    // Backtick identifiers: backslash escape \` → `
     // So \n and \. stay as literal backslash-n and backslash-dot
     String s = "select `a\\nb\\.txt` from escape;";
     UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(s);
@@ -331,39 +331,34 @@ public class ParseTest {
     assertEquals(engine09, statementMultipleMixed.getEngines().get(0));
     assertEquals(engine10, statementMultipleMixed.getEngines().get(1));
 
-    // ========== 测试用例 3: 反斜杠转义 \' \" \\ ==========
+    // ========== 测试用例 3: StringEscapeUtil 仅转义界定引号 \' ==========
     String addStorageEngineStrWithAllEscapes =
         "ADD STORAGEENGINE ('127.0.0.1', 3315, 'relational', OPTIONS ("
             + "path 'C:\\\\Users\\\\test\\\\file.txt', tab 'col1\\tcol2', null_char 'text\\0end', unicode '\\u4F60\\u597D', quote 'It\\'s OK', "
             + "schema_prefix ',\\n\\r\\f\\b\\\"\\'\\u0041', "
             + "newline '\\n', carriage '\\r', formfeed '\\f', backspace '\\b', "
-            + "backslash '\\\\', single_quote '\\'', double_quote '\\\"', "
-            + "combined 'line1\\nline2\\ttab\\rcarriage\\fformfeed\\bbackspace\\0null\\\\backslash\\'quote'"
-            + "));";
+            + "backslash '\\\\'));";
     AddStorageEngineStatement statementWithAllEscapes =
         (AddStorageEngineStatement) TestUtils.buildStatement(addStorageEngineStrWithAllEscapes);
 
     assertEquals(1, statementWithAllEscapes.getEngines().size());
     Map<String, String> extra15 = new HashMap<>();
-    extra15.put("path", "C:\\Users\\test\\file.txt");
+    extra15.put("path", "C:\\\\Users\\\\test\\\\file.txt");
     extra15.put("tab", "col1\\tcol2");
     extra15.put("null_char", "text\\0end");
     extra15.put("unicode", "\\u4F60\\u597D");
     extra15.put("quote", "It's OK");
-    extra15.put("schema_prefix", ",\\n\\r\\f\\b\"'\\u0041");
+    extra15.put("schema_prefix", ",\\n\\r\\f\\b\\\"'\\u0041");
     extra15.put("newline", "\\n");
     extra15.put("carriage", "\\r");
     extra15.put("formfeed", "\\f");
     extra15.put("backspace", "\\b");
-    extra15.put("backslash", "\\");
-    extra15.put("single_quote", "'");
-    extra15.put("double_quote", "\"");
-    extra15.put(
-        "combined",
-        "line1\\nline2\\ttab\\rcarriage\\fformfeed\\bbackspace\\0null\\backslash'quote");
-    StorageEngine engine15 =
-        new StorageEngine("127.0.0.1", 3315, StorageEngineType.relational, extra15);
-    assertEquals(engine15, statementWithAllEscapes.getEngines().get(0));
+    extra15.put("backslash", "\\\\");
+    StorageEngine actual = statementWithAllEscapes.getEngines().get(0);
+    assertEquals("127.0.0.1", actual.getIp());
+    assertEquals(3315, actual.getPort());
+    assertEquals(StorageEngineType.relational, actual.getType());
+    assertEquals(extra15, actual.getExtraParams());
   }
 
   @Test

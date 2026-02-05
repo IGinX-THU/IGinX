@@ -107,6 +107,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private final boolean jdbcStrictPathEscape;
 
+  private final boolean stringLiteralBackslashEscape;
+
   public JDBCMeta(StorageEngineMeta meta, Properties properties) {
     super(meta);
     quote = properties.getProperty("quote").charAt(0);
@@ -164,6 +166,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
     maxColumnNumLimit = Integer.parseInt(properties.getProperty("max_column_num_limit"));
     maxSingleRowSizeLimit = Integer.parseInt(properties.getProperty("max_single_row_size_limit"));
     jdbcStrictPathEscape = Boolean.parseBoolean(properties.getProperty("jdbc_strict_path_escape"));
+    stringLiteralBackslashEscape =
+        Boolean.parseBoolean(properties.getProperty("string_literal_backslash_escape"));
   }
 
   @Override
@@ -373,5 +377,10 @@ public class JDBCMeta extends AbstractRelationalMeta {
   @Override
   public boolean isJdbcStrictPathEscape() {
     return jdbcStrictPathEscape;
+  }
+
+  @Override
+  public boolean isStringLiteralBackslashEscape() {
+    return stringLiteralBackslashEscape;
   }
 }

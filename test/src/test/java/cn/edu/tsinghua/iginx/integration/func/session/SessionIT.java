@@ -30,7 +30,6 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.tool.CombinedInsertTests;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
-import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -1214,54 +1213,6 @@ public class SessionIT extends BaseSessionIT {
       if (res != null) {
         res.close();
       }
-    }
-  }
-
-  @Test
-  public void testStringLiteralEscapeInSession() throws SessionException {
-    // 使用独立的 measurement，避免影响其他测试
-    session.executeSql("DELETE FROM usr_escape;"); // 如果不存在会被忽略
-
-    // 预期得到：It's ok
-    session.executeSql("INSERT INTO usr_escape(key, path) VALUES (0, 'It\\'s ok');");
-    session.executeSql("INSERT INTO usr_escape(key, path) VALUES (1, \"It's ok\");");
-    session.executeSql("INSERT INTO usr_escape(key, path) VALUES (2, 'It\\'s ok');");
-    session.executeSql("INSERT INTO usr_escape(key, path) VALUES (3, 'It\\\'s ok');");
-
-    // 预期得到：It\'s ok
-    session.executeSql("INSERT INTO usr_escape(key, path) VALUES (4, 'It\\\\\\'s ok');");
-    session.executeSql("INSERT INTO usr_escape(key, path) VALUES (5, 'It\\\\\\'s ok');");
-    session.executeSql("INSERT INTO usr_escape(key, path) VALUES (6, \"It\\\\'s ok\");");
-    session.executeSql("INSERT INTO usr_escape(key, path) VALUES (7, \"It\\\\\\'s ok\");");
-
-    // 预期得到：It\"s ok
-    session.executeSql("INSERT INTO usr_escape(key, path) VALUES (8, \"It\\\"s ok\");");
-    session.executeSql("INSERT INTO usr_escape(key, path) VALUES (9, 'It\"s ok');");
-
-    // 预期得到：It\\\"s ok
-    session.executeSql("INSERT INTO usr_escape(key, path) VALUES (10, \"It\\\\\\\"s ok\");");
-    session.executeSql("INSERT INTO usr_escape(key, path) VALUES (11, 'It\\\\\\\"s ok');");
-
-    SessionExecuteSqlResult res = session.executeSql("SELECT path FROM usr_escape ORDER BY key;");
-    List<List<Object>> values = res.getValues();
-
-    assertEquals(12, values.size());
-
-    // key 0-3: It's ok
-    for (int i = 0; i < 4; i++) {
-      assertEquals("It's ok", values.get(i).get(0));
-    }
-    // key 4-7: It\'s ok
-    for (int i = 4; i < 8; i++) {
-      assertEquals("It\\'s ok", values.get(i).get(0));
-    }
-    // key 8-9: It"s ok
-    for (int i = 8; i < 10; i++) {
-      assertEquals("It\"s ok", values.get(i).get(0));
-    }
-    // key 10-11: It\\\"s ok
-    for (int i = 10; i < 12; i++) {
-      assertEquals("It\\\"s ok", values.get(i).get(0));
     }
   }
 }

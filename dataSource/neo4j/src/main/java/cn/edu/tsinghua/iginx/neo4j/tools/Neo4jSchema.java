@@ -21,6 +21,8 @@ package cn.edu.tsinghua.iginx.neo4j.tools;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
 
+import cn.edu.tsinghua.iginx.utils.QuotedStringUtils;
+
 public class Neo4jSchema {
 
   private final String databaseName;
@@ -54,13 +56,15 @@ public class Neo4jSchema {
     return propertyName;
   }
 
-  private static String getQuoteName(String name, char quote) {
-    return quote + name + quote;
+  private static String getQuoteName(String name, char quoteChar) {
+    if (name == null) return "";
+    String trimmed = name.replaceFirst("^" + quote, "").replaceFirst(quote + "$", "");
+    return QuotedStringUtils.wrapWithQuotedContent(trimmed, quoteChar);
   }
 
+  /** Escapes backticks in identifier and wraps in backticks for Cypher. */
   public static String getQuoteName(String name) {
-    name = name.replaceFirst("^" + quote, "").replaceFirst(quote + "$", "");
-    return quote + name + quote;
+    return getQuoteName(name, quote);
   }
 
   public static String getQuoteFullName(String labelName, String propertyName) {

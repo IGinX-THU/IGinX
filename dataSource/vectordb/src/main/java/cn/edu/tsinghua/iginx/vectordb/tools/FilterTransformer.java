@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.vectordb.tools;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.utils.QuotedStringUtils;
 import java.util.stream.Collectors;
 
 public class FilterTransformer {
@@ -97,7 +98,12 @@ public class FilterTransformer {
     op = Op.op2StrWithoutAndOr(filter.getOp()).replace("==", "=");
     value =
         filter.getValue().getDataType() == DataType.BINARY
-            ? "'" + filter.getValue().getBinaryVAsString() + "'"
+            ? "'"
+                + (filter.getValue().getBinaryVAsString() == null
+                    ? ""
+                    : QuotedStringUtils.escapeQuotedContent(
+                        filter.getValue().getBinaryVAsString(), '\''))
+                + "'"
             : filter.getValue().getValue();
 
     return path + " " + op + " " + value;

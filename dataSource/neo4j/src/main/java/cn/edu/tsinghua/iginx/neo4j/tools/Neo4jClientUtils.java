@@ -246,7 +246,7 @@ public class Neo4jClientUtils {
                         query,
                         parameters(
                             "labelPattern",
-                            ":`" + (labelPattern) + "`",
+                            ":" + getQuoteName(labelPattern),
                             "propertyPattern",
                             (propertyPattern)));
                 return result.list();
@@ -320,13 +320,14 @@ public class Neo4jClientUtils {
                   .toString(expandFilter(filter, labelToProperties));
         } else {
           expr =
-              new FilterTransformer(quotedLabel + ".`" + keyProperty + "`", storageUnit, label)
+              new FilterTransformer(
+                      quotedLabel + "." + getQuoteName(keyProperty), storageUnit, label)
                   .toString(expandFilter(filter, labelToProperties));
         }
       } else {
         expr =
             new FilterTransformer(
-                    quotedLabel + ".`" + IDENTITY_PROPERTY_NAME + "`", storageUnit, label)
+                    quotedLabel + "." + getQuoteName(IDENTITY_PROPERTY_NAME), storageUnit, label)
                 .toString(expandFilter(filter, labelToProperties));
       }
       if (StringUtils.isNotEmpty(expr)) {
@@ -338,21 +339,25 @@ public class Neo4jClientUtils {
         if (keyProperty == null) {
           r.append("id(" + quotedLabel + ") as ").append(IDENTITY_PROPERTY_NAME);
         } else {
-          r.append(quotedLabel + ".`")
-              .append(keyProperty)
-              .append("` as ")
+          r.append(quotedLabel)
+              .append(".")
+              .append(getQuoteName(keyProperty))
+              .append(" as ")
               .append(IDENTITY_PROPERTY_NAME);
           properties.remove(keyProperty);
         }
       } else {
-        r.append(quotedLabel + ".`")
-            .append(IDENTITY_PROPERTY_NAME)
-            .append("` as ")
+        r.append(quotedLabel)
+            .append(".")
+            .append(getQuoteName(IDENTITY_PROPERTY_NAME))
+            .append(" as ")
             .append(IDENTITY_PROPERTY_NAME);
         properties.remove(IDENTITY_PROPERTY_NAME);
       }
       for (String property : properties.keySet()) {
-        r.append("," + quotedLabel + ".")
+        r.append(",")
+            .append(quotedLabel)
+            .append(".")
             .append(getQuoteName(property))
             .append(" as ")
             .append(getQuoteName(property));
@@ -584,9 +589,10 @@ public class Neo4jClientUtils {
   public static boolean removeProperties(
       Session session, String label, Collection<String> properties) {
     if (properties == null || properties.size() < 1) return false;
-    StringBuilder q = new StringBuilder("MATCH (n:`").append(label).append("`) REMOVE ");
+    StringBuilder q =
+        new StringBuilder("MATCH (n:").append(getQuoteName(label)).append(") REMOVE ");
     for (String property : properties) {
-      q.append("n.`").append(property).append("`,");
+      q.append("n.").append(getQuoteName(property)).append(",");
     }
     q.deleteCharAt(q.length() - 1);
     LOGGER.info("query: {}", q);
@@ -598,9 +604,9 @@ public class Neo4jClientUtils {
       Session session, String label, Collection<String> properties, KeyRange keyRange) {
     if (properties == null || properties.size() < 1) return false;
     StringBuilder q =
-        new StringBuilder("MATCH (n:`")
-            .append(label)
-            .append("`) WHERE n.")
+        new StringBuilder("MATCH (n:")
+            .append(getQuoteName(label))
+            .append(") WHERE n.")
             .append(IDENTITY_PROPERTY_NAME)
             .append(" >=")
             .append(keyRange.getActualBeginKey())
@@ -610,7 +616,7 @@ public class Neo4jClientUtils {
             .append(keyRange.getActualEndKey())
             .append(" SET ");
     for (String property : properties) {
-      q.append("n.`").append(property).append("`=null,");
+      q.append("n.").append(getQuoteName(property)).append("=null,");
     }
     q.deleteCharAt(q.length() - 1);
     LOGGER.info("query: {}", q);

@@ -21,6 +21,8 @@ package cn.edu.tsinghua.iginx.vectordb.tools;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.DOT;
 
+import cn.edu.tsinghua.iginx.utils.QuotedStringUtils;
+
 public class VectorDBSchema {
 
   private final String databaseName;
@@ -62,7 +64,9 @@ public class VectorDBSchema {
   }
 
   public static String getQuoteFullName(String tableName, String columnName, char quote) {
-    return getQuotName(tableName, quote) + DOT + getQuotName(columnName, quote);
+    return QuotedStringUtils.wrapWithQuotedContent(tableName, quote)
+        + DOT
+        + QuotedStringUtils.wrapWithQuotedContent(columnName, quote);
   }
 
   public static String getFullName(String tableName, String columnName) {
@@ -74,18 +78,16 @@ public class VectorDBSchema {
   }
 
   public String getQuoteFullName() {
-    return getQuotName(collectionName, quote) + DOT + getQuotName(fieldName, quote);
+    return QuotedStringUtils.wrapWithQuotedContent(collectionName, quote)
+        + DOT
+        + QuotedStringUtils.wrapWithQuotedContent(fieldName, quote);
   }
 
   public String getQuotCollectionName() {
-    return getQuotName(collectionName, quote);
+    return QuotedStringUtils.wrapWithQuotedContent(collectionName, quote);
   }
 
   public String getQuotFieldName() {
-    return getQuotName(fieldName, quote);
-  }
-
-  private static String getQuotName(String name, char quote) {
-    return quote + name + quote;
+    return QuotedStringUtils.wrapWithQuotedContent(fieldName, quote);
   }
 }

@@ -22,7 +22,8 @@ package cn.edu.tsinghua.iginx.sql.utils;
 public class StringEscapeUtil {
   /**
    * Returns the unescaped content of a string literal token. Strips surrounding quotes and applies
-   * backslash escape for all quote types: \' → ', \" → ", \` → `, \\ → \.
+   * backslash unescape: only the delimiting quote is escaped (e.g. \' → '). Other \x output \ then
+   * x next iteration, so \\' naturally becomes \ + '.
    *
    * @param tokenText the string literal token text including quotes
    * @return the content with backslash unescape applied
@@ -37,25 +38,25 @@ public class StringEscapeUtil {
       return tokenText;
     }
     String inner = tokenText.substring(1, tokenText.length() - 1);
-    // Single-, double-, or backtick-quoted: backslash unescape (\' → ', \" → ", \` → `, \\ → \)
     return unescapeBackslashQuoted(inner, q);
   }
 
-  /** Unescapes backslash sequences: \' → ', \" → ", \` → `, \\ → \. */
+  /**
+   * Unescapes backslash for the given quote type: only \quoteChar is unescaped; other \x output \
+   * and then x is processed next iteration (so \\' → \ then ').
+   */
   private static String unescapeBackslashQuoted(String content, char quoteChar) {
     StringBuilder sb = new StringBuilder(content.length());
     for (int i = 0; i < content.length(); i++) {
       char c = content.charAt(i);
       if (c == '\\' && i + 1 < content.length()) {
         char next = content.charAt(i + 1);
-        if (next == '\\') {
-          sb.append('\\');
-        } else if (next == '\'' || next == '"' || next == '`') {
-          sb.append(next);
+        if (next == quoteChar) {
+          sb.append(quoteChar);
+          i++;
         } else {
-          sb.append(c).append(next);
+          sb.append(c); // literal \; next char processed next iteration (so \\' → \ then ')
         }
-        i++; // skip next char
       } else {
         sb.append(c);
       }
