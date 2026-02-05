@@ -348,11 +348,12 @@ public abstract class BaseCapacityExpansionIT {
     }
 
     // Use double quotes for schema_prefix (backslash escape: \" → ", \\ → \)
-    options.add(
-        "schema_prefix \"" + schemaPrefix.replace("\\", "\\\\").replace("\"", "\\\"") + "\"");
+    options.add("schema_prefix \"" + schemaPrefix + "\"");
 
     statement.append(String.join(", ", options));
     statement.append("));");
+
+    LOGGER.info("Execute Statement: \"{}\"", statement);
 
     return statement.toString();
   }
