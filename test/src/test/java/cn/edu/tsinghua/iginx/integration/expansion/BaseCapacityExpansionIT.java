@@ -1012,11 +1012,10 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(
         session, "select wt01.status2 from `" + stored3 + ".nt.wf03`;", pathList, valuesList);
     try {
-      String removePrefix3 = addPrefix3.replace("\\", "\\\\").replace("\"", "\\\"");
       session.executeSql(
           String.format(
               "remove storageengine (\"127.0.0.1\", %d, \"%s\", \"\") for all;",
-              expPort, removePrefix3));
+              expPort, addPrefix3));
     } catch (SessionException e) {
       LOGGER.error("test prefix with \\' and \\\" failure: ", e);
       fail();
