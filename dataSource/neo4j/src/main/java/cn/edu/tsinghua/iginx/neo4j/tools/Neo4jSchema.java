@@ -64,7 +64,9 @@ public class Neo4jSchema {
   }
 
   public static String formatKeyExpression(String key) {
-    return quote + key + quote;
+    if (key == null) return "";
+    String trimmed = key.replaceFirst("^" + quote, "").replaceFirst(quote + "$", "");
+    return quote + trimmed + quote;
   }
 
   public static String getQuoteFullName(String labelName, String propertyName) {
