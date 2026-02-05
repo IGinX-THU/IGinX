@@ -86,7 +86,7 @@ public class OracleCapacityExpansionIT extends BaseCapacityExpansionIT {
           }
         },
         new OracleHistoryDataGenerator());
-    updatedParams.put("password", "newPassword,\\'");
+    updatedParams.put("password", "newPassword,\\\\'");
   }
 
   @Override
