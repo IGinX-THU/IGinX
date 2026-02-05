@@ -294,7 +294,13 @@ public abstract class AbstractDatabaseStrategyWithoutUpsert extends AbstractData
         if (isNull) {
           stmt.setNull(index, Types.VARCHAR);
         } else if (value.startsWith("'") && value.endsWith("'")) {
-          stmt.setString(index, value.substring(1, value.length() - 1));
+          String literal = value.substring(1, value.length() - 1);
+          // 在Dameng和Oracle中，insert采用的是PreparedStatement占位符插入的方式，不需要进行转义，把转义预处理去掉
+          if (relationalMeta.isStringLiteralBackslashEscape()) {
+            literal = literal.replace("\\\\", "\\");
+          }
+          literal = literal.replace("''", "'");
+          stmt.setString(index, literal);
         } else {
           stmt.setString(index, value);
         }

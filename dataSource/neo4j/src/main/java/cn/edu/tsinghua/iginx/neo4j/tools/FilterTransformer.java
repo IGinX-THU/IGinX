@@ -20,6 +20,7 @@
 package cn.edu.tsinghua.iginx.neo4j.tools;
 
 import static cn.edu.tsinghua.iginx.neo4j.tools.Constants.IDENTITY_PROPERTY_NAME;
+import static cn.edu.tsinghua.iginx.neo4j.tools.Neo4jSchema.formatKeyExpression;
 import static cn.edu.tsinghua.iginx.neo4j.tools.Neo4jSchema.getQuoteName;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
@@ -99,7 +100,7 @@ public class FilterTransformer {
     if (key.startsWith("id(") && key.endsWith(")")) {
       return key + " " + op + " " + filter.getValue();
     }
-    return getQuotName(key) + " " + op + " " + filter.getValue();
+    return formatKeyExpression(key) + " " + op + " " + filter.getValue();
   }
 
   private String getFullPath(String path) {

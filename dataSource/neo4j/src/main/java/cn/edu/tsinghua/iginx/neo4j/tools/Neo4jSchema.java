@@ -56,15 +56,15 @@ public class Neo4jSchema {
     return propertyName;
   }
 
-  private static String getQuoteName(String name, char quoteChar) {
-    if (name == null) return "";
-    String trimmed = name.replaceFirst("^" + quote, "").replaceFirst(quote + "$", "");
-    return QuotedStringUtils.wrapWithQuotedContent(trimmed, quoteChar);
-  }
-
   /** Escapes backticks in identifier and wraps in backticks for Cypher. */
   public static String getQuoteName(String name) {
-    return getQuoteName(name, quote);
+    if (name == null) return "";
+    String trimmed = name.replaceFirst("^" + quote, "").replaceFirst(quote + "$", "");
+    return QuotedStringUtils.wrapWithQuotedContent(trimmed, quote);
+  }
+
+  public static String formatKeyExpression(String key) {
+    return quote + key + quote;
   }
 
   public static String getQuoteFullName(String labelName, String propertyName) {

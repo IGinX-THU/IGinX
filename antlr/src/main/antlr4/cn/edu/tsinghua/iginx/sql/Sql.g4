@@ -1453,7 +1453,7 @@ BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
 fragment BACK_QUOTE_STRING_CONTENT
    : '\\' '\\' '`' // \\` -> \` (avoid truncation e.g. `It\`s ok`)
    | '\\' . // Backslash escape: \` -> `, \\ -> \
-   | ~ ['`\\]
+   | ~ [`\\]
    ;
 
 DOUBLE_QUOTE_STRING_LITERAL
