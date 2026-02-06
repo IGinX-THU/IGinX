@@ -1190,7 +1190,6 @@ public class TransformIT {
   }
 
   // replace relative python filepath in sql with absolute paths for UDF registration.
-  // On Windows, backslashes in absolute paths need to be escaped for SQL string literals.
   private void replaceRelativePythonPathToAbsolute(JobFromYAML job) {
     // match string between two double quotes
     Pattern pattern = Pattern.compile("\"([^\"]*)\"");
@@ -1213,8 +1212,7 @@ public class TransformIT {
                           }
                           File filePath = new File(oriPath);
                           if (!filePath.isAbsolute()) {
-                            String absolutePath = filePath.getAbsolutePath();
-                            sql = sql.replace(oriPath, absolutePath);
+                            sql = sql.replace(oriPath, filePath.getAbsolutePath());
                           }
                         }
                         newSqlList.add(sql);
