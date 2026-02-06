@@ -133,7 +133,7 @@ public class ClientIT {
             + "|  7|It\\\"s ok|\n"
             + "+---+--------+\n"
             + "Total line number = 8";
-    String actual = result.substring(0, result.lastIndexOf('\n'));
+    String actual = result.substring(0, result.lastIndexOf('\n')).trim();
     assertEquals(expected, actual);
   }
 
