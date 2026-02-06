@@ -134,6 +134,7 @@ public class ClientIT {
             + "+---+--------+\n"
             + "Total line number = 8";
     String actual = result.substring(0, result.lastIndexOf('\n')).trim();
+    expected = expected.replace("\n", System.lineSeparator());
     assertEquals(expected, actual);
   }
 
