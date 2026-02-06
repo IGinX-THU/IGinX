@@ -91,7 +91,7 @@ public class ClientIT {
     assertTrue(client.expectedOutputContains("success"));
 
     // 预期得到：It's ok
-    client.readLine("INSERT INTO usr(key, path) VALUES (0, 'It\\\\'s ok');");
+    client.readLine("INSERT INTO usr(key, path) VALUES (0, 'It\\'s ok');");
     assertTrue(client.expectedOutputContains("success"));
     client.readLine("INSERT INTO usr(key, path) VALUES (1, \"It's ok\");");
     assertTrue(client.expectedOutputContains("success"));
@@ -111,16 +111,30 @@ public class ClientIT {
     // 预期得到：It\"s ok
     client.readLine("INSERT INTO usr(key, path) VALUES (6, \"It\\\\\\\"s ok\");");
     assertTrue(client.expectedOutputContains("success"));
-    client.readLine("INSERT INTO usr(key, path) VALUES (7, 'It\\\\\\\"s ok');");
+    client.readLine("INSERT INTO usr(key, path) VALUES (7, 'It\\\\\"s ok');");
     assertTrue(client.expectedOutputContains("success"));
 
     // 查询并检查结果中是否包含预期字符串
     client.readLine("SELECT path FROM usr ORDER BY key;");
+    // result去掉最后一行的时间耗时信息进行比对
     String result = client.getResult();
-    assertTrue(result.contains("It's ok"));
-    assertTrue(result.contains("It\\'s ok"));
-    assertTrue(result.contains("It\"s ok"));
-    assertTrue(result.contains("It\\\"s ok"));
+    String expected =
+        "IGinX> ResultSets:\n"
+            + "+---+--------+\n"
+            + "|key|usr.path|\n"
+            + "+---+--------+\n"
+            + "|  0| It's ok|\n"
+            + "|  1| It's ok|\n"
+            + "|  2|It\\'s ok|\n"
+            + "|  3|It\\'s ok|\n"
+            + "|  4| It\"s ok|\n"
+            + "|  5| It\"s ok|\n"
+            + "|  6|It\\\"s ok|\n"
+            + "|  7|It\\\"s ok|\n"
+            + "+---+--------+\n"
+            + "Total line number = 8";
+    String actual = result.substring(0, result.lastIndexOf('\n'));
+    assertEquals(expected, actual);
   }
 
   @Test

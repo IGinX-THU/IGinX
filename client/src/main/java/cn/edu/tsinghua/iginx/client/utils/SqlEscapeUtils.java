@@ -37,6 +37,7 @@ public class SqlEscapeUtils {
     boolean inString = false;
     char quoteChar = 0;
     StringBuilder literalContent = new StringBuilder();
+    int backslashCount = 0;
 
     for (int i = 0; i < sql.length(); i++) {
       char c = sql.charAt(i);
@@ -47,20 +48,27 @@ public class SqlEscapeUtils {
           inString = true;
           quoteChar = c;
           literalContent.setLength(0);
+          backslashCount = 0;
         }
       } else {
-        if (c == quoteChar) {
+        if (c == '\\') {
+          literalContent.append(c);
+          ++backslashCount;
+        } else if (c == quoteChar && (backslashCount & 1) == 0) {
           // End of string (backslash escape only, no double-quote escape)
           result.append(unescapeLiteralContent(literalContent.toString()));
           result.append(c);
           inString = false;
         } else {
           literalContent.append(c);
+          backslashCount = 0;
         }
       }
     }
     if (inString) {
-      result.append(literalContent);
+      // 建议抛出明确的异常，最好能提示是哪种引号未闭合
+      throw new IllegalArgumentException(
+          "SQL syntax error: Unclosed string literal. Expected closing quote: " + quoteChar);
     }
     return result.toString();
   }

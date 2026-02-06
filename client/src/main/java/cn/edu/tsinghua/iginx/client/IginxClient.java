@@ -255,13 +255,21 @@ public class IginxClient {
   }
 
   public OperationResult handleInputStatement(String statement) throws SessionException {
-    String unescaped = SqlEscapeUtils.unescapeStringLiteralsInSql(statement);
+    String unescaped;
+    long startTime = System.currentTimeMillis();
+    try {
+      unescaped = SqlEscapeUtils.unescapeStringLiteralsInSql(statement);
+    } catch (IllegalArgumentException e) {
+      System.out.println("SQL syntax error: " + e.getMessage());
+      long endTime = System.currentTimeMillis();
+      System.out.printf("Time cost: %d ms\n", endTime - startTime);
+      return OperationResult.DO_NOTHING;
+    }
     String trimedStatement = unescaped.replaceAll(" +", " ").toLowerCase().trim();
 
     if (EXIT_OR_QUIT_PATTERN.matcher(validSqlBuffer.toString()).matches()) {
       return OperationResult.STOP;
     }
-    long startTime = System.currentTimeMillis();
     if (isSqlWithStream(trimedStatement)) {
       processSqlWithStream(unescaped);
     } else if (isLoadDataFromCsv(trimedStatement)) {
