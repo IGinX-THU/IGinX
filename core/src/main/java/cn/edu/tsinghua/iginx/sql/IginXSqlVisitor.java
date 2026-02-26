@@ -2113,25 +2113,14 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   /**
-   * Parse storage engine option key: plain ID segments with dots (e.g., dummy.struct). Grammar is
-   * ID (DOT ID)* (no backtick, no keywords).
+   * Parse storage engine option key.
    *
-   * @param ctx the storageEngineOptionKey context
-   * @return the parsed key string (e.g., "dummy.struct")
+   * <p>Grammar: (ID | keyWords) (DOT (ID | keyWords))* So we can safely take the raw text (it's a
+   * dot-joined sequence of plain identifiers/keywords without quotes), e.g. "username", "password",
+   * "schema.prefix".
    */
   private String parseStorageEngineOptionKey(SqlParser.StorageEngineOptionKeyContext ctx) {
-    List<? extends org.antlr.v4.runtime.tree.TerminalNode> ids = ctx.ID();
-    if (ids == null || ids.isEmpty()) {
-      return "";
-    }
-    StringBuilder key = new StringBuilder();
-    for (int i = 0; i < ids.size(); i++) {
-      if (i > 0) {
-        key.append('.');
-      }
-      key.append(ids.get(i).getText());
-    }
-    return key.toString();
+    return ctx.getText();
   }
 
   private void parseInsertValuesSpec(InsertValuesSpecContext ctx, InsertStatement insertStatement) {
