@@ -692,9 +692,19 @@ public abstract class BaseCapacityExpansionIT {
           "Message should mention that only read-only engines can be altered: " + msg,
           msg != null && (msg.contains("read-only") || msg.contains("cannot be altered")));
     } finally {
-      session.removeStorageEngine(
-          Collections.singletonList(new RemovedStorageEngineInfo("127.0.0.1", expPort, prefix, "")),
-          true);
+      // removeStorageEngine only supports dummy read-only engines; writable engine removal fails
+      try {
+        session.removeStorageEngine(
+            Collections.singletonList(
+                new RemovedStorageEngineInfo("127.0.0.1", expPort, prefix, "null")),
+            true);
+      } catch (SessionException e) {
+        if (e.getMessage() == null
+            || !e.getMessage().contains("remove history data source failed")) {
+          throw e;
+        }
+        // ignore: server rejects removing writable engine via this API
+      }
     }
   }
 
