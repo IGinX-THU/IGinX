@@ -2097,7 +2097,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       return map;
     }
     for (SqlParser.StorageEngineOptionContext opt : optionCtxList) {
-      // key 是 storageEngineOptionKey (nodeName (DOT nodeName)*)，支持点号，如 dummy.struct
+      // key 是 storageEngineOptionKey (ID (DOT ID)*)，仅纯标识符，如 dummy.struct
       if (opt.key == null) {
         throw new SQLParserException("Storage engine option key cannot be null");
       }
@@ -2113,20 +2113,23 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   /**
-   * Parse storage engine option key which can contain dots (e.g., dummy.struct). The key is defined
-   * as nodeName (DOT nodeName)* in the grammar.
+   * Parse storage engine option key: plain ID segments with dots (e.g., dummy.struct). Grammar is
+   * ID (DOT ID)* (no backtick, no keywords).
    *
    * @param ctx the storageEngineOptionKey context
    * @return the parsed key string (e.g., "dummy.struct")
    */
   private String parseStorageEngineOptionKey(SqlParser.StorageEngineOptionKeyContext ctx) {
+    List<? extends org.antlr.v4.runtime.tree.TerminalNode> ids = ctx.ID();
+    if (ids == null || ids.isEmpty()) {
+      return "";
+    }
     StringBuilder key = new StringBuilder();
-    List<SqlParser.NodeNameContext> nodeNames = ctx.nodeName();
-    for (int i = 0; i < nodeNames.size(); i++) {
+    for (int i = 0; i < ids.size(); i++) {
       if (i > 0) {
         key.append('.');
       }
-      key.append(parseNodeName(nodeNames.get(i)));
+      key.append(ids.get(i).getText());
     }
     return key.toString();
   }
