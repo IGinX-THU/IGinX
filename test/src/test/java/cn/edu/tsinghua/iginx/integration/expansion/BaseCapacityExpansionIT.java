@@ -472,8 +472,6 @@ public abstract class BaseCapacityExpansionIT {
     testUpdateEngineParams();
     // 测试 ALTER STORAGEENGINE 不允许修改的选项会报错
     testAlterEngineRejectsImmutableParams();
-    // 测试 has_data=true、is_read_only=false 的可写引擎不可被 ALTER
-    testAlterEngineRejectsEngine();
     // 测试主机名解析
     testHostnameResolution();
     // 测试schema_prefix为null时，能否正确移除 AddSchemaPrefix 算子
@@ -492,6 +490,8 @@ public abstract class BaseCapacityExpansionIT {
     testInvalidEngineParams(expPort, false, false, null, EXP_SCHEMA_PREFIX);
     // 扩容可写节点
     addStorageEngineInProgress(expPort, true, false, null, EXP_SCHEMA_PREFIX);
+    // 测试 has_data=true、is_read_only=false 的可写引擎不可被 ALTER
+    testAlterEngineRejectsEngine();
     // 查询扩容可写节点的历史数据，结果不为空
     testQueryHistoryDataExpHasData();
     // 写入并查询新数据
@@ -644,16 +644,6 @@ public abstract class BaseCapacityExpansionIT {
             "Message should mention that options cannot be altered (e.g. is_read_only): " + msg,
             msg != null && (msg.contains("cannot be altered") || msg.contains("is_read_only")));
       }
-      // 修改不存在的参数应报错（ALTER 只允许修改已有 key，不允许新增）
-      try {
-        session.executeSql(String.format(ALTER_ENGINE_STRING, id, "nonexistent_key 'value'"));
-        fail("Expected SessionException when altering non-existent option");
-      } catch (SessionException e) {
-        String msg = e.getMessage();
-        assertTrue(
-            "Message should mention that options do not exist or cannot be added: " + msg,
-            msg != null && (msg.contains("do not exist") || msg.contains("cannot be added")));
-      }
     } finally {
       session.removeStorageEngine(
           Collections.singletonList(
@@ -664,17 +654,13 @@ public abstract class BaseCapacityExpansionIT {
 
   /** 测试 has_data=true 且 is_read_only=false 的可写存储引擎不允许被 ALTER，应报错。 */
   protected void testAlterEngineRejectsEngine() throws SessionException {
-    String prefix = "alter_writable_test";
-    addStorageEngine(
-        "127.0.0.1", expPort, true, false, null, prefix, portsToExtraParams.get(expPort));
-
     List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
     long id = -1;
     for (StorageEngineInfo info : engineInfoList) {
       if (info.getIp().equals("127.0.0.1")
           && info.getPort() == expPort
           && info.getDataPrefix().equals("null")
-          && info.getSchemaPrefix().equals(prefix)
+          && info.getSchemaPrefix().equals("null")
           && info.getType().equals(type)) {
         id = info.getId();
         break;
@@ -691,20 +677,6 @@ public abstract class BaseCapacityExpansionIT {
       assertTrue(
           "Message should mention that only read-only engines can be altered: " + msg,
           msg != null && (msg.contains("read-only") || msg.contains("cannot be altered")));
-    } finally {
-      // removeStorageEngine only supports dummy read-only engines; writable engine removal fails
-      try {
-        session.removeStorageEngine(
-            Collections.singletonList(
-                new RemovedStorageEngineInfo("127.0.0.1", expPort, prefix, "null")),
-            true);
-      } catch (SessionException e) {
-        if (e.getMessage() == null
-            || !e.getMessage().contains("remove history data source failed")) {
-          throw e;
-        }
-        // ignore: server rejects removing writable engine via this API
-      }
     }
   }
 

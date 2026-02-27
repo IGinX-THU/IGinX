@@ -640,24 +640,6 @@ public class IginxWorker implements IService.Iface {
               + ". Removing and adding a new engine is recommended.");
       return status;
     }
-    // reject keys that do not already exist on the engine (ALTER = modify only, no add)
-    Set<String> existingKeysLower =
-        targetMeta.getExtraParams().keySet().stream()
-            .map(String::toLowerCase)
-            .collect(Collectors.toSet());
-    List<String> unknownKeys =
-        newParams.keySet().stream()
-            .filter(k -> !existingKeysLower.contains(k.toLowerCase()))
-            .sorted()
-            .collect(Collectors.toList());
-    if (!unknownKeys.isEmpty()) {
-      status.setCode(RpcUtils.FAILURE.code);
-      status.setMessage(
-          "The following options do not exist on this engine and cannot be added via ALTER: "
-              + String.join(", ", unknownKeys)
-              + ". To add new options, remove and add the engine again.");
-      return status;
-    }
     targetMeta.updateExtraParams(newParams);
 
     // remove, then add
