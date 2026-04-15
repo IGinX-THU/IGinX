@@ -88,8 +88,6 @@ public class FileSystemStorage implements IStorage {
 
   private final ExecutorService executor = Executors.newCachedThreadPool();
 
-  private final boolean isLegacyParquet;
-
   static {
     Collection<FileStructure> structures = FileStructureManager.getInstance().getAll();
     LOGGER.info("found file structures: {}", structures);
@@ -100,14 +98,9 @@ public class FileSystemStorage implements IStorage {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
 
-    String dataStructPath =
-        String.join(".", FileSystemConfig.Fields.data, StorageConfig.Fields.struct);
-    isLegacyParquet =
-        LegacyParquet.NAME.equals(
-            meta.getExtraParams().getOrDefault(dataStructPath, LegacyParquet.NAME));
+    this.fileSystemConfig = toFileSystemConfig(meta);
 
     InetSocketAddress address = new InetSocketAddress(meta.getIp(), meta.getPort());
-    this.fileSystemConfig = toFileSystemConfig(meta);
     try {
       this.service = new FileSystemService(address, fileSystemConfig);
     } catch (FileSystemException e) {
@@ -253,11 +246,8 @@ public class FileSystemStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithAgg(Operator agg, DataArea dataArea, boolean isDummy) {
-    if (!isLegacyParquet) {
-      return false;
-    }
-
     if (isDummy) return false;
+    if(!LegacyParquet.NAME.equals(fileSystemConfig.getData().getStruct())) return false;
     if (agg.getType() != OperatorType.SetTransform) return false;
     if (((OperatorSource) ((UnaryOperator) agg).getSource()).getOperator().getType()
         == OperatorType.Select) return false;
