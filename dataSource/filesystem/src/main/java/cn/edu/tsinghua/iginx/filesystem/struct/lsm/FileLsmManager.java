@@ -38,13 +38,12 @@ import cn.edu.tsinghua.iginx.filesystem.thrift.DataBoundary;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.RangeSet;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import javax.annotation.Nullable;
 
 public class FileLsmManager implements FileManager {
 

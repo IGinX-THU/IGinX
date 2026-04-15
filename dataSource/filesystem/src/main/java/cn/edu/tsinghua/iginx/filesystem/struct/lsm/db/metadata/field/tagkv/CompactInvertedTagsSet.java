@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.metadata.field.tagkv;
 
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -41,10 +40,10 @@ public class CompactInvertedTagsSet {
   }
 
   public CompactInvertedTagsSet(Collection<Map<String, String>> tagsCollection) {
-      this.tagsSet = new InvertedTagsSet();
-      for (Map<String, String> tags : tagsCollection) {
-        this.tagsSet.add(tags);
-      }
+    this.tagsSet = new InvertedTagsSet();
+    for (Map<String, String> tags : tagsCollection) {
+      this.tagsSet.add(tags);
+    }
   }
 
   public void add(Map<String, String> tags) {

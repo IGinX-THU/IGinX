@@ -27,8 +27,6 @@ import cn.edu.tsinghua.iginx.filesystem.common.AbstractConfig;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.Table;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.shared.cache.CachePool;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.MoreFiles;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -40,19 +38,22 @@ public abstract class SparseImmutableFileFormat extends ImmutableFileFormat {
     super(name, config, cachePool);
   }
 
-  protected abstract void flush(Path dstWithSuffix, List<Table.SubTable> subTables) throws IOException, PhysicalException;
+  protected abstract void flush(Path dstWithSuffix, List<Table.SubTable> subTables)
+      throws IOException, PhysicalException;
 
   protected abstract Object loadFileMeta(Path srcWithSuffix) throws IOException;
 
   protected abstract List<String> readSubTableNames(Path srcWithSuffix) throws IOException;
 
-  protected abstract Table.Meta loadMeta(Path srcWithSuffix, String subTableName) throws IOException;
+  protected abstract Table.Meta loadMeta(Path srcWithSuffix, String subTableName)
+      throws IOException;
 
-  protected abstract RowStream scan(Path srcWithSuffix, String subTableName, List<Field> fields, Filter predicate)
+  protected abstract RowStream scan(
+      Path srcWithSuffix, String subTableName, List<Field> fields, Filter predicate)
       throws IOException;
 
   @Override
-  public void flush(Path dst, Table table) throws IOException, PhysicalException  {
+  public void flush(Path dst, Table table) throws IOException, PhysicalException {
     Path dstWithSuffix = getWithSuffixPath(dst);
     flush(dstWithSuffix, table.getSubTables());
   }
@@ -61,7 +62,9 @@ public abstract class SparseImmutableFileFormat extends ImmutableFileFormat {
   protected List<Table.SubTable> readSubTables(Path src) throws IOException {
     Path srcWithSuffix = getWithSuffixPath(src);
     List<String> subTableNames = readSubTableNames(srcWithSuffix);
-    return subTableNames.stream().map(n -> new DenseSubTable(srcWithSuffix, n)).collect(ImmutableList.toImmutableList());
+    return subTableNames.stream()
+        .map(n -> new DenseSubTable(srcWithSuffix, n))
+        .collect(ImmutableList.toImmutableList());
   }
 
   protected Object getOrLoadFileMeta(Path srcWithSuffix) throws IOException {
@@ -84,10 +87,13 @@ public abstract class SparseImmutableFileFormat extends ImmutableFileFormat {
 
     @Override
     public String toString() {
-      return "DenseSubTable{" +
-              "srcWithSuffix=" + srcWithSuffix +
-              ", subTableName='" + subTableName + '\'' +
-              '}';
+      return "DenseSubTable{"
+          + "srcWithSuffix="
+          + srcWithSuffix
+          + ", subTableName='"
+          + subTableName
+          + '\''
+          + '}';
     }
 
     @Override

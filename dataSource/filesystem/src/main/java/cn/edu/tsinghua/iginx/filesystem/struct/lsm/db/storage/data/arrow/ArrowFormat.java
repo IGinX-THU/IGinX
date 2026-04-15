@@ -30,14 +30,6 @@ import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.storage.data.DenseImmutabl
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.Table;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.shared.cache.CachePool;
 import com.typesafe.config.Config;
-import org.apache.arrow.vector.*;
-import org.apache.arrow.vector.types.pojo.Schema;
-import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.memory.RootAllocator;
-import org.apache.arrow.vector.ipc.ArrowFileReader;
-import org.apache.arrow.vector.ipc.ArrowFileWriter;
-import org.apache.arrow.vector.ipc.message.IpcOption;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -49,7 +41,13 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.*;
+import org.apache.arrow.vector.ipc.ArrowFileReader;
+import org.apache.arrow.vector.ipc.ArrowFileWriter;
+import org.apache.arrow.vector.ipc.message.IpcOption;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class ArrowFormat extends DenseImmutableFileFormat {
 
@@ -70,27 +68,28 @@ public class ArrowFormat extends DenseImmutableFileFormat {
       arrowFields.addAll(ArrowFields.of(header.getFields()));
 
       try (BufferAllocator allocator = new RootAllocator();
-           VectorSchemaRoot root =
-               VectorSchemaRoot.create(new Schema(arrowFields), allocator);
-           WritableByteChannel channel =
-               Files.newByteChannel(dst, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
-           ArrowFileWriter writer =
-               new ArrowFileWriter(
-                   root,
-                   null,
-                   channel,
-                   null,
-                   IpcOption.DEFAULT,
-                   FastestCompressionFactory.INSTANCE,
-                   arrowConfig.getCompression(),
-                   Optional.ofNullable(arrowConfig.getCompressionLevel()))) {
+          VectorSchemaRoot root = VectorSchemaRoot.create(new Schema(arrowFields), allocator);
+          WritableByteChannel channel =
+              Files.newByteChannel(dst, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+          ArrowFileWriter writer =
+              new ArrowFileWriter(
+                  root,
+                  null,
+                  channel,
+                  null,
+                  IpcOption.DEFAULT,
+                  FastestCompressionFactory.INSTANCE,
+                  arrowConfig.getCompression(),
+                  Optional.ofNullable(arrowConfig.getCompressionLevel()))) {
         writer.start();
         while (rowStream.hasNext()) {
           List<Row> rows = new ArrayList<>();
-          for(int i = 0; i < BaseFixedWidthVector.INITIAL_VALUE_ALLOCATION && rowStream.hasNext(); i++) {
+          for (int i = 0;
+              i < BaseFixedWidthVector.INITIAL_VALUE_ALLOCATION && rowStream.hasNext();
+              i++) {
             rows.add(rowStream.next());
           }
-          writeRowsIntoRoot(root,rows);
+          writeRowsIntoRoot(root, rows);
           writer.writeBatch();
         }
         writer.end();
@@ -101,8 +100,8 @@ public class ArrowFormat extends DenseImmutableFileFormat {
 
   private static void writeRowsIntoRoot(VectorSchemaRoot root, List<Row> rows) {
     root.clear();
-    WriteBatches.fillVector(root.getVector(0), idx-> rows.get(idx).getKey() , rows.size());
-    for(int colIdx = 1; colIdx < root.getFieldVectors().size(); colIdx++) {
+    WriteBatches.fillVector(root.getVector(0), idx -> rows.get(idx).getKey(), rows.size());
+    for (int colIdx = 1; colIdx < root.getFieldVectors().size(); colIdx++) {
       FieldVector vector = root.getVector(colIdx);
       int rowColIdx = colIdx - 1;
       WriteBatches.fillVector(vector, idx -> rows.get(idx).getValue(rowColIdx), rows.size());
@@ -116,8 +115,8 @@ public class ArrowFormat extends DenseImmutableFileFormat {
 
   private void flushMeta(Path path, Table.Meta meta) throws IOException {
     try (ObjectOutputStream oos =
-             new ObjectOutputStream(
-                 Files.newOutputStream(path, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE))) {
+        new ObjectOutputStream(
+            Files.newOutputStream(path, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE))) {
       oos.writeObject(meta);
     }
   }
@@ -125,7 +124,7 @@ public class ArrowFormat extends DenseImmutableFileFormat {
   @Override
   protected Table.Meta loadMeta(Path src) throws IOException {
     try (ObjectInputStream ois =
-             new ObjectInputStream(Files.newInputStream(getMetaPath(src), StandardOpenOption.READ))) {
+        new ObjectInputStream(Files.newInputStream(getMetaPath(src), StandardOpenOption.READ))) {
       return (Table.Meta) ois.readObject();
     } catch (ClassNotFoundException e) {
       throw new IOException("Failed to read meta file for " + src, e);
@@ -140,9 +139,9 @@ public class ArrowFormat extends DenseImmutableFileFormat {
 
     List<Row> rows = new ArrayList<>();
     try (BufferAllocator allocator = new RootAllocator();
-         SeekableByteChannel channel = Files.newByteChannel(src, StandardOpenOption.READ);
-         ArrowFileReader reader =
-             new ArrowFileReader(channel, allocator, FastestCompressionFactory.INSTANCE)) {
+        SeekableByteChannel channel = Files.newByteChannel(src, StandardOpenOption.READ);
+        ArrowFileReader reader =
+            new ArrowFileReader(channel, allocator, FastestCompressionFactory.INSTANCE)) {
       while (reader.loadNextBatch()) {
         VectorSchemaRoot root = reader.getVectorSchemaRoot();
         BigIntVector keyVector = (BigIntVector) root.getVector(arrowKeyField);
@@ -175,5 +174,3 @@ public class ArrowFormat extends DenseImmutableFileFormat {
     return result;
   }
 }
-
-

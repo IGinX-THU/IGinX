@@ -24,7 +24,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.Table;
 import com.google.common.collect.RangeSet;
 import java.io.IOException;
-import java.util.List;
 import java.util.Set;
 
 public interface StorageManager {

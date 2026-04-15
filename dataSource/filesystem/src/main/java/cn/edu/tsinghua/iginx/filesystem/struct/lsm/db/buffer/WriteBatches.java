@@ -29,8 +29,6 @@ import java.util.function.BiConsumer;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.*;
@@ -38,7 +36,8 @@ import org.apache.arrow.vector.types.pojo.Field;
 
 public class WriteBatches {
 
-  public static Collection<MemBatch.Snapshot> of(DataView data, BufferAllocator allocator, boolean enableAlignInsert) {
+  public static Collection<MemBatch.Snapshot> of(
+      DataView data, BufferAllocator allocator, boolean enableAlignInsert) {
     switch (data.getRawDataType()) {
       case Column:
         return of((ColumnDataView) data, allocator, enableAlignInsert);
@@ -189,8 +188,10 @@ public class WriteBatches {
     return valueVector;
   }
 
-  public static void fillVector(FieldVector valueVector, IntFunction<Object> valueGetter, int length) {
-    BiConsumer<Integer, Object> appender = allocateAndCreateValueAppender(valueVector, valueGetter, length);
+  public static void fillVector(
+      FieldVector valueVector, IntFunction<Object> valueGetter, int length) {
+    BiConsumer<Integer, Object> appender =
+        allocateAndCreateValueAppender(valueVector, valueGetter, length);
     for (int i = 0; i < length; i++) {
       Object value = valueGetter.apply(i);
       if (value != null) {
@@ -199,7 +200,8 @@ public class WriteBatches {
     }
   }
 
-  private static BiConsumer<Integer, Object> allocateAndCreateValueAppender(FieldVector valueVector, IntFunction<Object> valueGetter, int length) {
+  private static BiConsumer<Integer, Object> allocateAndCreateValueAppender(
+      FieldVector valueVector, IntFunction<Object> valueGetter, int length) {
     switch (valueVector.getMinorType()) {
       case BIT:
         {
@@ -234,7 +236,12 @@ public class WriteBatches {
       case VARBINARY:
         {
           VarBinaryVector vector = (VarBinaryVector) valueVector;
-          long total = IntStream.range(0,length).mapToObj(valueGetter).filter(Objects::nonNull).mapToLong(value -> ((byte[]) value).length).sum();
+          long total =
+              IntStream.range(0, length)
+                  .mapToObj(valueGetter)
+                  .filter(Objects::nonNull)
+                  .mapToLong(value -> ((byte[]) value).length)
+                  .sum();
           vector.allocateNew(total, length);
           return (index, value) -> vector.set(index, (byte[]) value);
         }

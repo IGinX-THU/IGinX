@@ -22,7 +22,6 @@ package cn.edu.tsinghua.iginx.engine.shared.data.read;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
-
 import java.io.Serializable;
 import java.util.*;
 

@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.storage.data.tsfile.Tsfile
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.shared.cache.CachePool;
 import com.typesafe.config.Config;
 import java.util.Objects;
-import java.util.function.BiFunction;
 
 public enum FileFormatType {
   PARQUET(ParquetFormat::new),

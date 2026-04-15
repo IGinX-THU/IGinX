@@ -247,7 +247,7 @@ public class FileSystemStorage implements IStorage {
   @Override
   public boolean isSupportProjectWithAgg(Operator agg, DataArea dataArea, boolean isDummy) {
     if (isDummy) return false;
-    if(!LegacyParquet.NAME.equals(fileSystemConfig.getData().getStruct())) return false;
+    if (!LegacyParquet.NAME.equals(fileSystemConfig.getData().getStruct())) return false;
     if (agg.getType() != OperatorType.SetTransform) return false;
     if (((OperatorSource) ((UnaryOperator) agg).getSource()).getOperator().getType()
         == OperatorType.Select) return false;

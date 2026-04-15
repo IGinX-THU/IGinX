@@ -1,9 +1,29 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.storage.data.tsfile;
 
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.ColumnKey;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.storage.data.TagKVUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.util.List;
 import org.apache.tsfile.common.conf.TSFileConfig;
 import org.apache.tsfile.enums.TSDataType;
 import org.apache.tsfile.file.metadata.enums.TSEncoding;
@@ -14,13 +34,9 @@ import org.apache.tsfile.write.record.datapoint.*;
 import org.apache.tsfile.write.schema.IMeasurementSchema;
 import org.apache.tsfile.write.schema.MeasurementSchema;
 
-import java.util.List;
-
 public class TypeUtils {
 
-
-  private TypeUtils() {
-  }
+  private TypeUtils() {}
 
   public static IMeasurementSchema toTsfileField(Field field, TSFileConfig config) {
     TSDataType dataType = toTsfileType(field.getType());
@@ -28,8 +44,7 @@ public class TypeUtils {
         TagKVUtils.toFullName(field.getName(), field.getTags()),
         dataType,
         TSEncoding.valueOf(config.getValueEncoder(dataType)),
-        config.getCompressor(dataType)
-    );
+        config.getCompressor(dataType));
   }
 
   public static TSDataType toTsfileType(DataType type) {
@@ -79,7 +94,8 @@ public class TypeUtils {
     }
   }
 
-  public static TSRecord toTsRecord(String deviceId, List<IMeasurementSchema> schema, long key, Object[] values) {
+  public static TSRecord toTsRecord(
+      String deviceId, List<IMeasurementSchema> schema, long key, Object[] values) {
     TSRecord record = new TSRecord(deviceId, key);
     for (int i = 0; i < schema.size(); i++) {
       Object value = values[i];

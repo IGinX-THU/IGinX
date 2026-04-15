@@ -63,7 +63,8 @@ public class Shared implements Closeable {
     Semaphore scannerPermits = new Semaphore(sharedConfig.getScanners(), true);
     CachePool cachePool = new CachePool(sharedConfig.getCache());
     BufferAllocator allocator = new RootAllocator();
-    return new Shared(config.getDb(), flusherPermits, memTablePermits, scannerPermits, cachePool, allocator);
+    return new Shared(
+        config.getDb(), flusherPermits, memTablePermits, scannerPermits, cachePool, allocator);
   }
 
   public DBConfig getConfig() {
@@ -95,6 +96,4 @@ public class Shared implements Closeable {
     cachePool.asMap().clear();
     allocator.close();
   }
-
-
 }

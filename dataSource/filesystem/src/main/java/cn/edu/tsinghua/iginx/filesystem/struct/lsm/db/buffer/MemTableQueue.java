@@ -25,17 +25,16 @@ import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.Table;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.event.MemTableQueueClearEvent;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.event.TableAppendEvent;
 import it.unimi.dsi.fastutil.longs.LongObjectPair;
-import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.util.Preconditions;
-import org.apache.arrow.vector.types.pojo.Field;
-
-import javax.annotation.Nullable;
-import javax.annotation.WillCloseWhenClosed;
-import javax.annotation.concurrent.ThreadSafe;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.LongConsumer;
+import javax.annotation.Nullable;
+import javax.annotation.WillCloseWhenClosed;
+import javax.annotation.concurrent.ThreadSafe;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.util.Preconditions;
+import org.apache.arrow.vector.types.pojo.Field;
 
 @ThreadSafe
 public class MemTableQueue implements NoexceptAutoCloseable {
@@ -43,13 +42,13 @@ public class MemTableQueue implements NoexceptAutoCloseable {
 
   private final MemTableConfig config;
   private final BlockingQueue<Long> toFlushIds = new PriorityBlockingQueue<>();
-  private final ConcurrentNavigableMap<Long, ArchivedMemTable> archives = new ConcurrentSkipListMap<>();
+  private final ConcurrentNavigableMap<Long, ArchivedMemTable> archives =
+      new ConcurrentSkipListMap<>();
   private final BufferAllocator allocator;
   private final ActiveMemTable active;
 
   public MemTableQueue(
-      String name,
-      MemTableConfig config, Semaphore memTablePermits, BufferAllocator allocator) {
+      String name, MemTableConfig config, Semaphore memTablePermits, BufferAllocator allocator) {
     this.config = Preconditions.checkNotNull(config);
     this.allocator = allocator.newChildAllocator(name, 0, Long.MAX_VALUE);
     this.active = new ActiveMemTable(name, config, this.allocator, memTablePermits);
@@ -115,7 +114,7 @@ public class MemTableQueue implements NoexceptAutoCloseable {
 
   private void remove(long id) {
     ArchivedMemTable removed = archives.remove(id);
-    if( removed!=null){
+    if (removed != null) {
       removed.close();
     }
     active.onTableFlushed(id);
@@ -131,14 +130,14 @@ public class MemTableQueue implements NoexceptAutoCloseable {
     List<InMemoryTable> result = new ArrayList<>();
     queueLock.readLock().lock();
     try {
-      for(Map.Entry<Long, ArchivedMemTable> entry : archives.entrySet()){
+      for (Map.Entry<Long, ArchivedMemTable> entry : archives.entrySet()) {
         long id = entry.getKey();
         ArchivedMemTable archivedMemTable = entry.getValue();
         MemTable.Snapshot snapshot = archivedMemTable.getMemTable().snapshot(fields, allocator);
         result.add(new InMemoryTable(id, snapshot));
       }
       LongObjectPair<MemTable.Snapshot> activeSnapshot = active.snapshot(fields, allocator);
-      if(activeSnapshot != null) {
+      if (activeSnapshot != null) {
         long id = activeSnapshot.leftLong();
         MemTable.Snapshot snapshot = activeSnapshot.right();
         result.add(new InMemoryTable(id, snapshot));
@@ -238,7 +237,7 @@ public class MemTableQueue implements NoexceptAutoCloseable {
     private final BlockingQueue<Long> toDeleteIds = new PriorityBlockingQueue<>();
 
     public ActiveMemTable(
-            String name, MemTableConfig config, BufferAllocator allocator, Semaphore memTablePermits) {
+        String name, MemTableConfig config, BufferAllocator allocator, Semaphore memTablePermits) {
       this.name = Preconditions.checkNotNull(name);
       this.config = Preconditions.checkNotNull(config);
       this.allocator = Preconditions.checkNotNull(allocator);
@@ -268,8 +267,8 @@ public class MemTableQueue implements NoexceptAutoCloseable {
       TableAppendEvent event = new TableAppendEvent();
       switchTableLock.readLock().lock();
       try {
-        event.activeMemTableName=name;
-        event.memTableId=currentId;
+        event.activeMemTableName = name;
+        event.memTableId = currentId;
         event.begin();
         for (MemBatch.Snapshot snapshot : data) {
           activeTable.append(snapshot);
@@ -309,10 +308,11 @@ public class MemTableQueue implements NoexceptAutoCloseable {
     }
 
     @Nullable
-    public LongObjectPair<MemTable.Snapshot> snapshot(List<Field> fields, BufferAllocator allocator) {
+    public LongObjectPair<MemTable.Snapshot> snapshot(
+        List<Field> fields, BufferAllocator allocator) {
       switchTableLock.readLock().lock();
       try {
-        if(activeTableWritten) {
+        if (activeTableWritten) {
           return LongObjectPair.of(currentId, activeTable.snapshot(fields, allocator));
         }
         return null;

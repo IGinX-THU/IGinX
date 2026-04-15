@@ -40,16 +40,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.Streams;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OneTierDB implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(OneTierDB.class);
@@ -70,14 +69,10 @@ public class OneTierDB implements AutoCloseable {
     this.path = path;
     this.shared = shared;
     this.catalog = new Catalog(shared.getConfig().getCatalog());
-    this.indexer = new Indexer(path.toString(),shared.getFlusherPermits());
+    this.indexer = new Indexer(path.toString(), shared.getFlusherPermits());
     this.tableStorage =
         new TableStorage(
-            path,
-            shared.getConfig().getStorage(),
-            catalog,
-            shared.getCachePool(),
-            indexer);
+            path, shared.getConfig().getStorage(), catalog, shared.getCachePool(), indexer);
     this.memTableQueue =
         new MemTableQueue(
             path.toString(),
@@ -95,13 +90,17 @@ public class OneTierDB implements AutoCloseable {
     indexer.start();
     flusher.start();
     if (shared.getConfig().isFlushOnClose()) {
-      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-        try {
-          close();
-        } catch (Throwable e) {
-          LOGGER.error("failed to closing db {} in shutdown hook", path, e);
-        }
-      }, OneTierDB.class.getSimpleName()+"(" + path + ")-ShutdownHook"));
+      Runtime.getRuntime()
+          .addShutdownHook(
+              new Thread(
+                  () -> {
+                    try {
+                      close();
+                    } catch (Throwable e) {
+                      LOGGER.error("failed to closing db {} in shutdown hook", path, e);
+                    }
+                  },
+                  OneTierDB.class.getSimpleName() + "(" + path + ")-ShutdownHook"));
     }
   }
 
@@ -158,7 +157,8 @@ public class OneTierDB implements AutoCloseable {
       throws StorageException, InterruptedException {
     deleteLock.writeLock().lock();
     try {
-      LOGGER.debug("request to delete from {} where {} with {} in {}", patterns, ranges, tagFilter, path);
+      LOGGER.debug(
+          "request to delete from {} where {} with {} in {}", patterns, ranges, tagFilter, path);
       Set<Field> fields = catalog.findFields(patterns, tagFilter);
       if (ranges.encloses(Range.all())) {
         if (Patterns.isAll(patterns) && tagFilter == null) {

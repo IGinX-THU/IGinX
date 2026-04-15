@@ -27,7 +27,6 @@ import cn.edu.tsinghua.iginx.filesystem.common.AbstractConfig;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.AbstractTable;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.Table;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.shared.cache.CachePool;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -46,17 +45,13 @@ public abstract class ImmutableFileFormat {
     this.cachePool = Objects.requireNonNull(cachePool);
     List<AbstractConfig.ValidationProblem> problems = config.validate();
     if (!problems.isEmpty()) {
-        throw new IllegalArgumentException(
-            "invalid config for format " + name + ": " + problems);
+      throw new IllegalArgumentException("invalid config for format " + name + ": " + problems);
     }
   }
 
   @Override
   public String toString() {
-    return "ImmutableFileFormat{" +
-            "name='" + name + '\'' +
-            ", config=" + config +
-            '}';
+    return "ImmutableFileFormat{" + "name='" + name + '\'' + ", config=" + config + '}';
   }
 
   public abstract void flush(Path dst, Table table) throws IOException, PhysicalException;
@@ -101,10 +96,13 @@ public abstract class ImmutableFileFormat {
 
     @Override
     public String toString() {
-      return "ImmutableFileFormatTable{" +
-              "path=" + path + "," +
-              "format=" + ImmutableFileFormat.this.name +
-              '}';
+      return "ImmutableFileFormatTable{"
+          + "path="
+          + path
+          + ","
+          + "format="
+          + ImmutableFileFormat.this.name
+          + '}';
     }
   }
 }

@@ -30,7 +30,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,10 +55,7 @@ public class TombstoneTable extends AbstractTable {
 
   @Override
   public String toString() {
-    return "TombstoneTable{" +
-            "table=" + table +
-            ", tombstone=" + tombstone +
-            '}';
+    return "TombstoneTable{" + "table=" + table + ", tombstone=" + tombstone + '}';
   }
 
   private static class TombstoneSubTable implements SubTable {
@@ -73,10 +69,7 @@ public class TombstoneTable extends AbstractTable {
 
     @Override
     public String toString() {
-      return "TombstoneSubTable{" +
-              "subTable=" + subTable +
-              ", tombstone=" + tombstone +
-              '}';
+      return "TombstoneSubTable{" + "subTable=" + subTable + ", tombstone=" + tombstone + '}';
     }
 
     @Override

@@ -20,11 +20,9 @@
 package cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.metadata.field.tagkv;
 
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.exception.TypeConflictedException;
-
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.Collection;
 import java.util.Map;
-
-import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class TypedCompactInvertedTagsSet extends CompactInvertedTagsSet {
   private final DataType type;
@@ -34,11 +32,11 @@ public class TypedCompactInvertedTagsSet extends CompactInvertedTagsSet {
     this.type = type;
   }
 
-  public TypedCompactInvertedTagsSet(DataType type, Collection<Map<String, String>> tagsCollection) {
+  public TypedCompactInvertedTagsSet(
+      DataType type, Collection<Map<String, String>> tagsCollection) {
     super(tagsCollection);
     this.type = type;
   }
-
 
   public DataType getType() {
     return type;
@@ -51,16 +49,14 @@ public class TypedCompactInvertedTagsSet extends CompactInvertedTagsSet {
     super.add(tags);
   }
 
-  public boolean contain(Map<String, String> tags, DataType type)
-      throws TypeConflictedException {
+  public boolean contain(Map<String, String> tags, DataType type) throws TypeConflictedException {
     if (this.type != type) {
       throw new TypeConflictedException(tags.toString(), type.toString(), this.type.toString());
     }
     return super.contain(tags);
   }
 
-  public void remove(Map<String, String> tags, DataType type)
-      throws TypeConflictedException {
+  public void remove(Map<String, String> tags, DataType type) throws TypeConflictedException {
     if (this.type != type) {
       throw new TypeConflictedException(tags.toString(), type.toString(), this.type.toString());
     }

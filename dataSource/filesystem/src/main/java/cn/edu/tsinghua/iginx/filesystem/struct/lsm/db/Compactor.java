@@ -19,17 +19,14 @@
  */
 package cn.edu.tsinghua.iginx.filesystem.struct.lsm.db;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.buffer.MemTableQueue;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.time.Duration;
+import java.util.concurrent.*;
+import javax.annotation.concurrent.NotThreadSafe;
 import org.apache.arrow.util.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.concurrent.NotThreadSafe;
-import java.io.IOException;
-import java.time.Duration;
-import java.util.concurrent.*;
 
 @NotThreadSafe
 public class Compactor {

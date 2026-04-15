@@ -33,6 +33,11 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.typesafe.config.Config;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import lombok.Value;
 import org.apache.arrow.util.Preconditions;
 import org.apache.tsfile.common.conf.TSFileConfig;
@@ -50,12 +55,6 @@ import org.apache.tsfile.write.record.TSRecord;
 import org.apache.tsfile.write.schema.IMeasurementSchema;
 import org.apache.tsfile.write.schema.Schema;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 public class TsfileFormat extends SparseImmutableFileFormat {
 
   private final TsfileConfig tsfileConfig;
@@ -66,11 +65,13 @@ public class TsfileFormat extends SparseImmutableFileFormat {
   }
 
   @Override
-  protected void flush(Path dstWithSuffix, List<Table.SubTable> subTables) throws IOException, PhysicalException {
+  protected void flush(Path dstWithSuffix, List<Table.SubTable> subTables)
+      throws IOException, PhysicalException {
     TSFileConfig tsFileConfig = new TSFileConfig();
     tsFileConfig.setCompressor(tsfileConfig.getCompression().name());
 
-    try (TsFileWriter tsFileWriter = new TsFileWriter(dstWithSuffix.toFile(), new Schema(), tsFileConfig)) {
+    try (TsFileWriter tsFileWriter =
+        new TsFileWriter(dstWithSuffix.toFile(), new Schema(), tsFileConfig)) {
       for (int subTableIndex = 0; subTableIndex < subTables.size(); subTableIndex++) {
         String deviceId = String.format("subtable%010d", subTableIndex);
         Table.SubTable subTable = subTables.get(subTableIndex);
@@ -95,11 +96,13 @@ public class TsfileFormat extends SparseImmutableFileFormat {
 
   @Override
   protected Object loadFileMeta(Path srcWithSuffix) throws IOException {
-    try (TsFileSequenceReader metaReader = new TsFileSequenceReader(srcWithSuffix.toFile().getPath())) {
+    try (TsFileSequenceReader metaReader =
+        new TsFileSequenceReader(srcWithSuffix.toFile().getPath())) {
       return new FileMeta(
           metaReader.getAllTimeseriesMetadata(false).entrySet().stream()
-              .collect(ImmutableMap.toImmutableMap(entry -> entry.getKey().toString(), Map.Entry::getValue))
-      );
+              .collect(
+                  ImmutableMap.toImmutableMap(
+                      entry -> entry.getKey().toString(), Map.Entry::getValue)));
     }
   }
 
@@ -128,7 +131,9 @@ public class TsfileFormat extends SparseImmutableFileFormat {
       if (timeseriesMetadata.getMeasurementId().isEmpty()) {
         continue;
       }
-      Field field = TypeUtils.toIginxField(timeseriesMetadata.getMeasurementId(), timeseriesMetadata.getTsDataType());
+      Field field =
+          TypeUtils.toIginxField(
+              timeseriesMetadata.getMeasurementId(), timeseriesMetadata.getTsDataType());
       Statistics<?> stat = timeseriesMetadata.getStatistics();
       Range<Long> keyRange = Range.closed(stat.getStartTime(), stat.getEndTime());
       fieldStatsBuilder.put(field, new Table.Statistic(keyRange));
@@ -137,7 +142,9 @@ public class TsfileFormat extends SparseImmutableFileFormat {
   }
 
   @Override
-  protected RowStream scan(Path srcWithSuffix, String subTableName, List<Field> fields, Filter predicate) throws IOException {
+  protected RowStream scan(
+      Path srcWithSuffix, String subTableName, List<Field> fields, Filter predicate)
+      throws IOException {
     Header header = new Header(Field.KEY, fields);
 
     List<org.apache.tsfile.read.common.Path> tsfileFields = new ArrayList<>();
@@ -156,7 +163,8 @@ public class TsfileFormat extends SparseImmutableFileFormat {
       QueryDataSet dataset = tsFileReader.query(queryExpression);
       List<org.apache.tsfile.read.common.Path> resultFields = dataset.getPaths();
 
-      Preconditions.checkState(resultFields.equals(tsfileFields), "Returned fields do not match requested fields");
+      Preconditions.checkState(
+          resultFields.equals(tsfileFields), "Returned fields do not match requested fields");
 
       while (dataset.hasNext()) {
         RowRecord record = dataset.next();

@@ -23,16 +23,15 @@ import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.storage.AtomFlushPathWrapp
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.exception.StorageRuntimeException;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.shared.cache.CachePool;
 import com.google.common.io.MoreFiles;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TombstoneStorage {
   private static final Logger LOGGER = LoggerFactory.getLogger(TombstoneStorage.class);
@@ -67,12 +66,12 @@ public class TombstoneStorage {
     try (AtomFlushPathWrapper wrapper = new AtomFlushPathWrapper(path, true)) {
       MoreFiles.createParentDirectories(wrapper.getTmpPath());
       try (ObjectOutputStream oos =
-               new ObjectOutputStream(
-                   Files.newOutputStream(
-                       wrapper.getTmpPath(),
-                       StandardOpenOption.CREATE,
-                       StandardOpenOption.WRITE,
-                       StandardOpenOption.TRUNCATE_EXISTING))) {
+          new ObjectOutputStream(
+              Files.newOutputStream(
+                  wrapper.getTmpPath(),
+                  StandardOpenOption.CREATE,
+                  StandardOpenOption.WRITE,
+                  StandardOpenOption.TRUNCATE_EXISTING))) {
         oos.writeObject(tombstone);
       }
       wrapper.commit();

@@ -1,3 +1,22 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ * TSIGinX@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 package cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.storage.data.parquet;
 
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.ColumnKey;
@@ -9,6 +28,8 @@ import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.Table;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.arrow.util.Preconditions;
 import org.apache.paimon.data.BinaryString;
 import org.apache.paimon.data.GenericRow;
@@ -19,9 +40,6 @@ import org.apache.paimon.shade.org.apache.parquet.schema.PrimitiveType;
 import org.apache.paimon.types.BigIntType;
 import org.apache.paimon.types.DataTypes;
 import org.apache.paimon.types.RowType;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class TypeUtils {
 
@@ -62,15 +80,16 @@ public class TypeUtils {
     genericRow.setField(0, row.getKey());
     for (int i = 0; i < values.length; i++) {
       Object value = values[i];
-      if(value instanceof byte[]) {
+      if (value instanceof byte[]) {
         value = BinaryString.fromBytes((byte[]) value);
       }
-      genericRow.setField(i + 1,value);
+      genericRow.setField(i + 1, value);
     }
     return genericRow;
   }
 
-  public static ImmutableMap<Field, Table.Statistic> toStatisticMap(Map<String, Statistics<?>> left) {
+  public static ImmutableMap<Field, Table.Statistic> toStatisticMap(
+      Map<String, Statistics<?>> left) {
     Map<Field, Statistics<?>> fieldStats = new HashMap<>();
     for (Map.Entry<String, Statistics<?>> entry : left.entrySet()) {
       String name = entry.getKey();
@@ -93,7 +112,8 @@ public class TypeUtils {
     }
     Table.Statistic statistic = new Table.Statistic(keyRange);
 
-    return fieldStats.keySet().stream().collect(ImmutableMap.toImmutableMap(f -> f, f -> statistic));
+    return fieldStats.keySet().stream()
+        .collect(ImmutableMap.toImmutableMap(f -> f, f -> statistic));
   }
 
   public static DataType toIginxType(PrimitiveType type) {
@@ -116,12 +136,13 @@ public class TypeUtils {
     }
   }
 
-  public static Row toRow(InternalRow paimonRow, Header header, InternalRow.FieldGetter[] fieldGetters) {
+  public static Row toRow(
+      InternalRow paimonRow, Header header, InternalRow.FieldGetter[] fieldGetters) {
     long key = paimonRow.getLong(0);
     Object[] values = new Object[header.getFields().size()];
     for (int i = 0; i < values.length; i++) {
       Object value = fieldGetters[i + 1].getFieldOrNull(paimonRow);
-      if(value instanceof BinaryString) {
+      if (value instanceof BinaryString) {
         value = ((BinaryString) value).toBytes();
       }
       values[i] = value;

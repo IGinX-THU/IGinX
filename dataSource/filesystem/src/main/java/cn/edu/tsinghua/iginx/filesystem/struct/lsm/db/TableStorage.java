@@ -25,12 +25,11 @@ import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.metadata.Catalog;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.storage.ImmutableFileStorageManager;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.storage.StorageConfig;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.storage.StorageManager;
+import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.Table;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.exception.StorageRuntimeException;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.exception.TypeConflictedException;
-import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.Table;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.shared.cache.CachePool;
 import com.google.common.collect.*;
-
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -47,7 +46,8 @@ public class TableStorage {
   private final Catalog catalog;
   private final StorageManager storageManager;
 
-  public TableStorage(Path path, StorageConfig storage, Catalog catalog, CachePool cachePool, Indexer indexer) {
+  public TableStorage(
+      Path path, StorageConfig storage, Catalog catalog, CachePool cachePool, Indexer indexer) {
     this.catalog = catalog;
     this.storageManager = new ImmutableFileStorageManager(path, storage, cachePool, indexer);
 

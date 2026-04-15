@@ -155,15 +155,15 @@
 
     <repositories>
         <repository>
-            <id>parquet-file</id>
-            <name>IGinX GitHub repository</name>
-            <url>https://iginx-thu.github.io/Parquet/maven-repo</url>
             <releases>
                 <enabled>true</enabled>
             </releases>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
+            <id>parquet-file</id>
+            <name>IGinX GitHub repository</name>
+            <url>https://iginx-thu.github.io/Parquet/maven-repo</url>
         </repository>
     </repositories>
 
@@ -304,15 +304,15 @@
                         </inlineDescriptor>
                     </inlineDescriptors>
                 </configuration>
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>assembly-shaded-jar-only</id>-->
-<!--                        <goals>-->
-<!--                            <goal>single</goal>-->
-<!--                        </goals>-->
-<!--                        <phase>package</phase>-->
-<!--                    </execution>-->
-<!--                </executions>-->
+                <!--                <executions>-->
+                <!--                    <execution>-->
+                <!--                        <id>assembly-shaded-jar-only</id>-->
+                <!--                        <goals>-->
+                <!--                            <goal>single</goal>-->
+                <!--                        </goals>-->
+                <!--                        <phase>package</phase>-->
+                <!--                    </execution>-->
+                <!--                </executions>-->
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

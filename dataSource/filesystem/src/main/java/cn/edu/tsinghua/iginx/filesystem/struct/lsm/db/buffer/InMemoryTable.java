@@ -29,15 +29,14 @@ import com.google.common.collect.*;
 import it.unimi.dsi.fastutil.ints.IntComparator;
 import it.unimi.dsi.fastutil.ints.IntHeapPriorityQueue;
 import it.unimi.dsi.fastutil.ints.IntPriorityQueue;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import javax.annotation.WillCloseWhenClosed;
 import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.FieldVector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.WillCloseWhenClosed;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class InMemoryTable extends AbstractTable implements NoexceptAutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(InMemoryTable.class);
@@ -68,7 +67,7 @@ public class InMemoryTable extends AbstractTable implements NoexceptAutoCloseabl
 
   @Override
   public String toString() {
-    return "InMemoryTable{" +  "id=" + id + '}';
+    return "InMemoryTable{" + "id=" + id + '}';
   }
 
   private class InMemorySubTable implements SubTable {
@@ -84,17 +83,15 @@ public class InMemoryTable extends AbstractTable implements NoexceptAutoCloseabl
       }
       Range<Long> range = rangeSet.isEmpty() ? Range.closedOpen(0L, 0L) : rangeSet.span();
       ImmutableMap<Field, Statistic> fieldStats =
-          snapshot.getFields().stream().map(ArrowFields::toIginxField)
+          snapshot.getFields().stream()
+              .map(ArrowFields::toIginxField)
               .collect(ImmutableMap.toImmutableMap(field -> field, field -> new Statistic(range)));
       this.meta = new Meta(fieldStats);
     }
 
     @Override
     public String toString() {
-      return "InMemorySubTable{" +
-              "table=" + InMemoryTable.this +
-              ", meta=" + meta +
-              '}';
+      return "InMemorySubTable{" + "table=" + InMemoryTable.this + ", meta=" + meta + '}';
     }
 
     @Override
@@ -115,9 +112,7 @@ public class InMemoryTable extends AbstractTable implements NoexceptAutoCloseabl
     }
   }
 
-  /**
-   * 多路归并RowStream实现 使用最小堆对多个已排序的chunk进行归并去重
-   */
+  /** 多路归并RowStream实现 使用最小堆对多个已排序的chunk进行归并去重 */
   private static class MergedRowStream implements RowStream {
 
     private final Header header;
@@ -126,12 +121,12 @@ public class InMemoryTable extends AbstractTable implements NoexceptAutoCloseabl
     private final MergeCursor cursor;
     private Row nextRow;
 
-    MergedRowStream(
-            MemSubTable.Snapshot snapshot, List<Field> fields, RangeSet<Long> keyRangeSet) {
+    MergedRowStream(MemSubTable.Snapshot snapshot, List<Field> fields, RangeSet<Long> keyRangeSet) {
       this.header = new Header(Field.KEY, fields);
       this.fieldIndexMapping = buildFieldIndexMapping(snapshot, fields);
       this.iterators = collectEligibleIterators(snapshot, keyRangeSet);
-      this.cursor = new MergeCursor(new IntHeapPriorityQueue(iterators.length, this::compareIterators));
+      this.cursor =
+          new MergeCursor(new IntHeapPriorityQueue(iterators.length, this::compareIterators));
       for (int i = 0; i < iterators.length; i++) {
         if (iterators[i].advance()) {
           cursor.enqueue(i);
@@ -141,7 +136,8 @@ public class InMemoryTable extends AbstractTable implements NoexceptAutoCloseabl
     }
 
     private static int[] buildFieldIndexMapping(MemSubTable.Snapshot snapshot, List<Field> fields) {
-      List<Field> snapshotFields = snapshot.getFields().stream().map(ArrowFields::toIginxField).collect(Collectors.toList());
+      List<Field> snapshotFields =
+          snapshot.getFields().stream().map(ArrowFields::toIginxField).collect(Collectors.toList());
 
       Map<Field, Integer> snapshotFieldIndexMap = new HashMap<>();
       for (int i = 0; i < snapshotFields.size(); i++) {
@@ -160,7 +156,7 @@ public class InMemoryTable extends AbstractTable implements NoexceptAutoCloseabl
     }
 
     private static ChunkIterator[] collectEligibleIterators(
-            MemSubTable.Snapshot snapshot, RangeSet<Long> keyRangeSet) {
+        MemSubTable.Snapshot snapshot, RangeSet<Long> keyRangeSet) {
       List<ChunkIterator> validIterators = new ArrayList<>();
       for (MemSubTable.SortedChunkSnapshot chunk : snapshot.getChunks()) {
         if (keyRangeSet.intersects(chunk.getKeyRange())) {
@@ -220,8 +216,7 @@ public class InMemoryTable extends AbstractTable implements NoexceptAutoCloseabl
     }
 
     @Override
-    public void close() {
-    }
+    public void close() {}
 
     private static class ChunkIterator {
       private final BigIntVector keyVector;

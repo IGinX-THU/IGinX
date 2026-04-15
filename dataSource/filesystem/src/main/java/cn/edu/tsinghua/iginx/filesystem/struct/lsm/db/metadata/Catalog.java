@@ -31,13 +31,12 @@ import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.exception.TypeConflic
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.shared.cache.CachePool;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.RangeSet;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Catalog {
 
@@ -76,13 +75,14 @@ public class Catalog {
         Set<Field> toInserted = new HashSet<>();
         for (Field field : fields) {
           if (!schema.contain(field)) {
-            Field compactField = new Field(
-                field.getName().intern(),
-                field.getType(),
-                field.getTags().entrySet().stream().collect(ImmutableMap.toImmutableMap(
-                    e -> e.getKey().intern(),
-                    e -> e.getValue().intern()
-                )));
+            Field compactField =
+                new Field(
+                    field.getName().intern(),
+                    field.getType(),
+                    field.getTags().entrySet().stream()
+                        .collect(
+                            ImmutableMap.toImmutableMap(
+                                e -> e.getKey().intern(), e -> e.getValue().intern())));
             toInserted.add(compactField);
           }
         }
@@ -92,8 +92,7 @@ public class Catalog {
         schema.insert(toInserted);
         event.end();
         for (Field field : toInserted) {
-          index.computeIfAbsent(
-              field, f -> new ColumnTableIndex(f.getType()));
+          index.computeIfAbsent(field, f -> new ColumnTableIndex(f.getType()));
         }
       } finally {
         schemaLock.writeLock().unlock();

@@ -29,13 +29,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import lombok.Value;
-import org.apache.arrow.util.Preconditions;
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import lombok.Value;
+import org.apache.arrow.util.Preconditions;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class PrefixTagTreeIndex implements FieldIndex {
 
@@ -174,12 +173,12 @@ public class PrefixTagTreeIndex implements FieldIndex {
         if (!sharedTagsSet.equals(Collections.singleton(Collections.emptyMap()))) {
           Consumer<Field> finalFieldConsumer = fieldConsumer;
           fieldConsumer =
-                  field -> {
-                    for (Map<String, String> tags : sharedTagsSet) {
-                      Field newField = new Field(field.getName(), field.getType(), tags);
-                      finalFieldConsumer.accept(newField);
-                    }
-                  };
+              field -> {
+                for (Map<String, String> tags : sharedTagsSet) {
+                  Field newField = new Field(field.getName(), field.getType(), tags);
+                  finalFieldConsumer.accept(newField);
+                }
+              };
         }
       }
 
@@ -245,19 +244,18 @@ public class PrefixTagTreeIndex implements FieldIndex {
       }
 
       if (childrenSharedTagsSet != null || (useChildrenSharedTagsSet && children.isEmpty())) {
-        Map<Map<String,String>, List<NodeListField>> fieldGroups =
-            childrenFields.stream()
-                    .collect(Collectors.groupingBy(NodeListField::getTags));
+        Map<Map<String, String>, List<NodeListField>> fieldGroups =
+            childrenFields.stream().collect(Collectors.groupingBy(NodeListField::getTags));
         if (fieldGroups.values().stream().distinct().count() == 1) {
           Map<String, List<NodeListField>> groupedChildFieldsWithoutTags =
-                  groupByFirstNode(fieldGroups.values().iterator().next(), false);
+              groupByFirstNode(fieldGroups.values().iterator().next(), false);
           if (children.isEmpty()) {
             add(groupedChildFieldsWithoutTags, false);
             fieldGroups.keySet().forEach(this::addChildrenSharedTags);
             return;
           }
           if (childrenSharedTagsSet != null
-                  && this.treeEqualsWithoutTags(groupedChildFieldsWithoutTags)) {
+              && this.treeEqualsWithoutTags(groupedChildFieldsWithoutTags)) {
             fieldGroups.keySet().forEach(this::addChildrenSharedTags);
             return;
           }
@@ -304,7 +302,7 @@ public class PrefixTagTreeIndex implements FieldIndex {
       Preconditions.checkArgument(tagsCollection != null && !tagsCollection.isEmpty());
 
       if (pathEnd != null) {
-        Preconditions.checkState(pathEnd.size()==1 && pathEnd.contain(Collections.emptyMap()));
+        Preconditions.checkState(pathEnd.size() == 1 && pathEnd.contain(Collections.emptyMap()));
         pathEnd = new TypedCompactInvertedTagsSet(pathEnd.getType(), tagsCollection);
       }
       if (!children.isEmpty()) {
@@ -386,12 +384,11 @@ public class PrefixTagTreeIndex implements FieldIndex {
       }
 
       if (childrenSharedTagsSet != null) {
-        Map<Map<String,String>, List<NodeListField>> fieldGroups =
-                childrenFields.stream()
-                        .collect(Collectors.groupingBy(NodeListField::getTags));
+        Map<Map<String, String>, List<NodeListField>> fieldGroups =
+            childrenFields.stream().collect(Collectors.groupingBy(NodeListField::getTags));
         if (fieldGroups.values().stream().distinct().count() == 1) {
           Map<String, List<NodeListField>> groupedChildFieldsWithoutTags =
-                  groupByFirstNode(fieldGroups.values().iterator().next(), false);
+              groupByFirstNode(fieldGroups.values().iterator().next(), false);
           if (this.treeEqualsWithoutTags(groupedChildFieldsWithoutTags)) {
             fieldGroups.keySet().forEach(this::removeChildrenSharedTags);
             return;

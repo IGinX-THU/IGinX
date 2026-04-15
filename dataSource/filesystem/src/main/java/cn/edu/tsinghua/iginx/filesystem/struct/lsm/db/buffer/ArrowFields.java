@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableSortedMap;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.ArrowType;

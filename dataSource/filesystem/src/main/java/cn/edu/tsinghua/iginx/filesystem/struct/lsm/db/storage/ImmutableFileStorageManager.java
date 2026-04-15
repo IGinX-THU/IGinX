@@ -31,10 +31,6 @@ import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.event.TableFlushEvent
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.shared.cache.CachePool;
 import com.google.common.collect.RangeSet;
 import com.google.common.io.MoreFiles;
-import org.apache.commons.io.file.PathUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -45,6 +41,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.commons.io.file.PathUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ImmutableFileStorageManager implements StorageManager {
 
@@ -56,10 +55,12 @@ public class ImmutableFileStorageManager implements StorageManager {
 
   private final ImmutableFileFormat immutableFileFormat;
 
-  public ImmutableFileStorageManager(Path path, StorageConfig config, CachePool cachePool, Indexer indexer) {
+  public ImmutableFileStorageManager(
+      Path path, StorageConfig config, CachePool cachePool, Indexer indexer) {
     this.dir = path;
     this.tombstoneStorage = new TombstoneStorage(cachePool);
-    this.immutableFileFormat = config.getFileFormat().create(config.getFileConfig(), cachePool, indexer);
+    this.immutableFileFormat =
+        config.getFileFormat().create(config.getFileConfig(), cachePool, indexer);
   }
 
   @Override

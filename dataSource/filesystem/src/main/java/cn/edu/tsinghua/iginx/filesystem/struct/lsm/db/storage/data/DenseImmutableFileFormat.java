@@ -24,10 +24,8 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.filesystem.common.AbstractConfig;
-import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.Indexer;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.Table;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.shared.cache.CachePool;
-
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -45,7 +43,8 @@ public abstract class DenseImmutableFileFormat extends ImmutableFileFormat {
     super(name, config, cachePool);
   }
 
-  protected abstract void flush(Path dst, Table.SubTable subTable) throws IOException, PhysicalException;
+  protected abstract void flush(Path dst, Table.SubTable subTable)
+      throws IOException, PhysicalException;
 
   protected abstract Table.Meta loadMeta(Path src) throws IOException;
 
@@ -95,9 +94,7 @@ public abstract class DenseImmutableFileFormat extends ImmutableFileFormat {
 
     @Override
     public String toString() {
-      return "DenseSubTable{" +
-              "path=" + path +
-              '}';
+      return "DenseSubTable{" + "path=" + path + '}';
     }
 
     @Override

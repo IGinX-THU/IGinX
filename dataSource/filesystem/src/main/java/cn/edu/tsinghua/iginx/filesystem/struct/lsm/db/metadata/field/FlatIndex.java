@@ -28,15 +28,13 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.struct.lsm.db.util.exception.TypeConflictedException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-
-import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 public class FlatIndex implements FieldIndex {
 
@@ -63,9 +61,9 @@ public class FlatIndex implements FieldIndex {
   public Set<Field> find(List<String> patterns, @Nullable TagFilter tagFilter) {
     List<Field> result = new ArrayList<>();
     List<Predicate<String>> matchers = new ArrayList<>();
-    for(String pattern : patterns) {
+    for (String pattern : patterns) {
       List<ColumnKey> exactKeys = toExactColumnKey(pattern, tagFilter);
-      if(exactKeys.isEmpty()) {
+      if (exactKeys.isEmpty()) {
         matchers.add(StringUtils.toColumnMatcher(pattern));
       } else {
         for (ColumnKey key : exactKeys) {
@@ -78,27 +76,25 @@ public class FlatIndex implements FieldIndex {
       }
     }
 
-    if(!matchers.isEmpty()){
+    if (!matchers.isEmpty()) {
       fieldToTypeMap.forEach(
-              (compactFieldFullName, type) -> {
-                String name = compactFieldFullName.getPath();
-                Map<String, String> tags = compactFieldFullName.getTags();
-                boolean patternMatched = matchers.stream().anyMatch(matcher -> matcher.test(name));
-                if (!patternMatched) {
-                  return;
-                }
-                if (tagFilter != null && !TagKVUtils.match(tags, tagFilter)) {
-                  return;
-                }
-                Field field = new Field(name, type, tags);
-                result.add(field);
-              });
-
+          (compactFieldFullName, type) -> {
+            String name = compactFieldFullName.getPath();
+            Map<String, String> tags = compactFieldFullName.getTags();
+            boolean patternMatched = matchers.stream().anyMatch(matcher -> matcher.test(name));
+            if (!patternMatched) {
+              return;
+            }
+            if (tagFilter != null && !TagKVUtils.match(tags, tagFilter)) {
+              return;
+            }
+            Field field = new Field(name, type, tags);
+            result.add(field);
+          });
     }
 
     return ImmutableSet.copyOf(result);
   }
-
 
   private List<ColumnKey> toExactColumnKey(String pattern, @Nullable TagFilter tagFilter) {
     if (tagFilter == null) {
@@ -109,12 +105,14 @@ public class FlatIndex implements FieldIndex {
     }
     switch (tagFilter.getType()) {
       case Precise:
-        return ((PreciseTagFilter) tagFilter).getChildren().stream()
-                .map(tf->toExactColumnKey(pattern, tf))
+        return ((PreciseTagFilter) tagFilter)
+            .getChildren().stream()
+                .map(tf -> toExactColumnKey(pattern, tf))
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
       case BasePrecise:
-        return Collections.singletonList(new ColumnKey(pattern, ((BasePreciseTagFilter) tagFilter).getTags()));
+        return Collections.singletonList(
+            new ColumnKey(pattern, ((BasePreciseTagFilter) tagFilter).getTags()));
       case WithoutTag:
         return Collections.singletonList(new ColumnKey(pattern, Collections.emptyMap()));
       default:
@@ -131,9 +129,7 @@ public class FlatIndex implements FieldIndex {
       if (existingType != null) {
         if (existingType != newType) {
           throw new TypeConflictedException(
-              key.toString(),
-              newType.toString(),
-              existingType.toString());
+              key.toString(), newType.toString(), existingType.toString());
         }
       }
       fieldToTypeMap.put(key, newType);
@@ -149,9 +145,7 @@ public class FlatIndex implements FieldIndex {
         DataType expectedType = field.getType();
         if (existingType != expectedType) {
           throw new TypeConflictedException(
-              key.toString(),
-              expectedType.toString(),
-              existingType.toString());
+              key.toString(), expectedType.toString(), existingType.toString());
         }
       }
       fieldToTypeMap.remove(key);
