@@ -245,6 +245,12 @@
                             </includes>
                         </filter>
                         <filter>
+                            <artifact>cn.edu.tsinghua.iginx:parquet-file</artifact>
+                            <includes>
+                                <include>**</include>
+                            </includes>
+                        </filter>
+                        <filter>
                             <artifact>org.apache.paimon:paimon-format</artifact>
                             <includes>
                                 <include>**</include>
