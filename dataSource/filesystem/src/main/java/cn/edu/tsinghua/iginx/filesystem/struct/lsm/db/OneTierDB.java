@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.filesystem.struct.lsm.db;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
@@ -42,6 +43,7 @@ import com.google.common.collect.RangeSet;
 import com.google.common.collect.Streams;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -108,7 +110,11 @@ public class OneTierDB implements AutoCloseable {
       throws StorageException {
     deleteLock.readLock().lock();
     try {
-      List<Field> fields = ImmutableList.copyOf(catalog.findFields(patterns, tagFilter));
+      List<Field> unorderedFields = ImmutableList.copyOf(catalog.findFields(patterns, tagFilter));
+      List<Field> fields =
+          new Header(unorderedFields)
+              .reorderedHeader(patterns, Collections.nCopies(patterns.size(), false))
+              .getFields();
       RangeSet<Long> rangeSet = FilterRangeUtils.rangeSetOf(filter);
       List<InMemoryTable> inMemoryTables = memTableQueue.snapshot(fields);
       try (NoexceptAutoCloseable ignored = NoexceptAutoCloseables.all(inMemoryTables)) {
