@@ -179,8 +179,8 @@ public class FunctionManager {
       if (taskMeta == null) {
         metaManager.addPyFunction(meta);
       } else if (!taskMeta.containsIpPort(config.getIp(), config.getPort())) {
-        meta.addIpPort(config.getIp(), config.getPort());
-        metaManager.updatePyFunction(meta);
+        taskMeta.addIpPort(config.getIp(), config.getPort());
+        metaManager.updatePyFunction(taskMeta);
       }
 
       if (!meta.getType().equals(UDFType.TRANSFORM)) {
