@@ -19,6 +19,11 @@
  */
 package cn.edu.tsinghua.iginx.conf;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 public class Constants {
 
   public static final int MAX_REDIRECT_TIME = 5;
@@ -67,6 +72,21 @@ public class Constants {
   public static final String EMBEDDED_PREFIX = "embedded_prefix";
 
   public static final String SCHEMA_PREFIX = "schema_prefix";
+
+  /** Relational backend engine type in extra params (e.g. mysql, oracle, postgres). */
+  public static final String ENGINE = "engine";
+
+  /**
+   * ALTER STORAGEENGINE: these option keys cannot be modified (structural/identity). Stored in
+   * lowercase; comparison with user-provided keys is case-insensitive. - ip, port, data_prefix,
+   * schema_prefix: address and data layout - has_data, is_read_only: meta semantics (policy,
+   * routing) - engine: relational backend type (driver/strategy choice) - dummy_dir,
+   * embedded_prefix, iginx_port: embedded engine identity
+   */
+  public static final Set<String> ALTER_ENGINE_IMMUTABLE_PARAMS =
+      Collections.unmodifiableSet(
+          new HashSet<>(
+              Arrays.asList(IP, PORT, DATA_PREFIX, SCHEMA_PREFIX, HAS_DATA, IS_READ_ONLY, ENGINE)));
 
   public static final String DUMMY = "dummy";
 

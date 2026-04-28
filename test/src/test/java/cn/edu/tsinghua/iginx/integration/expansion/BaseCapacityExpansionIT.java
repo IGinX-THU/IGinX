@@ -480,6 +480,8 @@ public abstract class BaseCapacityExpansionIT {
     testInvalidEngineParams(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
     // 扩容只读节点
     addStorageEngineInProgress(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
+    // 测试 ALTER STORAGEENGINE 不允许修改的选项会报错
+    testAlterEngineRejectsImmutableParams();
     // 查询扩容只读节点的历史数据，结果不为空
     testQueryHistoryDataReadOnly();
 
@@ -488,6 +490,8 @@ public abstract class BaseCapacityExpansionIT {
     testInvalidEngineParams(expPort, false, false, null, EXP_SCHEMA_PREFIX);
     // 扩容可写节点
     addStorageEngineInProgress(expPort, true, false, null, EXP_SCHEMA_PREFIX);
+    // 测试 has_data=true、is_read_only=false 的可写引擎不可被 ALTER
+    testAlterEngineRejectsEngine();
     // 查询扩容可写节点的历史数据，结果不为空
     testQueryHistoryDataExpHasData();
     // 写入并查询新数据
@@ -586,6 +590,83 @@ public abstract class BaseCapacityExpansionIT {
         Collections.singletonList(
             new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")),
         true);
+  }
+
+  /** 测试 ALTER STORAGEENGINE 试图修改不允许修改的选项（如 schema_prefix, ip）时应报错。 */
+  protected void testAlterEngineRejectsImmutableParams() throws SessionException {
+    List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
+    long id = -1;
+    for (StorageEngineInfo info : engineInfoList) {
+      if (info.getIp().equals("127.0.0.1")
+          && info.getPort() == readOnlyPort
+          && info.getDataPrefix().equals("null")
+          && info.getSchemaPrefix().equals("null")
+          && info.getType().equals(type)) {
+        id = info.getId();
+        break;
+      }
+    }
+    assertTrue("read-only engine should exist", id != -1);
+
+    // 修改 schema_prefix / data_prefix 应报错
+    try {
+      session.executeSql(
+          String.format(ALTER_ENGINE_STRING, id, "schema_prefix 'other', data_prefix 'x'"));
+      fail("Expected SessionException when altering immutable params (schema_prefix, data_prefix)");
+    } catch (SessionException e) {
+      String msg = e.getMessage();
+      assertTrue(
+          "Message should mention that options cannot be altered: " + msg,
+          msg != null && (msg.contains("cannot be altered") || msg.contains("schema_prefix")));
+    }
+    // 修改 has_data 应报错
+    try {
+      session.executeSql(String.format(ALTER_ENGINE_STRING, id, "has_data 'false'"));
+      fail("Expected SessionException when altering immutable param has_data");
+    } catch (SessionException e) {
+      String msg = e.getMessage();
+      assertTrue(
+          "Message should mention that options cannot be altered (e.g. has_data): " + msg,
+          msg != null && (msg.contains("cannot be altered") || msg.contains("has_data")));
+    }
+    // 修改 is_read_only 为 false 应报错
+    try {
+      session.executeSql(String.format(ALTER_ENGINE_STRING, id, "is_read_only 'false'"));
+      fail("Expected SessionException when altering immutable param is_read_only");
+    } catch (SessionException e) {
+      String msg = e.getMessage();
+      assertTrue(
+          "Message should mention that options cannot be altered (e.g. is_read_only): " + msg,
+          msg != null && (msg.contains("cannot be altered") || msg.contains("is_read_only")));
+    }
+  }
+
+  /** 测试 has_data=true 且 is_read_only=false 的可写存储引擎不允许被 ALTER，应报错。 */
+  protected void testAlterEngineRejectsEngine() throws SessionException {
+    List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
+    long id = -1;
+    for (StorageEngineInfo info : engineInfoList) {
+      if (info.getIp().equals("127.0.0.1")
+          && info.getPort() == expPort
+          && info.getDataPrefix().equals("null")
+          && info.getSchemaPrefix().equals("null")
+          && info.getType().equals(type)) {
+        id = info.getId();
+        break;
+      }
+    }
+    assertTrue("engine (has_data=true, is_read_only=false) should exist", id != -1);
+
+    try {
+      session.executeSql(String.format(ALTER_ENGINE_STRING, id, "username 'other'"));
+      fail(
+          "Expected SessionException when altering a writable engine (only read-only & dummy engines can be altered)");
+    } catch (SessionException e) {
+      String msg = e.getMessage();
+      assertTrue(
+          "Message should mention that only read-only engines can be altered: " + msg,
+          msg != null && (msg.contains("read-only") || msg.contains("cannot be altered")));
+    }
   }
 
   /** 测试引擎修改参数（目前仅支持dummy & read-only） */

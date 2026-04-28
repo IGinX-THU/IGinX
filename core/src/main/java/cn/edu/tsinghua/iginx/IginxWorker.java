@@ -626,14 +626,18 @@ public class IginxWorker implements IService.Iface {
       return status;
     }
 
-    // update meta info
-    if (newParams.remove(Constants.IP) != null
-        || newParams.remove(Constants.PORT) != null
-        || newParams.remove(Constants.DATA_PREFIX) != null
-        || newParams.remove(Constants.SCHEMA_PREFIX) != null) {
+    // update meta info: reject immutable params (single source of truth from Constants)
+    List<String> disallowed =
+        newParams.keySet().stream()
+            .filter(k -> Constants.ALTER_ENGINE_IMMUTABLE_PARAMS.contains(k.toLowerCase()))
+            .sorted()
+            .collect(Collectors.toList());
+    if (!disallowed.isEmpty()) {
       status.setCode(RpcUtils.FAILURE.code);
       status.setMessage(
-          "IP, port, type, data_prefix, schema_prefix cannot be altered. Removing and adding new engine is recommended.");
+          "The following options cannot be altered: "
+              + String.join(", ", disallowed)
+              + ". Removing and adding a new engine is recommended.");
       return status;
     }
     targetMeta.updateExtraParams(newParams);
