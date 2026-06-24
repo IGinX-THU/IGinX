@@ -69,16 +69,14 @@ runs:
               channel-priority: strict
               run-post: "false"
 
-        # we use a patched version of lima(slower) because colima cannot start on M1 chips and the docker task is lightweight.
         - if: runner.os == 'macOS' &&  inputs.docker-required=='true'
           name: Install Docker on MacOS
           shell: bash
           run: |
-            brew update
-            brew install docker lima colima
-            sudo colima prereq
-            colima start --network-address --arch arm64 --vm-type=vz --vz-rosetta
-            docker --version
+              brew update
+              brew install docker lima colima
+              sudo colima start --network-address --arch arm64 --vm-type=vz --vz-rosetta
+              docker --version
 
         - if: inputs.scope=='all'
           name: Write Python dependencies to requirements.txt
