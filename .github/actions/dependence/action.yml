@@ -75,8 +75,7 @@ runs:
           run: |
               brew update
               brew install docker lima colima
-              colima sudoers
-              colima start --network-address --arch arm64 --vm-type=vz --vz-rosetta
+              colima start --arch arm64 --vm-type=vz --vz-rosetta
               docker --version
               docker ps
 
