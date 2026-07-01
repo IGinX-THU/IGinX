@@ -100,7 +100,7 @@ runs:
 
         - if: inputs.scope=='all' && inputs.iginx-conda-flag != 'true'
           name: Set up Python ${{ inputs.python-version }}
-          uses: actions/setup-python@v5
+          uses: actions/setup-python@v6
           with:
               python-version: ${{ inputs.python-version }}
               cache: "pip" # caching pip dependencies
@@ -134,7 +134,7 @@ runs:
               iginx-conda-env: ${{ inputs.iginx-conda-env }}
 
         - name: Set up JDK ${{ inputs.java }}
-          uses: actions/setup-java@v4
+          uses: actions/setup-java@v5
           with:
               java-version: ${{ inputs.java }}
               distribution: ${{ runner.os == 'macOS' && matrix.java == '8' && 'liberica' || 'temurin' }}

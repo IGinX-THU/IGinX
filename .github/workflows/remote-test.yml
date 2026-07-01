@@ -16,7 +16,12 @@ on:
                 description: "The operating system to run the test on"
                 type: string
                 required: false
-                default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
+                # GitHub-hosted macos-latest is now Apple Silicon (arm64) without nested
+                # virtualization, so colima/Docker cannot start; windows-latest moved to
+                # Windows Server 2025 where the ltsc2022 client image is no longer cached
+                # and process isolation is unstable. Pin to environments that can run the
+                # remote client container reliably.
+                default: '["ubuntu-latest", "windows-2022"]'
             metadata-matrix:
                 description: "The metadata to run the test on"
                 type: string
@@ -49,7 +54,7 @@ jobs:
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v5
             - name: Environment dependence
               uses: ./.github/actions/dependence
               with:

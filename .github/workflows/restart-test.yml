@@ -41,7 +41,7 @@ jobs:
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
         runs-on: ${{ matrix.os }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
             - name: Environment dependence
               uses: ./.github/actions/dependence
               with:

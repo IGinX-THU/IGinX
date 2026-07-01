@@ -40,7 +40,7 @@ jobs:
             IGINX_CONDA_FLAG: "true"
             IGINX_CONDA_ENV: "iginxEnv"
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
               # use free-threading python instead of stable version
             - name: Environment dependence
               uses: ./.github/actions/dependence
