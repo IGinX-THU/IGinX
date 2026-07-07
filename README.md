@@ -21,6 +21,7 @@ IGinX is open for new team members or contributions. If you would like to join o
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPLv3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 © 2023 (Tsinghua University).
 
+This software is distributed under a dual license: the GNU Lesser General Public License v3 (LGPL) and a commercial license. For commercial licensing, please contact the project lead at Tsinghua University.
 Please note that this refers to the middleware pieces of the IGinX system.
 External systems or software are distributed under their respective license agreement.
 

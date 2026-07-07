@@ -462,7 +462,7 @@ storageEngineOption
    ;
 
 storageEngineOptionKey
-   : nodeName (DOT nodeName)*
+   : (ID | keyWords) (DOT (ID | keyWords))*
    ;
 
 timeValue

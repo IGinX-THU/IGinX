@@ -18,7 +18,7 @@ runs:
 
         - name: Restore mongodb Cache
           id: restore
-          uses: actions/cache/restore@v3
+          uses: actions/cache/restore@v4
           with:
               path: ${{ steps.base.outputs.cache-path }}
               key: ${{ steps.base.outputs.cache-key }}
@@ -47,7 +47,7 @@ runs:
 
         - name: Save mongodb Cache
           if: steps.restore.outputs.cache-hit != 'true'
-          uses: actions/cache/save@v3
+          uses: actions/cache/save@v4
           with:
               path: ${{ steps.base.outputs.cache-path }}
               key: ${{ steps.base.outputs.cache-key }}

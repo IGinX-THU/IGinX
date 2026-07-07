@@ -2097,7 +2097,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       return map;
     }
     for (SqlParser.StorageEngineOptionContext opt : optionCtxList) {
-      // key 是 storageEngineOptionKey (nodeName (DOT nodeName)*)，支持点号，如 dummy.struct
+      // key 是 storageEngineOptionKey (ID (DOT ID)*)，仅纯标识符，如 dummy.struct
       if (opt.key == null) {
         throw new SQLParserException("Storage engine option key cannot be null");
       }
@@ -2113,22 +2113,14 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   /**
-   * Parse storage engine option key which can contain dots (e.g., dummy.struct). The key is defined
-   * as nodeName (DOT nodeName)* in the grammar.
+   * Parse storage engine option key.
    *
-   * @param ctx the storageEngineOptionKey context
-   * @return the parsed key string (e.g., "dummy.struct")
+   * <p>Grammar: (ID | keyWords) (DOT (ID | keyWords))* So we can safely take the raw text (it's a
+   * dot-joined sequence of plain identifiers/keywords without quotes), e.g. "username", "password",
+   * "schema.prefix".
    */
   private String parseStorageEngineOptionKey(SqlParser.StorageEngineOptionKeyContext ctx) {
-    StringBuilder key = new StringBuilder();
-    List<SqlParser.NodeNameContext> nodeNames = ctx.nodeName();
-    for (int i = 0; i < nodeNames.size(); i++) {
-      if (i > 0) {
-        key.append('.');
-      }
-      key.append(parseNodeName(nodeNames.get(i)));
-    }
-    return key.toString();
+    return ctx.getText();
   }
 
   private void parseInsertValuesSpec(InsertValuesSpecContext ctx, InsertStatement insertStatement) {
