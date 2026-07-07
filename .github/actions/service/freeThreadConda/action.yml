@@ -22,8 +22,9 @@ runs:
           shell: bash -el {0}
           run: |
               conda config --show channels
-              conda create -n ${{ inputs.iginx-conda-env }} python=3.13 python-freethreading -c conda-forge -q
+              conda create -n ${{ inputs.iginx-conda-env }} python=3.13 python-freethreading pip -c conda-forge -q
               conda activate ${{ inputs.iginx-conda-env }}
+              python -m pip --version
               python -VV
               python -c "import sys;print(sys._is_gil_enabled())"
               curl -L -O https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/python/pandas-3.0.0.dev0+1654.g32a97a969a-cp313-cp313t-win_amd64.whl
