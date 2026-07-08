@@ -18,11 +18,15 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+
+from iginx_udf import UDAFWrapper
+
+@UDAFWrapper
 class UDFMax:
     def __init__(self):
         pass
 
-    def transform(self, data, args, kvargs):
+    def eval(self, data, args, kvargs):
         res = self.buildHeader(data)
 
         maxRow = []

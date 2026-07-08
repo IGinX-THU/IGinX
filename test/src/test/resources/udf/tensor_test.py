@@ -19,6 +19,9 @@
 import torch
 import numpy as np
 
+from iginx_udf import UDSFWrapper
+
+@UDSFWrapper
 class TensorTest():
     """
     测试用的UDF，注意调用时data只能有一列
@@ -26,7 +29,7 @@ class TensorTest():
     def __init__(self):
         pass
 
-    def transform(self, data, args, kvargs):
+    def eval(self, data, args, kvargs):
         some_zeros = np.zeros(40)
         tensor = torch.tensor(some_zeros)
         res = [[f"tensorTest({data[0][1]})"], ["DOUBLE"], [tensor[0].item()]]

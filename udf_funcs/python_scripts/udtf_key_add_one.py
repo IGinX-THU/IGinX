@@ -18,12 +18,15 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+from iginx_udf import UDTFWrapper
+
+@UDTFWrapper
 class UDFKeyAddOne:
     def __init__(self):
         pass
 
     # key add 1, only for test
-    def transform(self, data, args, kvargs):
+    def eval(self, data, args, kvargs):
         res = self.buildHeader(data)
         rows = [data[2][0] + 1, data[2][1]]
         res.append(rows)
