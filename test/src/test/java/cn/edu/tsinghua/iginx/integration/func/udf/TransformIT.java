@@ -808,8 +808,6 @@ public class TransformIT {
     SessionExecuteSqlResult queryResult = session.executeSql("SELECT * FROM transform;");
     int timeIndex = queryResult.getPaths().indexOf("transform.key");
     int sumIndex = queryResult.getPaths().indexOf("transform.sum");
-    LOGGER.info("Scheduled batch bug query paths: {}", queryResult.getPaths());
-    LOGGER.info("Scheduled batch bug query returned {} row(s).", queryResult.getValues().size());
     for (int i = 0; i < queryResult.getValues().size(); i++) {
       List<Object> row = queryResult.getValues().get(i);
       Object keyValue = timeIndex >= 0 ? row.get(timeIndex) : "N/A";

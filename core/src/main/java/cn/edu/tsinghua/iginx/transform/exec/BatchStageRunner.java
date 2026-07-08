@@ -70,6 +70,7 @@ public class BatchStageRunner implements Runner {
     CollectionWriter collectionWriter =
         (CollectionWriter) batchStage.getBeforeStage().getExportWriter();
     BatchData batchData = collectionWriter.getCollectedData();
+    collectionWriter.reset();
 
     mutex.lock();
     writer.writeBatch(batchData);
