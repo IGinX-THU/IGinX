@@ -429,6 +429,40 @@ public class TransformIT {
   }
 
   @Test
+  public void commitScheduledBatchTransformShouldNotReusePreviousInputTest() {
+    LOGGER.info("commitScheduledBatchTransformShouldNotReusePreviousInputTest");
+    try {
+      String[] taskList = {"RowSumTransformer", "SumTransformer"};
+      for (String task : taskList) {
+        registerTask(task);
+      }
+
+      session.executeSql("INSERT INTO scheduleBatchBug(key, s1, s2) VALUES (1, 1, 2);");
+
+      String yamlFileName =
+          OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledBatchTransformBug.yaml";
+      long jobId = session.commitTransformJob(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      try {
+        Thread.sleep(3000L); // wait for the first scheduled run to finish
+        verifyScheduledBatchBugResult(1, 1L, 3L);
+
+        session.executeSql("INSERT INTO scheduleBatchBug(key, s1, s2) VALUES (1, 10, 20);");
+
+        verifyJobState(jobId, null);
+        verifyJobState(jobId, JobState.JOB_IDLE);
+
+        Thread.sleep(10000L); // wait for the second scheduled run to finish
+        verifyScheduledBatchBugResult(2, 1L, 30L);
+      } finally {
+        cancelJob(jobId);
+      }
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  @Test
   public void commitStopOnFailureTest() {
     LOGGER.info("commitStopOnFailureTest");
     try {
@@ -775,6 +809,28 @@ public class TransformIT {
       index++;
     }
     assertEquals(lineCount, index);
+  }
+
+  private void verifyScheduledBatchBugResult(
+      int expectedRowCount, long expectedLastKey, long expectedLastSum) throws SessionException {
+    SessionExecuteSqlResult queryResult = session.executeSql("SELECT * FROM transform;");
+    int timeIndex = queryResult.getPaths().indexOf("transform.key");
+    int sumIndex = queryResult.getPaths().indexOf("transform.sum");
+    if (needCompareResult) {
+      assertNotEquals(-1, timeIndex);
+      assertNotEquals(-1, sumIndex);
+    }
+
+    assertEquals(expectedRowCount, queryResult.getValues().size());
+
+    List<Object> lastRow = queryResult.getValues().get(queryResult.getValues().size() - 1);
+    if (expectedRowCount > 1) {
+      List<Object> firstRow = queryResult.getValues().get(0);
+      assertEquals(1L, firstRow.get(timeIndex));
+      assertEquals(3L, firstRow.get(sumIndex));
+    }
+    assertEquals(expectedLastKey, lastRow.get(timeIndex));
+    assertEquals(expectedLastSum, lastRow.get(sumIndex));
   }
 
   // have to modify file content because UDF script name is usually not allowed to change
