@@ -224,4 +224,16 @@ public final class StorageUnitMeta {
     builder.append("}");
     return builder.toString();
   }
+
+  public StorageUnitMeta copy() {
+    return new StorageUnitMeta(
+        id,
+        storageEngineId,
+        masterId,
+        isMaster,
+        createdBy,
+        initialStorageUnit,
+        dummy,
+        replicas == null ? null : new ArrayList<>(replicas));
+  }
 }

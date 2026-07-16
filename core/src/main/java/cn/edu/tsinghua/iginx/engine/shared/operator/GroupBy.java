@@ -78,7 +78,9 @@ public class GroupBy extends AbstractUnaryOperator {
       copyGroupByExpressions.add(ExprUtils.copy(expression));
     }
     return new GroupBy(
-        getSource().copy(), copyGroupByExpressions, new ArrayList<>(functionCallList));
+        getSource().copy(),
+        copyGroupByExpressions,
+        functionCallList.stream().map(FunctionCall::copy).collect(Collectors.toList()));
   }
 
   @Override

@@ -22,21 +22,52 @@ package cn.edu.tsinghua.iginx.engine.physical;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
-import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTaskExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskResult;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStreams;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import cn.edu.tsinghua.iginx.resource.ResourceSet;
+import java.util.concurrent.ExecutionException;
 
 public interface PhysicalEngine {
 
-  RowStream execute(RequestContext ctx, Operator root) throws PhysicalException;
+  void submit(PhysicalTask<?> task);
 
   PhysicalOptimizer getOptimizer();
 
   ConstraintManager getConstraintManager();
 
-  StoragePhysicalTaskExecutor getStoragePhysicalTaskExecutor();
-
   StorageManager getStorageManager();
+
+  // 为了兼容过去的接口
+  default RowStream execute(RequestContext ctx, Operator root) throws PhysicalException {
+    ResourceSet resourceSet = new ResourceSet(String.format("request-%d", ctx.getId()));
+    try {
+      ctx.setAllocator(resourceSet.getAllocator());
+      ctx.setConstantPool(resourceSet.getConstantPool());
+      ctx.setTaskResultMap(resourceSet.getTaskResultMap());
+
+      PhysicalTask<RowStream> task = getOptimizer().optimize(root, ctx, RowStream.class);
+      ctx.setPhysicalTree(task);
+      ctx.setPhysicalEngine(this);
+
+      submit(task);
+
+      try (TaskResult<RowStream> result = task.getResult().get()) {
+        RowStream resultStream = result.unwrap();
+        RowStream resultStreamWithResource = RowStreams.closeWith(resultStream, resourceSet::close);
+        resourceSet = null;
+        return resultStreamWithResource;
+      } catch (ExecutionException | InterruptedException e) {
+        throw new PhysicalException(e);
+      }
+    } finally {
+      if (resourceSet != null) {
+        resourceSet.close();
+      }
+    }
+  }
 }

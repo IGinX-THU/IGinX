@@ -91,8 +91,8 @@ IGINX_JAVA_OPTS+=(-Dio.netty.allocator.maxOrder=11)
 # Arrow
 ##################
 
-# Disable safety checks to improve performance (uncomment if needed)
-#IGINX_JAVA_OPTS+=(-Darrow.enable_null_check_for_get=false)
+# Disable null checks to improve performance
+IGINX_JAVA_OPTS+=(-Darrow.enable_null_check_for_get=false)
 
 # Enable unsafe memory access to improve performance (uncomment if needed)
 #IGINX_JAVA_OPTS+=(-Darrow.enable_unsafe_memory_access=true)

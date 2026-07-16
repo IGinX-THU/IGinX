@@ -82,12 +82,7 @@ public class SingleJoin extends AbstractJoin {
 
   @Override
   public Operator copy() {
-    return new SingleJoin(
-        getSourceA().copy(),
-        getSourceB().copy(),
-        filter.copy(),
-        getJoinAlgType(),
-        new ArrayList<>(getExtraJoinPrefix()));
+    return copyWithSource(getSourceA().copy(), getSourceB().copy());
   }
 
   @Override

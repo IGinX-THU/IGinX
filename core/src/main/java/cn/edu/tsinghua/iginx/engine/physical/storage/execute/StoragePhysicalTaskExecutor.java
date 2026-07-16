@@ -25,7 +25,6 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.NonExecutablePhysicalTask
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.TooManyPhysicalTasksException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnconnectedStorageException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnsupportedPhysicalTaskException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
@@ -38,11 +37,11 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.execute.pushdown.strategy.P
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.pushdown.strategy.PushDownStrategyFactory;
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.stream.ShowColumnsRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.storage.queue.StoragePhysicalTaskQueue;
-import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
+import cn.edu.tsinghua.iginx.engine.physical.task.*;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.MemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.FetchMetricsRowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStreams;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
@@ -51,6 +50,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
+import cn.edu.tsinghua.iginx.migration.MigrationPhysicalExecutor;
 import cn.edu.tsinghua.iginx.monitor.HotSpotMonitor;
 import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -147,7 +147,7 @@ public class StoragePhysicalTaskExecutor {
 
         List<Operator> operators = task.getOperators();
         if (operators.isEmpty()) {
-          task.setResult(new TaskExecuteResult(new NonExecutablePhysicalTaskException()));
+          setResult(task, new TaskExecuteResult(new NonExecutablePhysicalTaskException()));
           continue;
         }
         Operator op = operators.get(0);
@@ -185,7 +185,7 @@ public class StoragePhysicalTaskExecutor {
                     replicas.stream()
                         .map(StorageUnitMeta::getStorageEngineId)
                         .collect(Collectors.toList());
-                task.setResult(new TaskExecuteResult(new UnconnectedStorageException(storageIds)));
+                setResult(task, new TaskExecuteResult(new UnconnectedStorageException(storageIds)));
                 executeParentTaskIfNeed(task);
               }
               continue;
@@ -197,7 +197,8 @@ public class StoragePhysicalTaskExecutor {
             if (!hasInitialized) {
               p = reconnectStorage(storageId);
               if (p == null) { // 重连失败，则写入/删除失败
-                task.setResult(
+                setResult(
+                    task,
                     new TaskExecuteResult(
                         new UnconnectedStorageException(op.getType(), storageId)));
                 failToExecuteInsertOrDelete(task, replicas);
@@ -216,7 +217,8 @@ public class StoragePhysicalTaskExecutor {
                               !metaManager.isStorageEngineInConnection(replicaId)
                                   && reconnectStorage(replicaId) == null;
                           if (unconnected) {
-                            task.setResult(
+                            setResult(
+                                task,
                                 new TaskExecuteResult(
                                     new UnconnectedStorageException(op.getType(), replicaId)));
                           }
@@ -229,17 +231,18 @@ public class StoragePhysicalTaskExecutor {
 
             break;
           default:
-            task.setResult(new TaskExecuteResult(new UnsupportedPhysicalTaskException()));
+            setResult(task, new TaskExecuteResult(new UnsupportedPhysicalTaskException()));
             continue;
         }
 
         if (p.v.getQueue().size() > maxCachedPhysicalTaskPerStorage) {
-          task.setResult(new TaskExecuteResult(new TooManyPhysicalTasksException(storageId)));
+          setResult(task, new TaskExecuteResult(new TooManyPhysicalTasksException(storageId)));
           continue;
         }
 
-        if (isCancelled(task.getSessionId())) {
-          LOGGER.warn("StoragePhysicalTask[sessionId={}] is cancelled.", task.getSessionId());
+        if (isCancelled(task.getContext().getSessionId())) {
+          LOGGER.warn(
+              "StoragePhysicalTask[sessionId={}] is cancelled.", task.getContext().getSessionId());
           continue;
         }
 
@@ -261,7 +264,7 @@ public class StoragePhysicalTaskExecutor {
       Pair<IStorage, ThreadPoolExecutor> pair) {
     TaskExecuteResult result = null;
     long taskId = System.nanoTime();
-    long startTime = System.currentTimeMillis();
+    long startTime = System.nanoTime();
     try {
       FragmentMeta fragmentMeta = task.getTargetFragment();
       boolean isDummyStorageUnit = task.isDummyStorageUnit();
@@ -301,9 +304,9 @@ public class StoragePhysicalTaskExecutor {
       LOGGER.error("Monitor catch error:", e);
     }
 
-    long span = System.currentTimeMillis() - startTime;
-    task.setSpan(span);
-    task.setResult(result);
+    long span = System.nanoTime() - startTime;
+    task.getMetrics().accumulateCpuTime(span);
+    setResult(task, result);
 
     executeParentTaskIfNeed(task);
 
@@ -312,7 +315,7 @@ public class StoragePhysicalTaskExecutor {
       if (exception != null) {
         LOGGER.error(
             "task {} will not broadcasting to replicas for the sake of exception", task, exception);
-        task.setResult(new TaskExecuteResult(exception));
+        setResult(task, new TaskExecuteResult(exception));
       } else {
         StorageUnitMeta masterStorageUnit = task.getTargetFragment().getMasterStorageUnit();
         List<String> replicaIds =
@@ -390,30 +393,39 @@ public class StoragePhysicalTaskExecutor {
     storageTaskQueues.get(storageUnitId).addTask(task);
   }
 
-  public TaskExecuteResult executeGlobalTask(GlobalPhysicalTask task) {
+  public void executeGlobalTask(GlobalPhysicalTask task) {
     switch (task.getOperator().getType()) {
       case ShowColumns:
-        long startTime = System.currentTimeMillis();
+        long startTime = System.nanoTime();
         TaskExecuteResult result = null;
         try {
           result = executeShowColumns((ShowColumns) task.getOperator());
         } catch (PhysicalException e) {
           LOGGER.error("unexpected exception during execute show columns", e);
         }
-        long span = System.currentTimeMillis() - startTime;
-        task.setSpan(span);
-        task.setResult(result);
-        if (task.getFollowerTask() != null) {
-          MemoryPhysicalTask followerTask = (MemoryPhysicalTask) task.getFollowerTask();
-          boolean isFollowerTaskReady = followerTask.notifyParentReady();
-          if (isFollowerTaskReady) {
-            memoryTaskExecutor.addMemoryTask(followerTask);
-          }
+        long span = System.nanoTime() - startTime;
+        task.getMetrics().accumulateCpuTime(span);
+        setResult(task, result);
+        break;
+      case Migration:
+        try {
+          RowStream stream =
+              MigrationPhysicalExecutor.getInstance()
+                  .execute(task.getContext(), (Migration) task.getOperator(), this);
+          setResult(task, new TaskExecuteResult(stream));
+        } catch (PhysicalException e) {
+          setResult(task, new TaskExecuteResult(e));
         }
-        return result;
+        break;
       default:
-        return new TaskExecuteResult(
-            new UnexpectedOperatorException("unknown op: " + task.getOperator().getType()));
+        throw new UnsupportedOperationException("unknown op: " + task.getOperator().getType());
+    }
+    if (task.getFollowerTask() != null) {
+      MemoryPhysicalTask<?> followerTask = (MemoryPhysicalTask<?>) task.getFollowerTask();
+      boolean isFollowerTaskReady = followerTask.notifyParentReady();
+      if (isFollowerTaskReady) {
+        memoryTaskExecutor.addMemoryTask(followerTask);
+      }
     }
   }
 
@@ -503,5 +515,23 @@ public class StoragePhysicalTaskExecutor {
 
   public StorageManager getStorageManager() {
     return storageManager;
+  }
+
+  private static void setResult(PhysicalTask<RowStream> task, TaskExecuteResult result) {
+    if (result != null) {
+      if (result.getException() != null) {
+        task.setResult(new TaskResult<>(result.getException()));
+        return;
+      }
+      RowStream sourceRowStream = result.getRowStream();
+      if (sourceRowStream != null) {
+        RowStream rowStream =
+            new FetchMetricsRowStream(
+                sourceRowStream, task.getMetrics(), task.getContext().getBatchRowCount());
+        task.setResult(new TaskResult<>(rowStream));
+        return;
+      }
+    }
+    task.setResult(new TaskResult<>(RowStreams.empty()));
   }
 }

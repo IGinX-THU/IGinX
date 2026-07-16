@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
@@ -84,7 +85,7 @@ public class FragmentDeletionCompaction extends Compaction {
               fragmentMeta.getKeyInterval().getEndKey(),
               false));
       Delete delete = new Delete(new FragmentSource(fragmentMeta), keyRanges, paths, null);
-      physicalEngine.execute(new RequestContext(), delete);
+      try (RowStream ignored = physicalEngine.execute(new RequestContext(), delete)) {}
     }
   }
 }

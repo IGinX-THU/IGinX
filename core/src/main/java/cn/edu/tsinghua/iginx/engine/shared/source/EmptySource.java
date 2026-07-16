@@ -30,6 +30,6 @@ public class EmptySource implements Source {
 
   @Override
   public Source copy() {
-    return null;
+    return this;
   }
 }

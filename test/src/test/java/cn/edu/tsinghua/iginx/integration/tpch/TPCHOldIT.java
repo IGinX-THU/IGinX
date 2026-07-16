@@ -62,6 +62,8 @@ public class TPCHOldIT {
 
   List<String> queryIds;
 
+  List<String> allQueryIds;
+
   // 当前查询次数
   int iterationTimes;
 
@@ -69,6 +71,7 @@ public class TPCHOldIT {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     iterationTimes = TPCHUtils.getIterationTimesFromFile();
     queryIds = TPCHUtils.getFailedQueryIdsFromFile();
+    allQueryIds = new ConfLoader(Controller.CONFIG_FILE).getQueryIds();
     MAX_REPETITIONS_NUM = conf.getMaxRepetitionsNum();
     REGRESSION_THRESHOLD = conf.getRegressionThreshold();
   }
@@ -94,7 +97,7 @@ public class TPCHOldIT {
     ArrayListMultimap<String, Long> newTimeCosts =
         TPCHUtils.readTimeCostsFromFile(TPCHUtils.NEW_TIME_COSTS_PATH);
     double ratio = 1 + REGRESSION_THRESHOLD;
-    for (String queryId : queryIds) {
+    for (String queryId : allQueryIds) {
       long timeCost = TPCHUtils.executeTPCHQuery(session, queryId, false);
       oldTimeCosts.get(queryId).add(timeCost);
       LOGGER.info(
@@ -102,7 +105,9 @@ public class TPCHOldIT {
           queryId,
           iterationTimes,
           timeCost);
+    }
 
+    for (String queryId : queryIds) {
       // 新旧分支查询次数不相同
       if (oldTimeCosts.get(queryId).size() != newTimeCosts.get(queryId).size()) {
         LOGGER.error(
@@ -126,6 +131,12 @@ public class TPCHOldIT {
               newTimeCostMedian);
           Assert.fail();
         }
+        LOGGER.info(
+            "Query {} failed after {} times' iterations, old time costs' median: {}ms, new time costs' median: {}ms.",
+            queryId,
+            iterationTimes,
+            oldTimeCostMedian,
+            newTimeCostMedian);
         failedQueryIds.add(queryId);
         continue;
       }
