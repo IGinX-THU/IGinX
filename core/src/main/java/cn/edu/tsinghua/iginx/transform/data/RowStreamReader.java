@@ -33,6 +33,10 @@ public class RowStreamReader implements Reader {
 
   private final int batchSize;
 
+  private boolean hasLoadedData;
+
+  private boolean hasLoadedEmptyBatch;
+
   public RowStreamReader(RowStream rowStream, int batchSize) {
     this.rowStream = rowStream;
     this.batchSize = batchSize;
@@ -41,7 +45,10 @@ public class RowStreamReader implements Reader {
   @Override
   public boolean hasNextBatch() {
     try {
-      return rowStream.hasNext();
+      if (rowStream.hasNext()) {
+        return true;
+      }
+      return !hasLoadedData && !hasLoadedEmptyBatch;
     } catch (PhysicalException e) {
       LOGGER.error("Fail to examine whether there is more data, because ", e);
       return false;
@@ -57,6 +64,11 @@ public class RowStreamReader implements Reader {
         Row row = rowStream.next();
         batchData.appendRow(row);
         countDown--;
+      }
+      if (batchData.isEmpty()) {
+        hasLoadedEmptyBatch = true;
+      } else {
+        hasLoadedData = true;
       }
       return batchData;
     } catch (PhysicalException e) {

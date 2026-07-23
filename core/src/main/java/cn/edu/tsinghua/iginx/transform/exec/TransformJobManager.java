@@ -349,6 +349,19 @@ public class TransformJobManager {
     }
   }
 
+  public String queryJobErrorMessage(long jobId) {
+    Job job = jobMap.get(jobId);
+    if (job == null || job.getException() == null) {
+      return null;
+    }
+
+    Throwable cause = job.getException();
+    while (cause.getCause() != null) {
+      cause = cause.getCause();
+    }
+    return cause.getMessage();
+  }
+
   public HashMap<JobState, List<Long>> showEligibleJob(JobState jobState) {
     // jobState = null: show all jobs
     HashMap<JobState, List<Long>> jobStateMap = new HashMap<>();

@@ -55,6 +55,10 @@ public class ExecutionMetaManager {
     return metaThreadLocal.get().values();
   }
 
+  public static void clearTempTables() {
+    metaThreadLocal.get().clear();
+  }
+
   /** replace placeholders in sql to actual temp table name */
   public static String replaceTableNameIgnoreCase(String sql) {
     if (getTempTableNames().isEmpty()) {
@@ -72,7 +76,12 @@ public class ExecutionMetaManager {
 
     while (matcher.find()) {
       String matched = matcher.group();
-      String replacement = getTempTableName(matched);
+      String replacement =
+          metaThreadLocal.get().entrySet().stream()
+              .filter(entry -> entry.getKey().equalsIgnoreCase(matched))
+              .map(Map.Entry::getValue)
+              .findFirst()
+              .orElse(matched);
       matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
     }
     matcher.appendTail(result);

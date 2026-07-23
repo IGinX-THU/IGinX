@@ -20,11 +20,11 @@
 package cn.edu.tsinghua.iginx.transform.api;
 
 import cn.edu.tsinghua.iginx.transform.data.BatchData;
-import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
+import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 
 public interface Writer {
 
-  void writeBatch(BatchData batchData) throws WriteBatchException;
+  void writeBatch(BatchData batchData) throws TransformException;
 
   // reset state for next scheduled run
   void reset();

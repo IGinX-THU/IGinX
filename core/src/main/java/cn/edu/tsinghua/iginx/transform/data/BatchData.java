@@ -93,6 +93,10 @@ public class BatchData {
     return rowList;
   }
 
+  public boolean isEmpty() {
+    return rowList.isEmpty();
+  }
+
   public Header getHeader() {
     return header;
   }

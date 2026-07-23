@@ -7291,13 +7291,15 @@ class QueryTransformJobStatusResp(object):
     Attributes:
      - status
      - jobState
+     - errorMessage
 
     """
 
 
-    def __init__(self, status=None, jobState=None,):
+    def __init__(self, status=None, jobState=None, errorMessage=None,):
         self.status = status
         self.jobState = jobState
+        self.errorMessage = errorMessage
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -7319,6 +7321,11 @@ class QueryTransformJobStatusResp(object):
                     self.jobState = iprot.readI32()
                 else:
                     iprot.skip(ftype)
+            elif fid == 3:
+                if ftype == TType.STRING:
+                    self.errorMessage = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -7336,6 +7343,10 @@ class QueryTransformJobStatusResp(object):
         if self.jobState is not None:
             oprot.writeFieldBegin('jobState', TType.I32, 2)
             oprot.writeI32(self.jobState)
+            oprot.writeFieldEnd()
+        if self.errorMessage is not None:
+            oprot.writeFieldBegin('errorMessage', TType.STRING, 3)
+            oprot.writeString(self.errorMessage.encode('utf-8') if sys.version_info[0] == 2 else self.errorMessage)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -10191,6 +10202,7 @@ QueryTransformJobStatusResp.thrift_spec = (
     None,  # 0
     (1, TType.STRUCT, 'status', [Status, None], None, ),  # 1
     (2, TType.I32, 'jobState', None, None, ),  # 2
+    (3, TType.STRING, 'errorMessage', 'UTF8', None, ),  # 3
 )
 all_structs.append(ShowEligibleJobReq)
 ShowEligibleJobReq.thrift_spec = (
