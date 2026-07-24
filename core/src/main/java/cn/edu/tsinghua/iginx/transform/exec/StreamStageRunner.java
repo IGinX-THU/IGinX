@@ -25,7 +25,9 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.ContextBuilder;
 import cn.edu.tsinghua.iginx.engine.StatementExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.thrift.ExecuteStatementReq;
 import cn.edu.tsinghua.iginx.transform.api.Reader;
@@ -35,12 +37,10 @@ import cn.edu.tsinghua.iginx.transform.data.*;
 import cn.edu.tsinghua.iginx.transform.driver.PemjaDriver;
 import cn.edu.tsinghua.iginx.transform.driver.PemjaWorker;
 import cn.edu.tsinghua.iginx.transform.exception.TransformException;
-import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
 import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 import cn.edu.tsinghua.iginx.transform.pojo.SQLTask;
 import cn.edu.tsinghua.iginx.transform.pojo.StreamStage;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
-import cn.edu.tsinghua.iginx.transform.utils.Mutex;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,8 +54,6 @@ public class StreamStageRunner implements Runner {
   private final StreamStage streamStage;
 
   private final int batchSize;
-
-  private final Mutex mutex;
 
   private Writer writer;
 
@@ -76,11 +74,12 @@ public class StreamStageRunner implements Runner {
     this.batchSize = config.getBatchSize();
     this.pemjaWorkerList = new ArrayList<>();
     this.writer = streamStage.getExportWriter();
-    this.mutex = ((ExportWriter) writer).getMutex();
   }
 
   @Override
   public void start() throws TransformException {
+    // Discard output left by a failed earlier trigger before producing this trigger's result.
+    streamStage.getExportWriter().reset();
     if (streamStage.isStartWithIginX()) {
       SQLTask firstTask = (SQLTask) streamStage.getTaskList().get(0);
       RowStream rowStream = getRowStream(streamStage.getSessionId(), firstTask.getSqlList());
@@ -142,22 +141,17 @@ public class StreamStageRunner implements Runner {
             sqlList.get(sqlList.size() - 1));
       }
     }
-    return context.getResult().getResultStream();
+    RowStream resultStream = context.getResult().getResultStream();
+    return resultStream == null ? new EmptyRowStream(Header.EMPTY_HEADER) : resultStream;
   }
 
   @Override
-  public void run() throws WriteBatchException {
+  public void run() throws TransformException {
     while (reader.hasNextBatch()) {
-      mutex.lock();
       BatchData batchData = reader.loadNextBatch();
       writer.writeBatch(batchData);
     }
 
-    // wait for last batch finished.
-    mutex.lock();
-
-    // unlock for further scheduled runs
-    mutex.unlock();
     if (!writer.getClass().equals(CollectionWriter.class)) {
       writer.reset();
     }

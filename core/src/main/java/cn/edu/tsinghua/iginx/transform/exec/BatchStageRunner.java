@@ -26,11 +26,9 @@ import cn.edu.tsinghua.iginx.transform.driver.PemjaDriver;
 import cn.edu.tsinghua.iginx.transform.driver.PemjaWorker;
 import cn.edu.tsinghua.iginx.transform.exception.CreateWorkerException;
 import cn.edu.tsinghua.iginx.transform.exception.TransformException;
-import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
 import cn.edu.tsinghua.iginx.transform.pojo.BatchStage;
 import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
-import cn.edu.tsinghua.iginx.transform.utils.Mutex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,8 +36,6 @@ public class BatchStageRunner implements Runner {
   private static final Logger LOGGER = LoggerFactory.getLogger(BatchStageRunner.class);
 
   private final BatchStage batchStage;
-
-  private final Mutex mutex;
 
   private Writer writer;
 
@@ -50,11 +46,13 @@ public class BatchStageRunner implements Runner {
   public BatchStageRunner(BatchStage batchStage) {
     this.batchStage = batchStage;
     this.writer = batchStage.getExportWriter();
-    this.mutex = ((ExportWriter) writer).getMutex();
   }
 
   @Override
   public void start() throws TransformException {
+    // The writer is wrapped for one execution only and must not leak into the next trigger.
+    writer = batchStage.getExportWriter();
+    writer.reset();
     Task task = batchStage.getTask();
     if (task.isPythonTask()) {
       pemjaWorker = driver.createWorker((PythonTask) task, writer);
@@ -66,19 +64,13 @@ public class BatchStageRunner implements Runner {
   }
 
   @Override
-  public void run() throws WriteBatchException {
+  public void run() throws TransformException {
     CollectionWriter collectionWriter =
         (CollectionWriter) batchStage.getBeforeStage().getExportWriter();
     BatchData batchData = collectionWriter.getCollectedData();
+    collectionWriter.reset();
 
-    mutex.lock();
     writer.writeBatch(batchData);
-
-    // wait for py work finish writing.
-    mutex.lock();
-
-    mutex.unlock();
-    writer.reset();
   }
 
   @Override

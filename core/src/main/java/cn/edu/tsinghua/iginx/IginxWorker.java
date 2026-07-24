@@ -952,7 +952,13 @@ public class IginxWorker implements IService.Iface {
     TransformJobManager manager = TransformJobManager.getInstance();
     JobState jobState = manager.queryJobState(req.getJobId());
     if (jobState != null) {
-      return new QueryTransformJobStatusResp(RpcUtils.SUCCESS, jobState);
+      QueryTransformJobStatusResp response =
+          new QueryTransformJobStatusResp(RpcUtils.SUCCESS, jobState);
+      String errorMessage = manager.queryJobErrorMessage(req.getJobId());
+      if (errorMessage != null) {
+        response.setErrorMessage(errorMessage);
+      }
+      return response;
     } else {
       return new QueryTransformJobStatusResp(RpcUtils.FAILURE, JobState.JOB_UNKNOWN);
     }

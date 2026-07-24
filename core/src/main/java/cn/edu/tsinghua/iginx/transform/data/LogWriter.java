@@ -34,6 +34,9 @@ public class LogWriter extends ExportWriter {
 
   @Override
   public void write(BatchData batchData) {
+    if (batchData.isEmpty()) {
+      return;
+    }
     if (!hasWriteHeader) {
       Header header = batchData.getHeader();
       List<String> headerList = new ArrayList<>();

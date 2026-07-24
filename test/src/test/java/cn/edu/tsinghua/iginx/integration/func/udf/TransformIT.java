@@ -115,6 +115,31 @@ public class TransformIT {
     TASK_MAP.put(
         "AddOneTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_add_one.py");
     TASK_MAP.put("SumTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_sum.py");
+    TASK_MAP.put("EmptyTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_empty.py");
+    TASK_MAP.put(
+        "EmptyInputPassTransformer",
+        OUTPUT_DIR_PREFIX + File.separator + "transformer_empty_input_pass.py");
+    TASK_MAP.put(
+        "EmptyInputFailTransformer",
+        OUTPUT_DIR_PREFIX + File.separator + "transformer_empty_input_fail.py");
+    TASK_MAP.put(
+        "EmptyInputEmitTransformer",
+        OUTPUT_DIR_PREFIX + File.separator + "transformer_empty_input_emit.py");
+    TASK_MAP.put("NoneTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_none.py");
+    TASK_MAP.put(
+        "EmptyListTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_empty_list.py");
+    TASK_MAP.put(
+        "BadHeaderTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_bad_header.py");
+    TASK_MAP.put(
+        "EmptyHeaderTransformer",
+        OUTPUT_DIR_PREFIX + File.separator + "transformer_empty_header.py");
+    TASK_MAP.put(
+        "BadRowTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_bad_row.py");
+    TASK_MAP.put(
+        "BadRowTypeTransformer",
+        OUTPUT_DIR_PREFIX + File.separator + "transformer_bad_row_type.py");
+    TASK_MAP.put(
+        "BadValueTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_bad_value.py");
     TASK_MAP.put("SleepTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_sleep.py");
     TASK_MAP.put(
         "ToBytesTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_to_bytes.py");
@@ -275,6 +300,38 @@ public class TransformIT {
     List<Long> finishedJobIds =
         session.showEligibleJob(JobState.JOB_FINISHED).get(JobState.JOB_FINISHED);
     assertTrue(finishedJobIds.contains(jobId));
+  }
+
+  private void verifyJobFailedBlocked(long jobId) throws SessionException, InterruptedException {
+    verifyJobFailedBlocked(jobId, "job", null);
+  }
+
+  private void verifyJobFailedBlocked(long jobId, String scenario)
+      throws SessionException, InterruptedException {
+    verifyJobFailedBlocked(jobId, scenario, null);
+  }
+
+  private void verifyJobFailedBlocked(long jobId, String scenario, String expectedErrorMessage)
+      throws SessionException, InterruptedException {
+    JobState jobState = JobState.JOB_CREATED;
+    int timeout = 60000;
+    while (!jobState.equals(JobState.JOB_CLOSED)
+        && !jobState.equals(JobState.JOB_FAILED)
+        && !jobState.equals(JobState.JOB_FINISHED)
+        && timeout > 0) {
+      Thread.sleep(500);
+      timeout -= 500;
+      jobState = session.queryTransformJobStatus(jobId);
+    }
+    assertTrue(scenario + " should fail instead of timing out", timeout > 0);
+    assertEquals(scenario + " should fail", JobState.JOB_FAILED, jobState);
+    if (expectedErrorMessage != null) {
+      String errorMessage = session.queryTransformJobErrorMessage(jobId);
+      assertNotNull(scenario + " should expose an error message", errorMessage);
+      assertTrue(
+          scenario + " should report: " + expectedErrorMessage,
+          errorMessage.contains(expectedErrorMessage));
+    }
   }
 
   private void cancelJob(long jobID) {
@@ -701,6 +758,449 @@ public class TransformIT {
     } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
+    }
+  }
+
+  /**
+   * Verifies scheduled batch stages restore their writers and clear the previous run's input.
+   *
+   * <p>Pipeline (scheduled): SQL -> AddOneTransformer (stream) -> SumTransformer (batch) -> file.
+   */
+  @Test
+  public void commitScheduledBatchTransformTest() {
+    LOGGER.info("commitScheduledBatchTransformTest");
+    String outputFileName =
+        OUTPUT_DIR_PREFIX + File.separator + "export_file_scheduled_batch_python_job.txt";
+    try {
+      registerTask("AddOneTransformer");
+      registerTask("SumTransformer");
+
+      List<TaskInfo> taskInfoList = new ArrayList<>();
+
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(Collections.singletonList(QUERY_SQL_3));
+
+      TaskInfo addOnePyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
+      addOnePyTask.setPyTaskName("AddOneTransformer");
+
+      TaskInfo sumPyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.BATCH);
+      sumPyTask.setPyTaskName("SumTransformer");
+
+      taskInfoList.add(sqlTask);
+      taskInfoList.add(addOnePyTask);
+      taskInfoList.add(sumPyTask);
+
+      long jobId =
+          session.commitTransformJob(
+              taskInfoList, ExportType.FILE, outputFileName, "every 10 second");
+      try {
+        Thread.sleep(3000L); // wait for the first scheduled execution
+        fileResultContains(outputFileName, "55,55,65");
+
+        verifyJobState(jobId, JobState.JOB_IDLE);
+        Thread.sleep(10000L); // wait for the second scheduled execution
+        verifyRepeatedFileResult(outputFileName, "55,55,65", 2);
+      } finally {
+        cancelJob(jobId);
+        assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
+      }
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform: execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  /**
+   * Verifies a normal Python transformer receives a header-only batch for an empty SQL result.
+   *
+   * <p>Pipeline: SQL -> [empty input] -> RowSumTransformer (stream) -> file.
+   */
+  @Test
+  public void commitStreamTransformWithEmptySqlInputTest() {
+    LOGGER.info("commitStreamTransformWithEmptySqlInputTest");
+    String outputFileName =
+        OUTPUT_DIR_PREFIX + File.separator + "export_file_python_job_with_empty_sql_input.txt";
+    try {
+      registerTask("RowSumTransformer");
+
+      List<TaskInfo> taskInfoList = new ArrayList<>();
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(
+          Collections.singletonList(
+              "SELECT s1, s2 FROM us.d1 WHERE key < " + START_TIMESTAMP + ";"));
+
+      TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
+      pyTask.setPyTaskName("RowSumTransformer");
+
+      taskInfoList.add(sqlTask);
+      taskInfoList.add(pyTask);
+
+      long jobId = session.commitTransformJob(taskInfoList, ExportType.FILE, outputFileName);
+      verifyJobFinishedBlocked(jobId);
+      verifyEmptyOutputFile(outputFileName);
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform: execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  /**
+   * Verifies a transformer that accepts header-only input can finish with an empty result.
+   *
+   * <p>Pipeline: SQL -> [empty input] -> EmptyInputPassTransformer (stream) -> file.
+   */
+  @Test
+  public void commitStreamTransformWithHandledEmptyInputTest() {
+    LOGGER.info("commitStreamTransformWithHandledEmptyInputTest");
+    String outputFileName =
+        OUTPUT_DIR_PREFIX + File.separator + "export_file_python_job_with_handled_empty_input.txt";
+    try {
+      registerTask("EmptyInputPassTransformer");
+      long jobId =
+          commitPythonJob(
+              "SELECT s1, s2 FROM us.d1 WHERE key < " + START_TIMESTAMP + ";",
+              "EmptyInputPassTransformer",
+              ExportType.FILE,
+              outputFileName);
+      verifyJobFinishedBlocked(jobId);
+      verifyEmptyOutputFile(outputFileName);
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform: execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  /**
+   * Verifies a transformer exception caused by header-only input fails the current job.
+   *
+   * <p>Pipeline: SQL -> [empty input] -> EmptyInputFailTransformer (stream) -> log.
+   */
+  @Test
+  public void commitStreamTransformWithUnhandledEmptyInputTest() {
+    LOGGER.info("commitStreamTransformWithUnhandledEmptyInputTest");
+    try {
+      registerTask("EmptyInputFailTransformer");
+      long jobId =
+          commitPythonJob(
+              "SELECT s1, s2 FROM us.d1 WHERE key < " + START_TIMESTAMP + ";",
+              "EmptyInputFailTransformer",
+              ExportType.LOG,
+              "");
+      verifyJobFailedBlocked(jobId, "EmptyInputFailTransformer", "empty input is not supported");
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform: execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  /**
+   * Verifies an empty SQL result still invokes the transformer, which may emit new data.
+   *
+   * <p>Pipeline: SQL -> [empty input] -> EmptyInputEmitTransformer (stream) -> file.
+   */
+  @Test
+  public void commitStreamTransformWithEmptyInputOutputTest() {
+    LOGGER.info("commitStreamTransformWithEmptyInputOutputTest");
+    String outputFileName =
+        OUTPUT_DIR_PREFIX + File.separator + "export_file_python_job_with_empty_input_output.txt";
+    try {
+      registerTask("EmptyInputEmitTransformer");
+      long jobId =
+          commitPythonJob(
+              "SELECT s1, s2 FROM us.d1 WHERE key < " + START_TIMESTAMP + ";",
+              "EmptyInputEmitTransformer",
+              ExportType.FILE,
+              outputFileName);
+      verifyJobFinishedBlocked(jobId);
+      if (needCompareResult) {
+        fileResultContains(outputFileName, "1");
+      }
+      assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform: execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  /**
+   * Verifies header-only input is also delivered to a batch Python stage.
+   *
+   * <p>Pipeline: SQL -> [empty input] -> EmptyInputPassTransformer (batch) -> file.
+   */
+  @Test
+  public void commitBatchTransformWithEmptySqlInputTest() {
+    LOGGER.info("commitBatchTransformWithEmptySqlInputTest");
+    String outputFileName =
+        OUTPUT_DIR_PREFIX + File.separator + "export_file_batch_python_job_with_empty_input.txt";
+    try {
+      registerTask("EmptyInputPassTransformer");
+
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(
+          Collections.singletonList(
+              "SELECT s1, s2 FROM us.d1 WHERE key < " + START_TIMESTAMP + ";"));
+      TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.BATCH);
+      pyTask.setPyTaskName("EmptyInputPassTransformer");
+
+      long jobId =
+          session.commitTransformJob(
+              Arrays.asList(sqlTask, pyTask), ExportType.FILE, outputFileName);
+      verifyJobFinishedBlocked(jobId);
+      verifyEmptyOutputFile(outputFileName);
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform: execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  /**
+   * Verifies malformed Python return values fail the job rather than being treated as empty output.
+   *
+   * <p>Pipeline: SQL -> transformer -> [invalid output] -> log.
+   */
+  @Test
+  public void commitTransformWithInvalidOutputTest() {
+    LOGGER.info("commitTransformWithInvalidOutputTest");
+    Map<String, String> invalidTransformers = new LinkedHashMap<>();
+    invalidTransformers.put("NoneTransformer", "must return a list of rows");
+    invalidTransformers.put("EmptyListTransformer", "empty list without a header");
+    invalidTransformers.put("BadHeaderTransformer", "header must contain only strings");
+    invalidTransformers.put("EmptyHeaderTransformer", "empty header");
+    invalidTransformers.put("BadRowTransformer", "data row size does not match header size");
+    invalidTransformers.put("BadRowTypeTransformer", "data rows must be lists");
+    invalidTransformers.put("BadValueTransformer", "Invalid datatype");
+    try {
+      for (Map.Entry<String, String> invalidTransformer : invalidTransformers.entrySet()) {
+        String taskName = invalidTransformer.getKey();
+        registerTask(taskName);
+        long jobId = commitPythonJob(QUERY_SQL_3, taskName, ExportType.LOG, "");
+        verifyJobFailedBlocked(jobId, taskName, invalidTransformer.getValue());
+      }
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform: execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  /**
+   * Verifies empty input can pass through one transform as empty output and reach a downstream
+   * transform without deadlock.
+   *
+   * <p>Pipeline: SQL -> [empty input] -> EmptyTransformer (stream) -> [empty output] ->
+   * RowSumTransformer (stream) -> file.
+   */
+  @Test
+  public void commitStreamTransformWithEmptyInputAndOutputToTransformTest() {
+    LOGGER.info("commitStreamTransformWithEmptyInputAndOutputToTransformTest");
+    String outputFileName =
+        OUTPUT_DIR_PREFIX
+            + File.separator
+            + "export_file_python_jobs_with_empty_transform_output.txt";
+    try {
+      registerTask("EmptyTransformer");
+      registerTask("RowSumTransformer");
+
+      List<TaskInfo> taskInfoList = new ArrayList<>();
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(
+          Collections.singletonList(
+              "SELECT s1, s2 FROM us.d1 WHERE key < " + START_TIMESTAMP + ";"));
+
+      TaskInfo emptyPyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
+      emptyPyTask.setPyTaskName("EmptyTransformer");
+
+      TaskInfo rowSumPyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
+      rowSumPyTask.setPyTaskName("RowSumTransformer");
+
+      taskInfoList.add(sqlTask);
+      taskInfoList.add(emptyPyTask);
+      taskInfoList.add(rowSumPyTask);
+
+      long jobId = session.commitTransformJob(taskInfoList, ExportType.FILE, outputFileName);
+      try {
+        verifyJobFinishedBlocked(jobId);
+        verifyEmptyOutputFile(outputFileName);
+      } finally {
+        cancelRunningJob(jobId);
+      }
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform: execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  /**
+   * Verifies SQL can consume an empty transform temporary table as an empty result stream.
+   *
+   * <p>Pipeline: SQL -> EmptyTransformer (stream, outputPrefix=empty) -> [empty output] -> SQL ->
+   * file.
+   */
+  @Test
+  public void commitStreamTransformWithEmptyOutputToSqlTest() {
+    LOGGER.info("commitStreamTransformWithEmptyOutputToSqlTest");
+    String outputFileName =
+        OUTPUT_DIR_PREFIX
+            + File.separator
+            + "export_file_sql_job_with_empty_transform_temporary_table.txt";
+    try {
+      registerTask("EmptyTransformer");
+
+      List<TaskInfo> taskInfoList = new ArrayList<>();
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(Collections.singletonList(QUERY_SQL_3));
+
+      TaskInfo emptyPyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
+      emptyPyTask.setPyTaskName("EmptyTransformer");
+      emptyPyTask.setOutputPrefix("empty");
+
+      TaskInfo temporaryTableSqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      temporaryTableSqlTask.setSqlList(Collections.singletonList("SELECT * FROM empty;"));
+
+      taskInfoList.add(sqlTask);
+      taskInfoList.add(emptyPyTask);
+      taskInfoList.add(temporaryTableSqlTask);
+
+      long jobId = session.commitTransformJob(taskInfoList, ExportType.FILE, outputFileName);
+      try {
+        verifyJobFinishedBlocked(jobId);
+        verifyEmptyOutputFile(outputFileName);
+      } finally {
+        cancelRunningJob(jobId);
+      }
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform: execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  /**
+   * Verifies a batch transform writes the expected aggregate result for downstream temporary-table
+   * SQL.
+   *
+   * <p>Pipeline: SQL -> AddOneTransformer (stream) -> SumTransformer (batch, outputPrefix=batchsum)
+   * -> SQL -> file.
+   */
+  @Test
+  public void commitBatchTransformWithTemporaryTableTest() {
+    LOGGER.info("commitBatchTransformWithTemporaryTableTest");
+    String outputFileName =
+        OUTPUT_DIR_PREFIX
+            + File.separator
+            + "export_file_batch_python_job_with_temporary_table.txt";
+    try {
+      registerTask("AddOneTransformer");
+      registerTask("SumTransformer");
+
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(Collections.singletonList(QUERY_SQL_3));
+      TaskInfo addOneTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
+      addOneTask.setPyTaskName("AddOneTransformer");
+      TaskInfo sumTask = new TaskInfo(TaskType.PYTHON, DataFlowType.BATCH);
+      sumTask.setPyTaskName("SumTransformer");
+      sumTask.setOutputPrefix("batchsum");
+      TaskInfo temporaryTableSqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      temporaryTableSqlTask.setSqlList(Collections.singletonList("SELECT * FROM batchsum;"));
+
+      long jobId =
+          session.commitTransformJob(
+              Arrays.asList(sqlTask, addOneTask, sumTask, temporaryTableSqlTask),
+              ExportType.FILE,
+              outputFileName);
+      verifyJobFinishedBlocked(jobId);
+      if (needCompareResult) {
+        List<String> lines = Files.readAllLines(Paths.get(outputFileName));
+        assertEquals(2, lines.size());
+        String[] values = lines.get(1).split(",", -1);
+        assertEquals(4, values.length);
+        Long.parseLong(values[0]); // IginXWriter assigns a non-deterministic temporary-table key.
+        assertEquals("55", values[1]);
+        assertEquals("55", values[2]);
+        assertEquals("65", values[3]);
+      }
+      assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform: execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  /**
+   * Verifies a batch transform with header-only output remains consumable by temporary-table SQL.
+   *
+   * <p>Pipeline: SQL -> EmptyTransformer (batch, outputPrefix=emptybatch) -> [empty output] -> SQL
+   * -> file.
+   */
+  @Test
+  public void commitBatchTransformWithEmptyOutputToSqlTest() {
+    LOGGER.info("commitBatchTransformWithEmptyOutputToSqlTest");
+    String outputFileName =
+        OUTPUT_DIR_PREFIX
+            + File.separator
+            + "export_file_batch_python_job_with_empty_temporary_table.txt";
+    try {
+      registerTask("EmptyTransformer");
+
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(Collections.singletonList(QUERY_SQL_3));
+      TaskInfo emptyBatchTask = new TaskInfo(TaskType.PYTHON, DataFlowType.BATCH);
+      emptyBatchTask.setPyTaskName("EmptyTransformer");
+      emptyBatchTask.setOutputPrefix("emptybatch");
+      TaskInfo temporaryTableSqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      temporaryTableSqlTask.setSqlList(Collections.singletonList("SELECT * FROM emptybatch;"));
+
+      long jobId =
+          session.commitTransformJob(
+              Arrays.asList(sqlTask, emptyBatchTask, temporaryTableSqlTask),
+              ExportType.FILE,
+              outputFileName);
+      verifyJobFinishedBlocked(jobId);
+      verifyEmptyOutputFile(outputFileName);
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform: execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  private long commitPythonJob(
+      String sql, String pythonTaskName, ExportType exportType, String fileName)
+      throws SessionException {
+    TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+    sqlTask.setSqlList(Collections.singletonList(sql));
+    TaskInfo pyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
+    pyTask.setPyTaskName(pythonTaskName);
+    return session.commitTransformJob(Arrays.asList(sqlTask, pyTask), exportType, fileName);
+  }
+
+  private void verifyEmptyOutputFile(String outputFileName) throws IOException {
+    if (needCompareResult) {
+      assertEquals(0L, Files.size(Paths.get(outputFileName)));
+    }
+    assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
+  }
+
+  private void verifyRepeatedFileResult(
+      String outputFileName, String expectedResult, int expectedResultCount) throws IOException {
+    List<String> resultLines = new ArrayList<>();
+    try (BufferedReader reader = new BufferedReader(new FileReader(outputFileName))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        if (!line.startsWith(GlobalConstant.KEY_NAME + ",")) {
+          resultLines.add(line);
+        }
+      }
+    }
+
+    assertTrue(resultLines.size() >= expectedResultCount);
+    resultLines.forEach(line -> assertEquals(expectedResult, line));
+  }
+
+  private void cancelRunningJob(long jobId) {
+    try {
+      if (session.queryTransformJobStatus(jobId) == JobState.JOB_RUNNING) {
+        cancelJob(jobId);
+      }
+    } catch (SessionException e) {
+      LOGGER.error("Fail to query transform job {} for cancellation.", jobId, e);
     }
   }
 
@@ -1280,21 +1780,25 @@ public class TransformIT {
 
   // file <filename> contains <content>
   private void fileResultContains(String filename, String content) {
-    boolean contains = false;
-    try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
-      String line = reader.readLine();
-      while (line != null) {
-        if (line.contains(content)) {
-          contains = true;
-          break;
-        }
-        line = reader.readLine();
-      }
+    try {
+      assertTrue(fileContains(filename, content));
     } catch (IOException e) {
       LOGGER.error("Verify file export result failed.", e);
       fail();
     }
-    assertTrue(contains);
+  }
+
+  private boolean fileContains(String filename, String content) throws IOException {
+    try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+      String line = reader.readLine();
+      while (line != null) {
+        if (line.contains(content)) {
+          return true;
+        }
+        line = reader.readLine();
+      }
+    }
+    return false;
   }
 
   @Rule public final GreenMailRule greenMail = new GreenMailRule(ServerSetupTest.SMTPS);

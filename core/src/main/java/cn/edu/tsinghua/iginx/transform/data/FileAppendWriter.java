@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.auth.utils.FilePermissionRuleNameFilters;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
+import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -64,7 +65,12 @@ public class FileAppendWriter extends ExportWriter {
   }
 
   @Override
-  public void write(BatchData batchData) {
+  public void write(BatchData batchData) throws TransformException {
+    if (batchData.isEmpty()) {
+      return;
+    }
+
+    StringBuilder content = new StringBuilder();
     if (!hasWriteHeader) {
       Header header = batchData.getHeader();
 
@@ -73,12 +79,15 @@ public class FileAppendWriter extends ExportWriter {
         headerList.add(GlobalConstant.KEY_NAME);
       }
       header.getFields().forEach(field -> headerList.add(field.getFullName()));
-      writeFile(fileName, String.join(",", headerList) + "\n");
-      hasWriteHeader = true;
+      content.append(String.join(",", headerList)).append('\n');
     }
     for (Row row : batchData.getRowList()) {
-      writeFile(fileName, row.toCSVTypeString() + "\n");
+      content.append(row.toCSVTypeString()).append('\n');
     }
+
+    // Keep one batch in a single file-open operation to avoid per-row append failures.
+    writeFile(content.toString());
+    hasWriteHeader = true;
   }
 
   private void createFileIfNotExist(File file) {
@@ -99,17 +108,14 @@ public class FileAppendWriter extends ExportWriter {
     }
   }
 
-  private void writeFile(String fileName, String content) {
-    try {
-      File file = new File(fileName);
-
-      try (FileWriter writer = new FileWriter(file, true);
-          BufferedWriter out = new BufferedWriter(writer)) {
-        out.write(content);
-        out.flush();
-      }
+  private void writeFile(String content) throws TransformException {
+    File file = new File(fileName);
+    try (FileWriter writer = new FileWriter(file, true);
+        BufferedWriter out = new BufferedWriter(writer)) {
+      out.write(content);
+      out.flush();
     } catch (IOException e) {
-      LOGGER.error("unexpected error: ", e);
+      throw new TransformException("Failed to write transform result to file: " + fileName, e);
     }
   }
 

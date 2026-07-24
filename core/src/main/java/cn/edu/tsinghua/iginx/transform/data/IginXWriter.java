@@ -55,6 +55,9 @@ public class IginXWriter extends ExportWriter {
 
   @Override
   public void write(BatchData batchData) {
+    if (batchData.isEmpty()) {
+      return;
+    }
     InsertRowRecordsReq rowRecordsReq = buildInsertRowReq(batchData);
     RequestContext ctx = contextBuilder.build(rowRecordsReq);
     executor.execute(ctx);
