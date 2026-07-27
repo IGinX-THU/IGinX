@@ -40,7 +40,7 @@ public class PemjaReader implements Reader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PemjaReader.class);
 
-  private final List<Object> data;
+  private final List<?> data;
 
   private final int batchSize;
 
@@ -50,22 +50,57 @@ public class PemjaReader implements Reader {
 
   private int offset = 0;
 
-  public PemjaReader(List<Object> data, int batchSize) throws ReadBatchException {
-    this.data = data;
+  private boolean hasLoadedEmptyBatch;
+
+  public PemjaReader(Object result, int batchSize) throws ReadBatchException {
+    if (!(result instanceof List<?>)) {
+      throw new ReadBatchException("Python transformer must return a list of rows.");
+    }
+    this.data = (List<?>) result;
     this.batchSize = batchSize;
 
+    validateData();
     this.header = getHeaderFromData();
     this.rowList = getRowListFromData();
   }
 
+  private void validateData() throws ReadBatchException {
+    if (data.isEmpty()) {
+      throw new ReadBatchException("Python transformer returned an empty list without a header.");
+    }
+    if (!isList(data.get(0))) {
+      throw new ReadBatchException(
+          "The first row returned by Python transformer must be a header list.");
+    }
+
+    List<?> header = (List<?>) data.get(0);
+    if (header.isEmpty()) {
+      throw new ReadBatchException("Python transformer returned an empty header.");
+    }
+    for (Object fieldName : header) {
+      if (!(fieldName instanceof String)) {
+        throw new ReadBatchException("Python transformer header must contain only strings.");
+      }
+    }
+    for (int i = 1; i < data.size(); i++) {
+      if (!isList(data.get(i))) {
+        throw new ReadBatchException("Python transformer data rows must be lists.");
+      }
+      if (((List<?>) data.get(i)).size() != header.size()) {
+        throw new ReadBatchException(
+            "Python transformer data row size does not match header size.");
+      }
+    }
+  }
+
   private Header getHeaderFromData() throws ReadBatchException {
-    List<Object> firstRow;
+    List<?> firstRow;
     List<DataType> typeList = new ArrayList<>();
     List<Field> fieldList = new ArrayList<>();
     if (isList(data.get(0))) {
-      firstRow = (List<Object>) data.get(0);
-      if (data.size() >= 2 && isList(data.get(1))) {
-        typeList = parseTypeList((List<Object>) data.get(1));
+      firstRow = (List<?>) data.get(0);
+      if (data.size() >= 2) {
+        typeList = parseTypeList(firstRow.size());
       }
     } else {
       firstRow = data;
@@ -93,7 +128,7 @@ public class PemjaReader implements Reader {
     boolean is2DList = isList(data.get(0));
     if (is2DList) {
       for (int i = 1; i < data.size(); i++) {
-        rowList.add(new Row(header, ((List<Object>) data.get(i)).toArray()));
+        rowList.add(new Row(header, ((List<?>) data.get(i)).toArray()));
       }
     }
     return rowList;
@@ -106,29 +141,47 @@ public class PemjaReader implements Reader {
     return object instanceof List<?>;
   }
 
-  private List<DataType> parseTypeList(List<Object> dataList) {
+  private List<DataType> parseTypeList(int fieldSize) throws ReadBatchException {
     List<DataType> res = new ArrayList<>();
-    for (Object value : dataList) {
-      // python won't pass integer, float, byte
-      if (value instanceof Long) {
-        res.add(DataType.LONG);
-      } else if (value instanceof Double) {
-        res.add(DataType.DOUBLE);
-      } else if (value instanceof Boolean) {
-        res.add(DataType.BOOLEAN);
-      } else if (value instanceof String || value instanceof byte[]) {
-        res.add(DataType.BINARY);
-      } else {
-        throw new IllegalArgumentException(
-            "Invalid datatype for " + value + " of class: " + value.getClass());
+    for (int column = 0; column < fieldSize; column++) {
+      DataType type = DataType.BINARY;
+      boolean hasValue = false;
+      for (int row = 1; row < data.size(); row++) {
+        Object value = ((List<?>) data.get(row)).get(column);
+        if (value == null) {
+          continue;
+        }
+        DataType valueType = getDataType(value);
+        if (hasValue && valueType != type) {
+          throw new ReadBatchException(
+              "Python transformer data column " + column + " contains inconsistent value types.");
+        }
+        type = valueType;
+        hasValue = true;
       }
+      res.add(type);
     }
     return res;
   }
 
+  private DataType getDataType(Object value) throws ReadBatchException {
+    // Python values are converted to Long, Double, Boolean, String, or byte[].
+    if (value instanceof Long) {
+      return DataType.LONG;
+    } else if (value instanceof Double) {
+      return DataType.DOUBLE;
+    } else if (value instanceof Boolean) {
+      return DataType.BOOLEAN;
+    } else if (value instanceof String || value instanceof byte[]) {
+      return DataType.BINARY;
+    }
+    throw new ReadBatchException(
+        "Invalid datatype for " + value + " of class: " + value.getClass());
+  }
+
   @Override
   public boolean hasNextBatch() {
-    return offset < rowList.size();
+    return offset < rowList.size() || (rowList.isEmpty() && !hasLoadedEmptyBatch);
   }
 
   @Override
@@ -139,6 +192,9 @@ public class PemjaReader implements Reader {
       batchData.appendRow(rowList.get(offset));
       countDown--;
       offset++;
+    }
+    if (batchData.isEmpty()) {
+      hasLoadedEmptyBatch = true;
     }
     return batchData;
   }

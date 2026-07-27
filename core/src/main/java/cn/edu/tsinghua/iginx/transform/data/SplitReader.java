@@ -34,6 +34,8 @@ public class SplitReader implements Reader {
 
   private int offset = 0;
 
+  private boolean hasLoadedEmptyBatch;
+
   public SplitReader(BatchData batchData, int batchSize) {
     this.rowList = batchData.getRowList();
     this.header = batchData.getHeader();
@@ -42,7 +44,7 @@ public class SplitReader implements Reader {
 
   @Override
   public boolean hasNextBatch() {
-    return offset < rowList.size();
+    return offset < rowList.size() || (rowList.isEmpty() && !hasLoadedEmptyBatch);
   }
 
   @Override
@@ -53,6 +55,9 @@ public class SplitReader implements Reader {
       batchData.appendRow(rowList.get(offset));
       countDown--;
       offset++;
+    }
+    if (batchData.isEmpty()) {
+      hasLoadedEmptyBatch = true;
     }
     return batchData;
   }

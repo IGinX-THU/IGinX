@@ -127,7 +127,15 @@ public class Job {
           stageList.add(stage);
           stageTasks.clear();
         }
-        if (i == req.getTaskListSize() - 1) {
+        if (task.isPythonTask()
+            && i < req.getTaskListSize() - 1
+            && req.getTaskList().get(i + 1).getTaskType().equals(TaskType.SQL)
+            && ((PythonTask) task).isSetOutputPrefix()) {
+          String outputPrefix = ((PythonTask) task).getOutputPrefix();
+          pyTables.add(outputPrefix);
+          stage = new BatchStage(stage, task, new IginXWriter(sessionId, outputPrefix));
+          tempTableUsed = true;
+        } else if (i == req.getTaskListSize() - 1) {
           stage = new BatchStage(stage, task, writer);
         } else {
           stage = new BatchStage(stage, task, new CollectionWriter());

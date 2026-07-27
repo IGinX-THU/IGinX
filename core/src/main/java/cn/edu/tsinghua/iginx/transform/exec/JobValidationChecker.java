@@ -133,12 +133,6 @@ public class JobValidationChecker implements Checker {
       LOGGER.error("SQL task should has at least one statement.");
       return false;
     }
-    String querySQL = sqlList.get(sqlList.size() - 1);
-    if (!querySQL.toLowerCase().trim().startsWith("select")
-        && !querySQL.toLowerCase().trim().startsWith("show")) {
-      LOGGER.error("SQL task's last statement must be select or showTS statement.");
-      return false;
-    }
     return true;
   }
 

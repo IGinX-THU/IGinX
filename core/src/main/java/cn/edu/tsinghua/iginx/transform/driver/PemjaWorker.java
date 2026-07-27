@@ -29,7 +29,7 @@ import cn.edu.tsinghua.iginx.transform.api.Writer;
 import cn.edu.tsinghua.iginx.transform.data.BatchData;
 import cn.edu.tsinghua.iginx.transform.data.PemjaReader;
 import cn.edu.tsinghua.iginx.transform.exception.ReadBatchException;
-import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
+import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +63,7 @@ public class PemjaWorker {
     this.writer = writer;
   }
 
-  public void process(BatchData batchData) {
+  public void process(BatchData batchData) throws TransformException {
     List<List<Object>> data = new ArrayList<>();
 
     List<Object> headerRow = new ArrayList<>();
@@ -88,25 +88,26 @@ public class PemjaWorker {
               }
             });
 
-    // no need to use a new thread because the whole job is running on a seperated
-    // thread(scheduler).
-    // reload module in case of script modification
-    interpreter.exec("import importlib;importlib.reload(" + moduleName + ")");
-    // use unique name in shared interpreter
-    String obj = (moduleName + className).replace(".", "a");
-    interpreter.exec(String.format("%s = %s.%s()", obj, moduleName, className));
-    List<Object> res = (List<Object>) interpreter.invokeMethod(obj, UDF_FUNC, data);
-
     try {
-      PemjaReader reader = new PemjaReader(res, config.getBatchSize());
+      // Reload scripts between scheduled executions while keeping the interpreter thread-local.
+      interpreter.exec("import importlib;importlib.reload(" + moduleName + ")");
+      String obj = (moduleName + className).replace(".", "a");
+      interpreter.exec(String.format("%s = %s.%s()", obj, moduleName, className));
+      Object result = interpreter.invokeMethod(obj, UDF_FUNC, data);
+      PemjaReader reader = new PemjaReader(result, config.getBatchSize());
       while (reader.hasNextBatch()) {
         BatchData nextBatchData = reader.loadNextBatch();
         writer.writeBatch(nextBatchData);
       }
-    } catch (WriteBatchException e) {
-      LOGGER.error("PemjaWorker identifier={} fail to writer data.", identifier, e);
     } catch (ReadBatchException e) {
-      LOGGER.error("Failed to read data from python transformer.", e);
+      throw new TransformException(
+          "Invalid output from Python transformer '" + identifier + "': " + e.getMessage(), e);
+    } catch (TransformException e) {
+      throw e;
+    } catch (Exception e) {
+      String inputState = batchData.isEmpty() ? "empty" : "non-empty";
+      throw new TransformException(
+          "Python transformer '" + identifier + "' failed with " + inputState + " input.", e);
     }
   }
 

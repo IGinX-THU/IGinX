@@ -20,26 +20,16 @@
 package cn.edu.tsinghua.iginx.transform.data;
 
 import cn.edu.tsinghua.iginx.transform.api.Writer;
-import cn.edu.tsinghua.iginx.transform.utils.Mutex;
+import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 
 public abstract class ExportWriter implements Writer, Exporter {
-
-  private final Mutex mutex = new Mutex();
 
   public ExportWriter() {}
 
   @Override
-  public void writeBatch(BatchData batchData) {
+  public void writeBatch(BatchData batchData) throws TransformException {
     write(batchData);
-
-    // call the JobRunner to send next batch of data.
-    mutex.unlock();
   }
 
-  public abstract void write(BatchData batchData);
-
-  @Override
-  public Mutex getMutex() {
-    return mutex;
-  }
+  public abstract void write(BatchData batchData) throws TransformException;
 }

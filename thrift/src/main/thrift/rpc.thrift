@@ -603,6 +603,7 @@ struct QueryTransformJobStatusReq {
 struct QueryTransformJobStatusResp {
     1: required Status status
     2: required JobState jobState
+    3: optional string errorMessage
 }
 
 struct ShowEligibleJobReq {

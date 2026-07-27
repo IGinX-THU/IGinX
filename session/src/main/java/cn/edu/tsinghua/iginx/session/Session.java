@@ -1204,6 +1204,13 @@ public class Session {
     return ref.resp.getJobState();
   }
 
+  public String queryTransformJobErrorMessage(long jobId) throws SessionException {
+    QueryTransformJobStatusReq req = new QueryTransformJobStatusReq(sessionId, jobId);
+    Reference<QueryTransformJobStatusResp> ref = new Reference<>();
+    executeWithCheck(() -> (ref.resp = client.queryTransformJobStatus(req)).status);
+    return ref.resp.isSetErrorMessage() ? ref.resp.getErrorMessage() : null;
+  }
+
   /** { jobState : [jobId, jobId,...]} */
   public Map<JobState, List<Long>> showEligibleJob(JobState jobState) throws SessionException {
     ShowEligibleJobReq req = new ShowEligibleJobReq(sessionId);

@@ -21,7 +21,7 @@ package cn.edu.tsinghua.iginx.transform.data;
 
 import cn.edu.tsinghua.iginx.transform.api.Writer;
 import cn.edu.tsinghua.iginx.transform.driver.PemjaWorker;
-import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
+import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 
 public class PemjaWriter implements Writer {
 
@@ -32,7 +32,7 @@ public class PemjaWriter implements Writer {
   }
 
   @Override
-  public void writeBatch(BatchData batchData) throws WriteBatchException {
+  public void writeBatch(BatchData batchData) throws TransformException {
     worker.process(batchData);
   }
 

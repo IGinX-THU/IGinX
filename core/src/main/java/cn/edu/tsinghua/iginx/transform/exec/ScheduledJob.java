@@ -30,6 +30,7 @@ import cn.edu.tsinghua.iginx.transform.exec.tools.ExecutionMetaManager;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.quartz.DisallowConcurrentExecution;
@@ -58,6 +59,7 @@ public class ScheduledJob implements org.quartz.Job {
           "Cannot set active status of job: " + job.getJobId() + ".", null, stopOnFailure);
     }
     try {
+      ExecutionMetaManager.clearTempTables();
       // [important] the temp table that will be used to store mid-stage result, must be set before
       // run
       for (String table : job.getPyTables()) {
@@ -101,23 +103,22 @@ public class ScheduledJob implements org.quartz.Job {
           "Cannot set active status of job: " + job.getJobId() + ".", e, stopOnFailure);
     } finally {
       if (job.isTempTableUsed()) {
+        Collection<String> tempTableNames =
+            new ArrayList<>(ExecutionMetaManager.getTempTableNames());
         // clear temp table
         ExecuteStatementReq req =
             new ExecuteStatementReq(
                 0,
                 "DELETE COLUMNS "
-                    + ExecutionMetaManager.getTempTableNames().stream()
-                        .map(s -> s + ".*")
-                        .collect(Collectors.joining(", "))
+                    + tempTableNames.stream().map(s -> s + ".*").collect(Collectors.joining(", "))
                     + ";");
         RequestContext IginxContext = contextBuilder.build(req);
         executor.execute(IginxContext);
         if (IginxContext.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
-          LOGGER.error(
-              "Cannot clear temp tables {} for transform job.",
-              ExecutionMetaManager.getTempTableNames());
+          LOGGER.error("Cannot clear temp tables {} for transform job.", tempTableNames);
         }
       }
+      ExecutionMetaManager.clearTempTables();
     }
   }
 
