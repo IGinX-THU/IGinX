@@ -18,12 +18,16 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+
+from iginx_udf import UDAFWrapper
+
+@UDAFWrapper
 class UDFMaxWithKey:
     def __init__(self):
         pass
 
     # only take one column, return max value and its key
-    def transform(self, data, args, kvargs):
+    def eval(self, data, args, kvargs):
         res = self.buildHeader(data)
 
         max = None

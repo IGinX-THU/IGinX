@@ -18,12 +18,15 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+from iginx_udf import UDTFWrapper
+
+@UDTFWrapper
 class UDFPow:
   def __init__(self):
     self._n = 1
     pass
 
-  def transform(self, data, args, kvargs):
+  def eval(self, data, args, kvargs):
     n = self._n
     if 'n' in kvargs:
       n = kvargs['n']

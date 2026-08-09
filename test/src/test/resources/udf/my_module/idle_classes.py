@@ -15,17 +15,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
- 
+
+from iginx_udf import UDSFWrapper
+
+@UDSFWrapper
 class ClassA:
-    def transform(self, data, args, kvargs):
+    def eval(self, data, args, kvargs):
         return [["col_outer_a"], ["LONG"], [1]]
 
 
+@UDSFWrapper
 class ClassB:
-    def transform(self, data, args, kvargs):
+    def eval(self, data, args, kvargs):
         return [["col_outer_b"], ["LONG"], [1]]
 
 
+@UDSFWrapper
 class ClassC:
-    def transform(self, data, args, kvargs):
+    def eval(self, data, args, kvargs):
         return [["col_outer_c"], ["LONG"], [1]]

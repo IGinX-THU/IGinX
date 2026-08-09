@@ -15,11 +15,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
- 
+
+from iginx_udf import UDAFWrapper
+
+@UDAFWrapper
 class MockUDF():
     def __init__(self):
         pass
 
-    def transform(self, data, args, kvargs):
+    def eval(self, data, args, kvargs):
         res = [["col"], ["LONG"], [1]]
         return res
