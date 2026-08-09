@@ -108,14 +108,7 @@ public class MarkJoin extends AbstractJoin {
 
   @Override
   public Operator copy() {
-    return new MarkJoin(
-        getSourceA().copy(),
-        getSourceB().copy(),
-        filter.copy(),
-        markColumn,
-        isAntiJoin,
-        getJoinAlgType(),
-        new ArrayList<>(getExtraJoinPrefix()));
+    return copyWithSource(getSourceA().copy(), getSourceB().copy());
   }
 
   @Override
@@ -123,7 +116,7 @@ public class MarkJoin extends AbstractJoin {
     return new MarkJoin(
         sourceA,
         sourceB,
-        filter.copy(),
+        filter == null ? null : filter.copy(),
         markColumn,
         isAntiJoin,
         getJoinAlgType(),

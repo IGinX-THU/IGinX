@@ -20,13 +20,12 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.task.utils.PhysicalCloseable;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 
-public interface RowStream extends AutoCloseable {
+public interface RowStream extends PhysicalCloseable {
 
   Header getHeader() throws PhysicalException;
-
-  void close() throws PhysicalException;
 
   boolean hasNext() throws PhysicalException;
 

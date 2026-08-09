@@ -705,13 +705,13 @@ public class ExprUtils {
 
     newChildren.add(0, new ConstantExpression(constantValue.getValue()));
     newOps.add(0, Operator.PLUS);
-    multipleExpression.setChildren(newChildren);
-    multipleExpression.setOps(newOps);
+    MultipleExpression res =
+        new MultipleExpression(newChildren, newOps, multipleExpression.getAlias());
 
     if (newChildren.size() == 1) {
       return newChildren.get(0);
     }
-    return multipleExpression;
+    return res;
   }
 
   /**
@@ -857,7 +857,7 @@ public class ExprUtils {
         for (Expression child : multipleExpression.getChildren()) {
           children.add(copy(child));
         }
-        return new MultipleExpression(children, multipleExpression.getOps());
+        return new MultipleExpression(children, new ArrayList<>(multipleExpression.getOps()));
       case CaseWhen:
         CaseWhenExpression caseWhenExpression = (CaseWhenExpression) expression;
         List<Filter> conditions = new ArrayList<>();

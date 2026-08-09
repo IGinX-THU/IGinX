@@ -19,13 +19,10 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task.visitor;
 
-import cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.*;
 import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.MultipleMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
-import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.memory.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,17 +53,22 @@ public class TaskInfoVisitor implements TaskVisitor {
   }
 
   @Override
-  public void visit(BinaryMemoryPhysicalTask task) {
+  public void visit(SourceMemoryPhysicalTask task) {
     collectTaskInfo(task);
   }
 
   @Override
-  public void visit(UnaryMemoryPhysicalTask task) {
+  public void visit(BinaryMemoryPhysicalTask<?, ?> task) {
     collectTaskInfo(task);
   }
 
   @Override
-  public void visit(MultipleMemoryPhysicalTask task) {
+  public void visit(UnaryMemoryPhysicalTask<?, ?> task) {
+    collectTaskInfo(task);
+  }
+
+  @Override
+  public void visit(MultiMemoryPhysicalTask<?, ?> task) {
     collectTaskInfo(task);
   }
 
@@ -80,7 +82,7 @@ public class TaskInfoVisitor implements TaskVisitor {
     collectTaskInfo(task);
   }
 
-  private void collectTaskInfo(PhysicalTask task) {
+  private void collectTaskInfo(PhysicalTask<?> task) {
     TaskType type = task.getType();
     StringBuilder builder = new StringBuilder();
     if (depth != 0) {
@@ -95,10 +97,10 @@ public class TaskInfoVisitor implements TaskVisitor {
 
     Object[] values = new Object[5];
     values[0] = builder.toString();
-    values[1] = (task.getSpan() + "ms").getBytes();
+    values[1] = (task.getMetrics().cpuTime().toMillis() + "ms").getBytes();
     values[2] = task.getType().toString().getBytes();
     values[3] = task.getInfo().getBytes();
-    values[4] = task.getAffectedRows();
+    values[4] = task.getMetrics().affectRows();
     cache.add(values);
   }
 }

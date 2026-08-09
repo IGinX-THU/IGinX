@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MappingTransform extends AbstractUnaryOperator {
 
@@ -52,7 +53,9 @@ public class MappingTransform extends AbstractUnaryOperator {
 
   @Override
   public Operator copy() {
-    return new MappingTransform(getSource().copy(), new ArrayList<>(functionCallList));
+    return new MappingTransform(
+        getSource().copy(),
+        functionCallList.stream().map(FunctionCall::copy).collect(Collectors.toList()));
   }
 
   @Override
