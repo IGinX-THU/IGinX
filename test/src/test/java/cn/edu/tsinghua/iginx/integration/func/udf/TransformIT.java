@@ -429,6 +429,70 @@ public class TransformIT {
   }
 
   @Test
+  public void cancelOneScheduledJobDoesNotStopOtherScheduledJobsTest() {
+    LOGGER.info("cancelOneScheduledJobDoesNotStopOtherScheduledJobsTest");
+    String firstOutput =
+        OUTPUT_DIR_PREFIX + File.separator + "export_file_cancel_isolation_first.txt";
+    String secondOutput =
+        OUTPUT_DIR_PREFIX + File.separator + "export_file_cancel_isolation_second.txt";
+    long firstJobId = -1;
+    long secondJobId = -1;
+    boolean firstJobCancelled = false;
+    boolean testPassed = false;
+    try {
+      Files.deleteIfExists(Paths.get(firstOutput));
+      Files.deleteIfExists(Paths.get(secondOutput));
+
+      List<TaskInfo> taskInfoList = new ArrayList<>();
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(Collections.singletonList("SELECT s1 FROM us.d1 WHERE key = 0;"));
+      taskInfoList.add(sqlTask);
+
+      firstJobId =
+          session.commitTransformJob(taskInfoList, ExportType.FILE, firstOutput, "every 1 second");
+      secondJobId =
+          session.commitTransformJob(taskInfoList, ExportType.FILE, secondOutput, "every 1 second");
+
+      Thread.sleep(4000L);
+      assertTrue(getFileLineCount(firstOutput) > 1);
+      assertTrue(getFileLineCount(secondOutput) > 1);
+
+      cancelJob(firstJobId);
+      firstJobCancelled = true;
+
+      int firstJobLineCount = getFileLineCount(firstOutput);
+      int secondJobLineCount = getFileLineCount(secondOutput);
+      Thread.sleep(4000L);
+      assertEquals(firstJobLineCount, getFileLineCount(firstOutput));
+      assertTrue(getFileLineCount(secondOutput) > secondJobLineCount);
+      testPassed = true;
+    } catch (SessionException | IOException | InterruptedException e) {
+      LOGGER.error("Transform: execute fail. Caused by:", e);
+      fail();
+    } finally {
+      if (firstJobId > 0 && !firstJobCancelled) {
+        cancelJob(firstJobId);
+      }
+      if (secondJobId > 0) {
+        cancelJob(secondJobId);
+      }
+      if (testPassed) {
+        try {
+          Files.deleteIfExists(Paths.get(firstOutput));
+          Files.deleteIfExists(Paths.get(secondOutput));
+        } catch (IOException e) {
+          LOGGER.error("Fail to delete transform output file.", e);
+          fail();
+        }
+      }
+    }
+  }
+
+  private int getFileLineCount(String filename) throws IOException {
+    return Files.readAllLines(Paths.get(filename)).size();
+  }
+
+  @Test
   public void commitStopOnFailureTest() {
     LOGGER.info("commitStopOnFailureTest");
     try {

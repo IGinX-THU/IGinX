@@ -47,6 +47,8 @@ public class JobRunner implements Runner {
 
   private Scheduler scheduler;
 
+  private JobKey jobKey;
+
   public JobRunner(Job job) {
     this.job = job;
     this.runnerList = new ArrayList<>();
@@ -71,6 +73,7 @@ public class JobRunner implements Runner {
     scheduler = StdSchedulerFactory.getDefaultScheduler();
 
     JobDetail jobDetail = JobBuilder.newJob(ScheduledJob.class).build();
+    jobKey = jobDetail.getKey();
 
     jobDetail.getJobDataMap().put("runnerList", runnerList);
     jobDetail.getJobDataMap().put("job", job);
@@ -113,7 +116,9 @@ public class JobRunner implements Runner {
   @Override
   public void close() {
     try {
-      scheduler.shutdown();
+      if (scheduler != null && jobKey != null) {
+        scheduler.deleteJob(jobKey);
+      }
     } catch (SchedulerException e) {
       LOGGER.error("Fail to close Transform job runner id={}, because", job.getJobId(), e);
     }
