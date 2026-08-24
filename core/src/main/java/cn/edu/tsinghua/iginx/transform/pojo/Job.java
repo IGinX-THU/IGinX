@@ -127,11 +127,21 @@ public class Job {
           stageList.add(stage);
           stageTasks.clear();
         }
+        ExportWriter batchWriter = new CollectionWriter();
         if (i == req.getTaskListSize() - 1) {
-          stage = new BatchStage(stage, task, writer);
-        } else {
-          stage = new BatchStage(stage, task, new CollectionWriter());
+          batchWriter = writer;
+        } else if (i + 1 < req.getTaskListSize()) {
+          TaskInfo nextInfo = req.getTaskList().get(i + 1);
+          if (nextInfo.getTaskType().equals(TaskType.SQL)
+              && task.isPythonTask()
+              && ((PythonTask) task).isSetOutputPrefix()) {
+            String outputPrefix = ((PythonTask) task).getOutputPrefix();
+            pyTables.add(outputPrefix);
+            batchWriter = new IginXWriter(sessionId, outputPrefix);
+            tempTableUsed = true;
+          }
         }
+        stage = new BatchStage(stage, task, batchWriter);
         stageList.add(stage);
       } else {
         if (task.getTaskType().equals(TaskType.SQL) && !stageTasks.isEmpty()) {
