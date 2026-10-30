@@ -97,6 +97,9 @@ runs:
               echo "requests==2.32.4" >> requirements.txt
               echo "torch==2.7.1" >> requirements.txt
               echo "transformers==4.55.0" >> requirements.txt
+              # filelock 4.2+ loads lock classes lazily, which breaks importing torch from
+              # several UDF threads at once ("partially initialized module 'torch'")
+              echo "filelock<4" >> requirements.txt
 
         - if: inputs.scope=='all' && inputs.iginx-conda-flag != 'true'
           name: Set up Python ${{ inputs.python-version }}
@@ -139,6 +142,28 @@ runs:
               java-version: ${{ inputs.java }}
               distribution: ${{ runner.os == 'macOS' && matrix.java == '8' && 'liberica' || 'temurin' }}
               cache: "maven"
+
+        # the macOS image's ~/.bashrc exports JAVA_HOME for its default JDK (21), so steps
+        # using a login shell (bash -el) would silently switch away from the JDK chosen above
+        - if: runner.os == 'macOS'
+          name: Keep JDK ${{ inputs.java }} in login shells
+          shell: bash
+          run: |
+              for rc in ~/.bash_profile ~/.bashrc; do
+                {
+                  echo ""
+                  echo "# added by IGinX CI: keep the JDK chosen by setup-java"
+                  echo "export JAVA_HOME=\"$JAVA_HOME\""
+                  echo "export PATH=\"\$JAVA_HOME/bin:\$PATH\""
+                } >> "$rc"
+              done
+              bash -el -c 'echo "login shell JAVA_HOME=$JAVA_HOME"; java -version'
+
+        # Maven Central occasionally resets connections; retry downloads instead of failing the job
+        - name: Make Maven downloads retry
+          shell: bash
+          run: |
+              echo "MAVEN_OPTS=${MAVEN_OPTS:+$MAVEN_OPTS }-Daether.connector.http.retryHandler.count=5 -Daether.connector.http.retryHandler.requestSentEnabled=true -Dmaven.wagon.http.retryHandler.count=5" >> $GITHUB_ENV
 
         - name: Check Java & Python Version
           shell: bash
