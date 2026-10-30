@@ -75,6 +75,10 @@
             <artifactId>neo4j</artifactId>
         </dependency>
         <dependency>
+            <groupId>cn.edu.tsinghua</groupId>
+            <artifactId>minio</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-compress</artifactId>
         </dependency>

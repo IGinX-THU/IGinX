@@ -1,0 +1,61 @@
+name: "minio"
+description: "setup minio server binary"
+inputs:
+    version:
+        description: "minio version (the last community release with binaries)"
+        required: false
+        default: "RELEASE.2025-09-07T16-13-09Z"
+
+runs:
+    using: "composite"
+    steps:
+        - id: base
+          name: Initialize Setup Configuration
+          uses: ./.github/actions/setup/tool
+          with:
+              tool: minio
+              version: ${{ inputs.version }}
+
+        - name: Restore minio Cache
+          id: restore
+          uses: actions/cache/restore@v4
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}
+
+        - if: steps.restore.outputs.cache-hit != 'true'
+          name: Download minio
+          shell: bash
+          run: |
+              set -e
+              case "${{ runner.os }}" in
+                Linux) os=linux; ext="" ;;
+                macOS) os=darwin; ext="" ;;
+                Windows) os=windows; ext=".exe" ;;
+                *) echo "${{ runner.os }} is not supported"; exit 1 ;;
+              esac
+              case "${{ runner.arch }}" in
+                X64) arch=amd64 ;;
+                ARM64) arch=arm64 ;;
+                *) echo "${{ runner.arch }} is not supported"; exit 1 ;;
+              esac
+              version="${{ inputs.version }}"
+              url="https://github.com/minio/minio/releases/download/${version}/minio.${os}-${arch}.${version}${ext}"
+              mkdir -p "${{ steps.base.outputs.tool-path }}"
+              curl -fL --retry 5 --retry-delay 5 -o "${{ steps.base.outputs.tool-path }}/minio${ext}" "$url"
+              chmod +x "${{ steps.base.outputs.tool-path }}/minio${ext}"
+
+        - name: Add minio to PATH
+          shell: bash
+          run: echo "${{ steps.base.outputs.tool-path }}" >> $GITHUB_PATH
+
+        - name: Show minio Version
+          shell: bash
+          run: minio --version
+
+        - name: Save minio Cache
+          if: steps.restore.outputs.cache-hit != 'true'
+          uses: actions/cache/save@v4
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}

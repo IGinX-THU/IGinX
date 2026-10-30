@@ -49,6 +49,10 @@ inputs:
         description: "Oracle ports"
         required: false
         default: 1521
+    MinIO-ports:
+        description: "MinIO ports"
+        required: false
+        default: 9000
 
 runs:
     using: "composite" # Mandatory parameter
@@ -201,3 +205,16 @@ runs:
           uses: ./.github/actions/service/oracle
           with:
               ports: ${{ inputs.Oracle-ports }}
+
+        - if: inputs.DB-name=='MinIO'
+          name: Setup DB
+          uses: ./.github/actions/setup/minio
+
+        - if: inputs.DB-name=='MinIO'
+          name: Run DB
+          uses: ./.github/actions/service/minio
+          with:
+              stop: false
+              clean: false
+              start: true
+              ports: ${{ inputs.MinIO-ports }}
