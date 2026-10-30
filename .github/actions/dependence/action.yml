@@ -12,7 +12,7 @@ inputs:
     os:
         description: "running environment"
         required: false
-        default: ubuntu-24.04
+        default: ubuntu-latest
     scope:
         description: "partial dependency required"
         required: false

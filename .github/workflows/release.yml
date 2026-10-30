@@ -7,7 +7,7 @@ on:
 jobs:
     upload-package:
         name: Upload to Github Release
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-latest
         permissions:
             contents: write
         steps:
@@ -44,7 +44,7 @@ jobs:
                   overwrite: true
     upload-deploy:
         name: Upload to Github Pages
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-latest
         permissions:
             pull-requests: write
             contents: write
@@ -87,7 +87,7 @@ jobs:
                   title: "chore(repo): update maven repository"
     upload-session-py:
         name: Upload Session to PyPI
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-latest
         environment:
             name: pypi
             url: https://pypi.org/p/<your-pypi-project-name>

@@ -21,7 +21,7 @@ on:
                 # Windows Server 2025 where the ltsc2022 client image is no longer cached
                 # and process isolation is unstable. Pin to environments that can run the
                 # remote client container reliably.
-                default: '["ubuntu-24.04", "windows-2022"]'
+                default: '["ubuntu-latest", "windows-2022"]'
             metadata-matrix:
                 description: "The metadata to run the test on"
                 type: string

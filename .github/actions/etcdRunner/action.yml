@@ -4,7 +4,7 @@ inputs:
     os:
         description: "etcd runner environment"
         required: false
-        default: ubuntu-24.04
+        default: ubuntu-latest
     if-stop:
         description: "to stop the etcd"
         required: false

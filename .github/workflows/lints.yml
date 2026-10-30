@@ -8,23 +8,35 @@ permissions:
 
 jobs:
     formatting:
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v5
+            # pin the JDK: the runner default changes between images (Ubuntu 26.04 defaults
+            # to Java 25), and google-java-format 1.7 does not run on new JDKs
+            - uses: actions/setup-java@v5
+              with:
+                  java-version: 8
+                  distribution: temurin
+                  cache: maven
             - name: Check format with Maven
               shell: bash
               run: |
                   mvn clean spotless:check
     license:
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v5
+            - uses: actions/setup-java@v5
+              with:
+                  java-version: 8
+                  distribution: temurin
+                  cache: maven
             - name: Check license headers
               shell: bash
               run: |
                   mvn clean license:check
     py-session:
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v5
             - uses: actions/setup-java@v5
@@ -43,7 +55,7 @@ jobs:
 
     pull-request-name:
         name: Validate PR title
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-latest
         steps:
             - uses: amannn/action-semantic-pull-request@v6
               env:
@@ -56,7 +68,7 @@ jobs:
             - license
             - py-session
             - pull-request-name
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-latest
         steps:
             - name: Decide whether the needed jobs succeeded or failed
               uses: re-actors/alls-green@release/v1
