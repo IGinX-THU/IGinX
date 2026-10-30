@@ -99,6 +99,16 @@ runs:
                 exit 1
               fi
 
+        - if: inputs.DB-name=='IoTDB12' || inputs.DB-name=='Mix-IoTDB12-InfluxDB'
+          name: Wait for IoTDB
+          uses: ./.github/actions/waitForPort
+          with:
+              name: iotdb
+              ports: ${{ inputs.IoTDB12-ports }}
+              timeout: "120"
+              log-files: "apache-iotdb-0.12.6-server-bin-*/logs/*.log"
+              working-directory: ${{ github.workspace }}
+
         - if: inputs.DB-name=='MongoDB'
           name: Setup DB
           uses: ./.github/actions/setup/mongodb

@@ -41,3 +41,12 @@ runs:
                 nohup mongod --port $port --dbpath $port --logpath $port/mongodb.log > /dev/null 2>&1 &
                 echo $! > $port/mongodb.pid
               done
+
+        - if: fromJSON(inputs.start)
+          name: Wait for Mongodb
+          uses: ./.github/actions/waitForPort
+          with:
+              name: mongodb
+              ports: ${{ inputs.ports }}
+              log-files: "*/mongodb.log"
+              working-directory: ${{ github.action_path }}

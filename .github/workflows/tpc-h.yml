@@ -17,7 +17,7 @@ on:
                 description: "The operating system to run the test on"
                 type: string
                 required: false
-                default: '["ubuntu-latest", "macos-latest", "windows-latest"]'
+                default: '["ubuntu-24.04", "macos-latest", "windows-latest"]'
             metadata-matrix:
                 description: "The metadata to run the test on"
                 type: string
@@ -216,7 +216,7 @@ jobs:
                   cp IGinX/test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt tpch-costs-${SUFFIX}-old.txt
 
             - name: Upload Result of New Cost
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: tpch-costs-${{ matrix.java }}-${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.metadata }}-${{ matrix.DB-name }}-${{ matrix.close-optimizer }}
                   path: tpch-costs-*.txt
@@ -224,9 +224,9 @@ jobs:
 
     TPC-H-Collect:
         needs: TPC-H-Test
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
         steps:
-            - uses: actions/download-artifact@v4
+            - uses: actions/download-artifact@v8
               with:
                   pattern: tpch-costs-*
                   merge-multiple: true
@@ -272,7 +272,7 @@ jobs:
                     )
 
             - name: Upload Result
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: tpch-costs
                   path: tpch-costs.csv

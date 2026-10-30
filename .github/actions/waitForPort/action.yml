@@ -1,0 +1,35 @@
+name: "wait-for-port"
+description: "wait until a service listens on its ports, and print its log if it never does"
+inputs:
+    name:
+        description: "service name, used in messages"
+        required: true
+    ports:
+        description: "space-separated ports the service should listen on"
+        required: true
+    timeout:
+        description: "seconds to wait for each port"
+        required: false
+        default: "60"
+    log-files:
+        description: "log files (globs allowed) to print when the service does not come up"
+        required: false
+        default: ""
+    working-directory:
+        description: "directory that log-files are relative to"
+        required: false
+        default: "."
+
+runs:
+    using: "composite"
+    steps:
+        - name: Wait for ${{ inputs.name }}
+          shell: bash
+          working-directory: ${{ inputs.working-directory }}
+          run: |
+              if ! "${GITHUB_WORKSPACE}/.github/scripts/utils/wait_for_port.sh" "${{ inputs.name }}" "${{ inputs.timeout }}" ${{ inputs.ports }}; then
+                for f in ${{ inputs.log-files }}; do
+                  [ -f "$f" ] && { echo "===== $f"; tail -n 100 "$f"; }
+                done
+                exit 1
+              fi

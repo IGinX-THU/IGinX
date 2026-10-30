@@ -12,7 +12,7 @@ inputs:
     os:
         description: "running environment"
         required: false
-        default: ubuntu-latest
+        default: ubuntu-24.04
     scope:
         description: "partial dependency required"
         required: false
@@ -61,7 +61,7 @@ runs:
         # and regenerate them by initializing conda
         - if: inputs.scope=='all' && inputs.iginx-conda-flag == 'true'
           name: Setup Miniconda
-          uses: conda-incubator/setup-miniconda@v3.1.0
+          uses: conda-incubator/setup-miniconda@v4
           with:
               miniconda-version: ${{ inputs.conda-version }}
               python-version: ${{ inputs.python-version }}
@@ -78,9 +78,9 @@ runs:
               brew install docker qemu lima
               LIMACTL_PATH=$(brew --prefix)/bin/limactl
               COLIMA_PATH=$(brew --prefix)/bin/colima
-              sudo curl -LO https://github.com/abiosoft/colima/releases/download/v0.8.1/colima-Darwin-arm64
+              sudo curl --retry 5 --retry-delay 5 --retry-all-errors -LO https://github.com/abiosoft/colima/releases/download/v0.8.1/colima-Darwin-arm64
               sudo install colima-Darwin-arm64 $COLIMA_PATH && sudo chmod +x $COLIMA_PATH
-              sudo curl -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
+              sudo curl --retry 5 --retry-delay 5 --retry-all-errors -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
               colima start --network-address --arch arm64 --vm-type=qemu
               docker --version
 

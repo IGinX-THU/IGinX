@@ -40,21 +40,21 @@ jobs:
         uses: ./.github/workflows/standalone-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            os-matrix: '["ubuntu-24.04", "windows-latest"]'
             db-matrix: '["Dameng", "Oracle"]'
             timeout-minutes: 100
     standalone-test-no-optimizer-no-mac-relational:
         uses: ./.github/workflows/standalone-test-no-optimizer.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            os-matrix: '["ubuntu-24.04", "windows-latest"]'
             db-matrix: '["Dameng", "Oracle"]'
             timeout-minutes: 100
     standalone-test-no-mac-no-privs-dameng:
         uses: ./.github/workflows/standalone-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            os-matrix: '["ubuntu-24.04", "windows-latest"]'
             db-matrix: '["Dameng"]'
             db-support-create-database: false
             timeout-minutes: 120
@@ -62,7 +62,7 @@ jobs:
         uses: ./.github/workflows/standalone-test-no-optimizer.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            os-matrix: '["ubuntu-24.04", "windows-latest"]'
             db-matrix: '["Dameng"]'
             db-support-create-database: false
             timeout-minutes: 100
@@ -70,21 +70,21 @@ jobs:
         uses: ./.github/workflows/standalone-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest"]'
+            os-matrix: '["ubuntu-24.04"]'
             db-matrix: '["OceanBase"]'
             timeout-minutes: 300
     standalone-test-no-optimizer-oceanbase:
         uses: ./.github/workflows/standalone-test-no-optimizer.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest"]'
+            os-matrix: '["ubuntu-24.04"]'
             db-matrix: '["OceanBase"]'
             timeout-minutes: 300
     db-ce-dameng:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            os-matrix: '["ubuntu-24.04", "windows-latest"]'
             db-matrix: '["Dameng"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
@@ -92,7 +92,7 @@ jobs:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            os-matrix: '["ubuntu-24.04", "windows-latest"]'
             db-matrix: '["Dameng"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
@@ -101,7 +101,7 @@ jobs:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest"]'
+            os-matrix: '["ubuntu-24.04"]'
             db-matrix: '["Oracle", "OceanBase"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
@@ -109,7 +109,7 @@ jobs:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest"]'
+            os-matrix: '["ubuntu-24.04"]'
             db-matrix: '["Oracle", "OceanBase"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 120
@@ -118,21 +118,21 @@ jobs:
         uses: ./.github/workflows/standalone-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            os-matrix: '["ubuntu-24.04", "windows-latest"]'
             db-matrix: '["VectorDB"]'
             timeout-minutes: 300
     standalone-test-no-optimizer-vectordb:
         uses: ./.github/workflows/standalone-test-no-optimizer.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            os-matrix: '["ubuntu-24.04", "windows-latest"]'
             db-matrix: '["VectorDB"]'
             timeout-minutes: 300
     db-ce-vectordb:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            os-matrix: '["ubuntu-24.04", "windows-latest"]'
             db-matrix: '["VectorDB"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 360
@@ -140,7 +140,7 @@ jobs:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["ubuntu-latest", "windows-latest"]'
+            os-matrix: '["ubuntu-24.04", "windows-latest"]'
             db-matrix: '["VectorDB"]'
             functest: "NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,CompactionIT,TimePrecisionIT,PySessionIT"
             timeout-minutes: 360
@@ -158,7 +158,7 @@ jobs:
     tpc-h-test:
         uses: ./.github/workflows/tpc-h.yml
         with:
-            os-matrix: '["ubuntu-latest"]'
+            os-matrix: '["ubuntu-24.04"]'
             metadata-matrix: '["zookeeper"]'
     cluster-test:
         uses: ./.github/workflows/cluster-test.yml
@@ -192,7 +192,7 @@ jobs:
             - standalone-test-no-optimizer-oceanbase
             - cluster-test
             - restart-test
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
         steps:
             - name: Decide whether the needed jobs succeeded or failed
               uses: re-actors/alls-green@release/v1
