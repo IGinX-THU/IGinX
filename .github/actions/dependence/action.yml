@@ -86,58 +86,15 @@ runs:
               colima start --network-address --arch arm64 --vm-type=qemu
               docker --version
 
-        - if: inputs.scope=='all'
-          name: Write Python dependencies to requirements.txt
-          shell: bash
-          run: |
-              echo "pandas==2.3.1" >> requirements.txt
-              echo "numpy==2.3.2" >> requirements.txt
-              echo "pemjax==0.2.3" >> requirements.txt
-              echo "thrift==0.22.0" >> requirements.txt
-              echo "fastparquet==2024.11.0" >> requirements.txt
-              echo "tqdm==4.67.1" >> requirements.txt
-              echo "requests==2.32.4" >> requirements.txt
-              echo "torch==2.7.1" >> requirements.txt
-              echo "transformers==4.55.0" >> requirements.txt
-              # Pin the indirect dependencies to the versions of the last green run (August 2026).
-              # Newer releases (e.g. python-dateutil 3.0.0) came with UDF crashes, hangs and
-              # "partially initialized module 'torch'" errors in IGinX's multithreaded Python.
-              # A constraints file only applies to packages that actually get installed.
-              cat > constraints.txt <<'EOF'
-              MarkupSafe==3.0.3
-              certifi==2026.7.22
-              charset_normalizer==3.5.1
-              colorama==0.4.6
-              cramjam==2.12.0
-              filelock==3.32.4
-              find-libpython==0.5.1
-              fsspec==2026.7.0
-              hf-xet==1.6.0
-              huggingface-hub==0.36.2
-              idna==3.19
-              jinja2==3.1.6
-              mpmath==1.3.0
-              networkx==3.6.1
-              python-dateutil==2.9.0.post0
-              pytz==2026.3.post1
-              pyyaml==6.0.3
-              regex==2026.7.19
-              safetensors==0.8.0
-              six==1.17.0
-              sympy==1.14.0
-              tokenizers==0.21.4
-              triton==3.3.1
-              typing-extensions==4.16.0
-              tzdata==2026.3
-              urllib3==2.7.0
-              EOF
-
         - if: inputs.scope=='all' && inputs.iginx-conda-flag != 'true'
           name: Set up Python ${{ inputs.python-version }}
           uses: actions/setup-python@v6
           with:
               python-version: ${{ inputs.python-version }}
               cache: "pip" # caching pip dependencies
+              cache-dependency-path: |
+                  .github/python/requirements.txt
+                  .github/python/constraints.txt
 
         # when using login mode shell, setup-python does not take effect.
         # thus manually add python path to PATH
@@ -159,7 +116,8 @@ runs:
               echo $PATH
               which python
               python -m pip install --upgrade pip
-              pip install -r requirements.txt -c constraints.txt
+              # package lists live in .github/python (see the comments there)
+              pip install -r "$GITHUB_WORKSPACE/.github/python/requirements.txt" -c "$GITHUB_WORKSPACE/.github/python/constraints.txt"
 
         - if: inputs.free-thread-python-required=='true'
           name: Install free-thread python

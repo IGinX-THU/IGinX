@@ -479,6 +479,7 @@
                                 <excludes>
                                     <exclude>**/test/resources/**</exclude>
                                     <exclude>**/requirements.txt</exclude>
+                                    <exclude>**/constraints.txt</exclude>
                                 </excludes>
                             </licenseSet>
                         </licenseSets>
