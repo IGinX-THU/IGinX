@@ -61,10 +61,12 @@ runs:
         # and regenerate them by initializing conda
         - if: inputs.scope=='all' && inputs.iginx-conda-flag == 'true'
           name: Setup Miniconda
-          uses: conda-incubator/setup-miniconda@v3.1.0
+          uses: conda-incubator/setup-miniconda@v4
           with:
               miniconda-version: ${{ inputs.conda-version }}
-              python-version: ${{ inputs.python-version }}
+              # 3.11.15 is the conda build of the last green run; 3.11.18 (Oct 2026) came with
+              # native crashes (SIGSEGV in libpython) under pemja
+              python-version: ${{ inputs.python-version == '3.11' && '3.11.15' || inputs.python-version }}
               activate-environment: ${{ inputs.iginx-conda-env }}
               channel-priority: strict
               run-post: "false"
@@ -78,25 +80,11 @@ runs:
               brew install docker qemu lima
               LIMACTL_PATH=$(brew --prefix)/bin/limactl
               COLIMA_PATH=$(brew --prefix)/bin/colima
-              sudo curl -LO https://github.com/abiosoft/colima/releases/download/v0.8.1/colima-Darwin-arm64
+              sudo curl --retry 5 --retry-delay 5 --retry-all-errors -LO https://github.com/abiosoft/colima/releases/download/v0.8.1/colima-Darwin-arm64
               sudo install colima-Darwin-arm64 $COLIMA_PATH && sudo chmod +x $COLIMA_PATH
-              sudo curl -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
+              sudo curl --retry 5 --retry-delay 5 --retry-all-errors -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
               colima start --network-address --arch arm64 --vm-type=qemu
               docker --version
-
-        - if: inputs.scope=='all'
-          name: Write Python dependencies to requirements.txt
-          shell: bash
-          run: |
-              echo "pandas==2.3.1" >> requirements.txt
-              echo "numpy==2.3.2" >> requirements.txt
-              echo "pemjax==0.2.3" >> requirements.txt
-              echo "thrift==0.22.0" >> requirements.txt
-              echo "fastparquet==2024.11.0" >> requirements.txt
-              echo "tqdm==4.67.1" >> requirements.txt
-              echo "requests==2.32.4" >> requirements.txt
-              echo "torch==2.7.1" >> requirements.txt
-              echo "transformers==4.55.0" >> requirements.txt
 
         - if: inputs.scope=='all' && inputs.iginx-conda-flag != 'true'
           name: Set up Python ${{ inputs.python-version }}
@@ -104,6 +92,9 @@ runs:
           with:
               python-version: ${{ inputs.python-version }}
               cache: "pip" # caching pip dependencies
+              cache-dependency-path: |
+                  .github/python/requirements.txt
+                  .github/python/constraints.txt
 
         # when using login mode shell, setup-python does not take effect.
         # thus manually add python path to PATH
@@ -125,7 +116,8 @@ runs:
               echo $PATH
               which python
               python -m pip install --upgrade pip
-              pip install -r requirements.txt
+              # package lists live in .github/python (see the comments there)
+              pip install -r "$GITHUB_WORKSPACE/.github/python/requirements.txt" -c "$GITHUB_WORKSPACE/.github/python/constraints.txt"
 
         - if: inputs.free-thread-python-required=='true'
           name: Install free-thread python
@@ -139,6 +131,45 @@ runs:
               java-version: ${{ inputs.java }}
               distribution: ${{ runner.os == 'macOS' && matrix.java == '8' && 'liberica' || 'temurin' }}
               cache: "maven"
+
+        # the macOS image's ~/.bashrc exports JAVA_HOME for its default JDK (21), so steps
+        # using a login shell (bash -el) would silently switch away from the JDK chosen above.
+        # A login shell reads only the first of ~/.bash_profile, ~/.bash_login and ~/.profile,
+        # and setup-miniconda moves ~/.bash_profile to ~/.profile, so append to the file that
+        # exists and never create a new one (that would hide the conda setup in ~/.profile).
+        - if: runner.os == 'macOS'
+          name: Keep JDK ${{ inputs.java }} in login shells
+          shell: bash
+          run: |
+              python_before=$(bash -el -c 'command -v python3 || true')
+              login_rc=""
+              for f in ~/.bash_profile ~/.bash_login ~/.profile; do
+                if [ -f "$f" ]; then login_rc="$f"; break; fi
+              done
+              rc_files="${login_rc:-$HOME/.bash_profile}"
+              if [ -f ~/.bashrc ]; then rc_files="$rc_files $HOME/.bashrc"; fi
+              for rc in $rc_files; do
+                echo "appending JAVA_HOME to $rc"
+                {
+                  echo ""
+                  echo "# added by IGinX CI: keep the JDK chosen by setup-java"
+                  echo "export JAVA_HOME=\"$JAVA_HOME\""
+                  echo "export PATH=\"\$JAVA_HOME/bin:\$PATH\""
+                } >> "$rc"
+              done
+              bash -el -c 'echo "login shell JAVA_HOME=$JAVA_HOME"; java -version'
+              python_after=$(bash -el -c 'command -v python3 || true')
+              echo "login shell python3: $python_before -> $python_after"
+              if [ "$python_before" != "$python_after" ]; then
+                echo "::error::changing the shell profile switched python3 in login shells"
+                exit 1
+              fi
+
+        # Maven Central occasionally resets connections; retry downloads instead of failing the job
+        - name: Make Maven downloads retry
+          shell: bash
+          run: |
+              echo "MAVEN_OPTS=${MAVEN_OPTS:+$MAVEN_OPTS }-Daether.connector.http.retryHandler.count=5 -Daether.connector.http.retryHandler.requestSentEnabled=true -Dmaven.wagon.http.retryHandler.count=5" >> $GITHUB_ENV
 
         - name: Check Java & Python Version
           shell: bash

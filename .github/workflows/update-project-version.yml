@@ -58,7 +58,7 @@ jobs:
               run: |
                   find docs -type f -exec sed -i "s/${{ steps.old-version.outputs.version }}/${{ steps.new-version.outputs.version }}/g" {} \;
             - name: create pull request
-              uses: peter-evans/create-pull-request@v6
+              uses: peter-evans/create-pull-request@v8
               with:
                   add-paths: |
                       pom.xml

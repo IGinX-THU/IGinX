@@ -143,9 +143,16 @@ jobs:
             - name: Download TPC-H Data
               shell: bash
               run: |
-                  wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/tpc.7z
-                  sudo apt-get install p7zip-full
-                  7za x tpc.7z
+                  wget --tries=5 https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/tpc.7z
+                  # 7-Zip is not preinstalled on every image, and newer Ubuntu ships it as
+                  # "7zip" (command 7zz) instead of p7zip (command 7za)
+                  SEVENZIP=$(command -v 7za || command -v 7z || command -v 7zz || true)
+                  if [ -z "$SEVENZIP" ]; then
+                    sudo apt-get update -q
+                    sudo apt-get install -y -q 7zip || sudo apt-get install -y -q p7zip-full
+                    SEVENZIP=$(command -v 7za || command -v 7z || command -v 7zz)
+                  fi
+                  "$SEVENZIP" x tpc.7z
                   ls tpc
                   cp -r tpc IGinX/tpc
                   ls IGinX/tpc
@@ -216,7 +223,7 @@ jobs:
                   cp IGinX/test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt tpch-costs-${SUFFIX}-old.txt
 
             - name: Upload Result of New Cost
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: tpch-costs-${{ matrix.java }}-${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.metadata }}-${{ matrix.DB-name }}-${{ matrix.close-optimizer }}
                   path: tpch-costs-*.txt
@@ -226,7 +233,7 @@ jobs:
         needs: TPC-H-Test
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/download-artifact@v4
+            - uses: actions/download-artifact@v8
               with:
                   pattern: tpch-costs-*
                   merge-multiple: true
@@ -272,7 +279,7 @@ jobs:
                     )
 
             - name: Upload Result
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: tpch-costs
                   path: tpch-costs.csv

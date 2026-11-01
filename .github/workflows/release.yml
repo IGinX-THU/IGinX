@@ -73,7 +73,7 @@ jobs:
                   cp README.md pages/
                   cp -r docs pages/
             - name: create pull request
-              uses: peter-evans/create-pull-request@v6
+              uses: peter-evans/create-pull-request@v8
               with:
                   path: pages
                   add-paths: |

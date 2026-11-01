@@ -40,3 +40,10 @@ runs:
               for port in ${{ inputs.ports }}; do
                 redis-server --port $port --dir $port --daemonize yes --pidfile $port/redis.pid
               done
+
+        - if: fromJSON(inputs.start)
+          name: Wait for redis
+          uses: ./.github/actions/waitForPort
+          with:
+              name: redis
+              ports: ${{ inputs.ports }}

@@ -65,5 +65,12 @@ runs:
                 echo "fsync = off" >> "${PGCONF}"
                 echo "max_connections = 200" >> "${PGCONF}"
 
-                pg_ctl start --pgdata="${PGDATA}" 
+                pg_ctl start --pgdata="${PGDATA}"
               done
+
+        - if: fromJSON(inputs.start)
+          name: Wait for postgresql
+          uses: ./.github/actions/waitForPort
+          with:
+              name: postgresql
+              ports: ${{ inputs.ports }}
