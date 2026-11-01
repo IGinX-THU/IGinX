@@ -22,7 +22,15 @@ runs:
           shell: bash
           working-directory: ${{ inputs.workspace }}
           run: |
-              VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+              # retry: the help plugin download occasionally fails, and -q hides why
+              for attempt in 1 2 3; do
+                if VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout); then
+                  break
+                fi
+                echo "mvn help:evaluate failed (attempt $attempt)"
+                [ "$attempt" -eq 3 ] && { mvn help:evaluate -Dexpression=project.version -DforceStdout || true; exit 1; }
+                sleep 10
+              done
               echo "version=$VERSION" >> $GITHUB_OUTPUT
 
         - name: "absolute workspace path"

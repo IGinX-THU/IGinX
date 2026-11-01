@@ -101,13 +101,30 @@ runs:
 
         - if: inputs.DB-name=='IoTDB12' || inputs.DB-name=='Mix-IoTDB12-InfluxDB'
           name: Wait for IoTDB
-          uses: ./.github/actions/waitForPort
-          with:
-              name: iotdb
-              ports: ${{ inputs.IoTDB12-ports }}
-              timeout: "120"
-              log-files: "apache-iotdb-0.12.6-server-bin-*/logs/*.log"
-              working-directory: ${{ github.workspace }}
+          shell: bash
+          working-directory: ${{ github.workspace }}
+          run: |
+              wait_script="${GITHUB_WORKSPACE}/.github/scripts/utils/wait_for_port.sh"
+              chmod +x "$wait_script"
+              for port in ${{ inputs.IoTDB12-ports }}; do
+                if "$wait_script" "iotdb" "120" "$port"; then
+                  continue
+                fi
+                # on busy runners an instance sometimes never comes up; start it once more
+                echo "IoTDB on port $port did not start, restarting it"
+                dir="apache-iotdb-0.12.6-server-bin-$port"
+                if [ "$RUNNER_OS" == "Windows" ]; then
+                  sh -c "cd $dir/; nohup sbin/start-server.bat &"
+                else
+                  sudo -E sh -c "cd $dir/; nohup sbin/start-server.sh >/dev/null 2>&1 &"
+                fi
+                if ! "$wait_script" "iotdb" "120" "$port"; then
+                  for f in "$dir"/logs/*.log; do
+                    [ -f "$f" ] && { echo "===== $f"; tail -n 100 "$f"; }
+                  done
+                  exit 1
+                fi
+              done
 
         - if: inputs.DB-name=='MongoDB'
           name: Setup DB

@@ -64,7 +64,9 @@ runs:
           uses: conda-incubator/setup-miniconda@v4
           with:
               miniconda-version: ${{ inputs.conda-version }}
-              python-version: ${{ inputs.python-version }}
+              # 3.11.15 is the conda build of the last green run; 3.11.18 (Oct 2026) came with
+              # native crashes (SIGSEGV in libpython) under pemja
+              python-version: ${{ inputs.python-version == '3.11' && '3.11.15' || inputs.python-version }}
               activate-environment: ${{ inputs.iginx-conda-env }}
               channel-priority: strict
               run-post: "false"
@@ -97,9 +99,38 @@ runs:
               echo "requests==2.32.4" >> requirements.txt
               echo "torch==2.7.1" >> requirements.txt
               echo "transformers==4.55.0" >> requirements.txt
-              # filelock 4.2+ loads lock classes lazily, which breaks importing torch from
-              # several UDF threads at once ("partially initialized module 'torch'")
-              echo "filelock<4" >> requirements.txt
+              # Pin the indirect dependencies to the versions of the last green run (August 2026).
+              # Newer releases (e.g. python-dateutil 3.0.0) came with UDF crashes, hangs and
+              # "partially initialized module 'torch'" errors in IGinX's multithreaded Python.
+              # A constraints file only applies to packages that actually get installed.
+              cat > constraints.txt <<'EOF'
+              MarkupSafe==3.0.3
+              certifi==2026.7.22
+              charset_normalizer==3.5.1
+              colorama==0.4.6
+              cramjam==2.12.0
+              filelock==3.32.4
+              find-libpython==0.5.1
+              fsspec==2026.7.0
+              hf-xet==1.6.0
+              huggingface-hub==0.36.2
+              idna==3.19
+              jinja2==3.1.6
+              mpmath==1.3.0
+              networkx==3.6.1
+              python-dateutil==2.9.0.post0
+              pytz==2026.3.post1
+              pyyaml==6.0.3
+              regex==2026.7.19
+              safetensors==0.8.0
+              six==1.17.0
+              sympy==1.14.0
+              tokenizers==0.21.4
+              triton==3.3.1
+              typing-extensions==4.16.0
+              tzdata==2026.3
+              urllib3==2.7.0
+              EOF
 
         - if: inputs.scope=='all' && inputs.iginx-conda-flag != 'true'
           name: Set up Python ${{ inputs.python-version }}
@@ -128,7 +159,7 @@ runs:
               echo $PATH
               which python
               python -m pip install --upgrade pip
-              pip install -r requirements.txt
+              pip install -r requirements.txt -c constraints.txt
 
         - if: inputs.free-thread-python-required=='true'
           name: Install free-thread python
@@ -144,12 +175,23 @@ runs:
               cache: "maven"
 
         # the macOS image's ~/.bashrc exports JAVA_HOME for its default JDK (21), so steps
-        # using a login shell (bash -el) would silently switch away from the JDK chosen above
+        # using a login shell (bash -el) would silently switch away from the JDK chosen above.
+        # A login shell reads only the first of ~/.bash_profile, ~/.bash_login and ~/.profile,
+        # and setup-miniconda moves ~/.bash_profile to ~/.profile, so append to the file that
+        # exists and never create a new one (that would hide the conda setup in ~/.profile).
         - if: runner.os == 'macOS'
           name: Keep JDK ${{ inputs.java }} in login shells
           shell: bash
           run: |
-              for rc in ~/.bash_profile ~/.bashrc; do
+              python_before=$(bash -el -c 'command -v python3 || true')
+              login_rc=""
+              for f in ~/.bash_profile ~/.bash_login ~/.profile; do
+                if [ -f "$f" ]; then login_rc="$f"; break; fi
+              done
+              rc_files="${login_rc:-$HOME/.bash_profile}"
+              if [ -f ~/.bashrc ]; then rc_files="$rc_files $HOME/.bashrc"; fi
+              for rc in $rc_files; do
+                echo "appending JAVA_HOME to $rc"
                 {
                   echo ""
                   echo "# added by IGinX CI: keep the JDK chosen by setup-java"
@@ -158,6 +200,12 @@ runs:
                 } >> "$rc"
               done
               bash -el -c 'echo "login shell JAVA_HOME=$JAVA_HOME"; java -version'
+              python_after=$(bash -el -c 'command -v python3 || true')
+              echo "login shell python3: $python_before -> $python_after"
+              if [ "$python_before" != "$python_after" ]; then
+                echo "::error::changing the shell profile switched python3 in login shells"
+                exit 1
+              fi
 
         # Maven Central occasionally resets connections; retry downloads instead of failing the job
         - name: Make Maven downloads retry
