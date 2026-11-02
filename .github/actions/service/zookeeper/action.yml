@@ -41,4 +41,14 @@ runs:
               echo "clientPort=${{ inputs.port }}" >> conf/zoo.cfg
               echo "admin.serverPort=$((${{ inputs.port }} + 10000))" >> conf/zoo.cfg
 
+              # zkServer.sh prints STARTED before the JVM binds the port, and right after a
+              # restart the server can still exit, so check the port and retry once.
+              WAIT="${GITHUB_WORKSPACE}/.github/scripts/utils/wait_for_port.sh"
               bin/zkServer.sh --config conf start
+              if ! "$WAIT" zookeeper 30 ${{ inputs.port }}; then
+                echo "zookeeper is not listening, restarting once"
+                tail -n 50 logs/*.out 2>/dev/null || true
+                bin/zkServer.sh --config conf stop || true
+                bin/zkServer.sh --config conf start
+                "$WAIT" zookeeper 60 ${{ inputs.port }} || { tail -n 100 logs/*.out 2>/dev/null; exit 1; }
+              fi

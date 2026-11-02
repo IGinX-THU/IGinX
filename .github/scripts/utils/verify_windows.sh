@@ -26,7 +26,7 @@ elapsed_time=0
 echo "Waiting for $dbName to listen on port $port..."
 
 while [ $elapsed_time -lt $timeout ]; do
-  if netstat -an | findstr ":$port" | findstr LISTENING >nul; then
+  if netstat -an | findstr ":$port" | findstr LISTENING >/dev/null; then
       echo "$dbName is listening on port $port"
       exit 0
   fi

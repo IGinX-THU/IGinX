@@ -42,3 +42,10 @@ runs:
                 mysqld --defaults-file=./$port.ini --initialize-insecure
                 mysqld --defaults-file=./$port.ini & echo $! > ./mysql_$port.pid
               done
+
+        - name: Wait for mysql
+          uses: ./.github/actions/waitForPort
+          with:
+              name: mysql
+              ports: ${{ inputs.ports }}
+              timeout: "90"

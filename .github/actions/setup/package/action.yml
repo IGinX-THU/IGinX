@@ -26,7 +26,7 @@ runs:
         - if: runner.os == 'macOS' && inputs.brew != ''
           id: cache-brew
           name: Restore Brew packages Cache
-          uses: actions/cache/restore@v4
+          uses: actions/cache/restore@v5
           with:
               path: |
                   ~/Library/Caches/Homebrew/downloads
@@ -42,7 +42,7 @@ runs:
 
         - if: runner.os == 'macOS' && inputs.brew != '' && steps.cache-brew.outputs.cache-hit != 'true'
           name: Save Brew packages Cache
-          uses: actions/cache/save@v4
+          uses: actions/cache/save@v5
           with:
               path: |
                   ~/Library/Caches/Homebrew/downloads
@@ -52,7 +52,7 @@ runs:
         - if: runner.os == 'Windows' && inputs.choco != ''
           id: cache-choco
           name: Restore Choco packages Cache
-          uses: actions/cache/restore@v4
+          uses: actions/cache/restore@v5
           with:
               path: ~\AppData\Local\Temp\chocolatey
               key: "choco-${{ inputs.choco }}-${{ runner.os }}-${{ runner.arch }}"
@@ -64,7 +64,7 @@ runs:
 
         - if: runner.os == 'Windows' && inputs.choco != '' && steps.cache-choco.outputs.cache-hit != 'true'
           name: Save Choco packages Cache
-          uses: actions/cache/save@v4
+          uses: actions/cache/save@v5
           with:
               path: ~\AppData\Local\Temp\chocolatey
               key: "choco-${{ inputs.choco }}-${{ runner.os }}-${{ runner.arch }}"

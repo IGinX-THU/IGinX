@@ -4,22 +4,33 @@ description: "setup mysql"
 runs:
     using: "composite"
     steps:
+        # mysqld runs with a custom data dir, which its AppArmor profile blocks.
+        # The profile's file name differs between Ubuntu releases, so find it by content.
         - if: runner.os == 'Linux'
           name: Disable AppArmor Service # for change mysql data dir
           shell: bash
           run: |
-              sudo ln -s /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/disable/
-              sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.mysqld
+              profiles=$(sudo grep -l "/usr/sbin/mysqld" /etc/apparmor.d/* 2>/dev/null || true)
+              if [ -z "$profiles" ]; then
+                echo "no mysqld AppArmor profile found, nothing to disable"
+              fi
+              for p in $profiles; do
+                echo "disabling AppArmor profile $p"
+                sudo ln -sf "$p" /etc/apparmor.d/disable/
+                sudo apparmor_parser -R "$p" || echo "profile $p was not loaded"
+              done
 
-        - name: install redis with package manager
+        # MySQL 8.0 is end of life and Homebrew deprecated mysql@8.0; 8.4 is the LTS
+        # release that Ubuntu 26.04 also ships.
+        - name: install mysql with package manager
           uses: ./.github/actions/setup/package
           with:
-              brew: mysql@8.0
+              brew: mysql@8.4
 
         - if: runner.os == 'macOS'
           name: Add mysql bin to PATH
           shell: bash
-          run: echo "/opt/homebrew/opt/mysql@8.0/bin" >> $GITHUB_PATH
+          run: echo "$(brew --prefix mysql@8.4)/bin" >> $GITHUB_PATH
 
         - name: Show mysql Version
           shell: bash

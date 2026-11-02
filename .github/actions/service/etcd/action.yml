@@ -31,3 +31,12 @@ runs:
           shell: bash
           working-directory: ${{ github.action_path }}
           run: nohup etcd >etcd.log 2>&1 & echo $! > etcd.pid
+
+        - if: fromJSON(inputs.start)
+          name: Wait for etcd
+          uses: ./.github/actions/waitForPort
+          with:
+              name: etcd
+              ports: "2379"
+              log-files: etcd.log
+              working-directory: ${{ github.action_path }}

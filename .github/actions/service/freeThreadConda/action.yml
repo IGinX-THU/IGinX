@@ -9,7 +9,7 @@ runs:
     using: "composite"
     steps:
         # this step creates env test(default python version) which will not be used
-        - uses: conda-incubator/setup-miniconda@v3
+        - uses: conda-incubator/setup-miniconda@v4
           with:
               channels: conda-forge
               channel-priority: flexible
@@ -27,7 +27,7 @@ runs:
               python -m pip --version
               python -VV
               python -c "import sys;print(sys._is_gil_enabled())"
-              curl -L -O https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/python/pandas-3.0.0.dev0+1654.g32a97a969a-cp313-cp313t-win_amd64.whl
+              curl --retry 5 --retry-delay 5 --retry-all-errors -L -O https://github.com/IGinX-THU/IGinX-resources/raw/refs/heads/main/resources/python/pandas-3.0.0.dev0+1654.g32a97a969a-cp313-cp313t-win_amd64.whl
               ls -l
               if [ "$RUNNER_OS" == "Windows" ]; then
                python -m pip install numpy thrift pemjax

@@ -41,9 +41,9 @@ jobs:
             - name: Run test for sync protocol
               run: mvn test -q -Dtest=ZooKeeperSyncProtocolTest -DfailIfNoTests=false -P-format
 
-            - uses: codecov/codecov-action@v1
+            - uses: codecov/codecov-action@v7
               with:
-                  file: ./**/target/site/jacoco/jacoco.xml
+                  files: ./**/target/site/jacoco/jacoco.xml
                   name: codecov
 
     ETCD-Test:
@@ -73,7 +73,7 @@ jobs:
             - name: Run test for sync protocol
               run: mvn test -q -Dtest=ETCDSyncProtocolTest -DfailIfNoTests=false -P-format
 
-            - uses: codecov/codecov-action@v1
+            - uses: codecov/codecov-action@v7
               with:
-                  file: ./**/target/site/jacoco/jacoco.xml
+                  files: ./**/target/site/jacoco/jacoco.xml
                   name: codecov

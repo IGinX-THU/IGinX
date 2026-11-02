@@ -37,6 +37,7 @@ import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.*;
 import cn.hutool.core.collection.CollectionUtil;
 import com.icegreen.greenmail.junit4.GreenMailRule;
+import com.icegreen.greenmail.util.ServerSetup;
 import com.icegreen.greenmail.util.ServerSetupTest;
 import java.io.*;
 import java.io.FileReader;
@@ -1297,7 +1298,14 @@ public class TransformIT {
     assertTrue(contains);
   }
 
-  @Rule public final GreenMailRule greenMail = new GreenMailRule(ServerSetupTest.SMTPS);
+  // The default 2s startup limit is too short on busy CI runners (seen on Windows).
+  @Rule public final GreenMailRule greenMail = new GreenMailRule(smtpsWithLongerStartup());
+
+  private static ServerSetup smtpsWithLongerStartup() {
+    ServerSetup setup = ServerSetupTest.SMTPS.createCopy();
+    setup.setServerStartupTimeout(30_000);
+    return setup;
+  }
 
   @Test
   public void commitSingleSqlStatementByYamlWithEmailTest() throws MessagingException {
