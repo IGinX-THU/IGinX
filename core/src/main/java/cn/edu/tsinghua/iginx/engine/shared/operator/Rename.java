@@ -54,7 +54,8 @@ public class Rename extends AbstractUnaryOperator {
 
   @Override
   public Operator copy() {
-    return new Rename(getSource().copy(), new ArrayList<>(aliasList));
+    return new Rename(
+        getSource().copy(), new ArrayList<>(aliasList), new ArrayList<>(ignorePatterns));
   }
 
   @Override

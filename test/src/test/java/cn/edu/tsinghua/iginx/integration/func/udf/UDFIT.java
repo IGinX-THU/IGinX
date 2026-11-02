@@ -316,7 +316,7 @@ public class UDFIT {
     tool.execute(insert);
 
     String query =
-        "SELECT * FROM (SELECT cos(s1) AS cos_s1 FROM test) AS t1, (SELECT cos(s2) AS cos_s2 FROM test) AS t2 LIMIT 10;";
+        "SELECT * FROM (SELECT cos(s1) AS cos_s1 FROM test) AS t1, (SELECT cos(s2) AS cos_s2 FROM test) AS t2 ORDER BY t1.key, t2.key LIMIT 10;";
     SessionExecuteSqlResult ret = tool.execute(query);
     compareResult(4, ret.getPaths().size());
 

@@ -20,79 +20,79 @@
 
 @echo off
 
-REM set JAVA_HOME=
+@REM set JAVA_HOME=
 
-REM ###########################################################################
-REM # JVM Configuration
-REM ###########################################################################
+@REM ###########################################################################
+@REM # JVM Configuration
+@REM ###########################################################################
 
 set IGINX_JAVA_OPTS=
 
-REM ######################################
-REM # Locale
-REM ######################################
+@REM ######################################
+@REM # Locale
+@REM ######################################
 
-REM Set the JVM timezone to GMT+8
+@REM Set the JVM timezone to GMT+8
 set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Duser.timezone=GMT+8
 
-REM Set the file encoding to UTF-8
+@REM Set the file encoding to UTF-8
 set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Dfile.encoding=UTF-8
 
-REM ######################################
-REM # Memory
-REM ######################################
+@REM ######################################
+@REM # Memory
+@REM ######################################
 
-REM Followings memory options have auto-detected values by default
+@REM Followings memory options have auto-detected values by default
 
-REM Set the maximum heap size (uncomment and adjust the value as needed)
-REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Xmx500G REM max heap size
+@REM Set the maximum heap size (uncomment and adjust the value as needed)
+@REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Xmx500G
 
-REM Set the minimum heap size (uncomment and adjust the value as needed)
-REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Xms500G REM min heap size
+@REM Set the minimum heap size (uncomment and adjust the value as needed)
+@REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Xms500G
 
-REM Set the maximum direct memory size (uncomment and adjust the value as needed)
-REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -XX:MaxDirectMemorySize=300G REM max direct memory size
+@REM Set the maximum direct memory size (uncomment and adjust the value as needed)
+@REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -XX:MaxDirectMemorySize=300G
 
-REM ######################################
-REM # JMX
-REM ######################################
+@REM ######################################
+@REM # JMX
+@REM ######################################
 
-REM Enable JMX for monitoring, management (uncomment if needed)
-REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Dcom.sun.management.jmxremote
-REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Dcom.sun.management.jmxremote.port=9010
-REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Dcom.sun.management.jmxremote.rmi.port=9010
-REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Dcom.sun.management.jmxremote.ssl=false
+@REM Enable JMX for monitoring, management (uncomment if needed)
+@REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Dcom.sun.management.jmxremote
+@REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Dcom.sun.management.jmxremote.port=9010
+@REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Dcom.sun.management.jmxremote.rmi.port=9010
+@REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Dcom.sun.management.jmxremote.ssl=false
 
-REM ######################################
-REM # Debugging
-REM ######################################
+@REM ######################################
+@REM # Debugging
+@REM ######################################
 
-REM Uncomment the following line to enable remote debugging
-REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
+@REM Uncomment the following line to enable remote debugging
+@REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
 
-REM ######################################
-REM # System Properties
-REM ######################################
+@REM ######################################
+@REM # System Properties
+@REM ######################################
 
-REM ##################
-REM # Netty
-REM ##################
+@REM ##################
+@REM # Netty
+@REM ##################
 
-REM Disable thread-local caches to avoid memory leaks if number of threads is
-REM large and the threads are short-lived
+@REM Disable thread-local caches to avoid memory leaks if number of threads is
+@REM large and the threads are short-lived
 set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Dio.netty.allocator.useCacheForAllThreads=false
 
-REM Set the memory chunk size to 16MB (2^11) rather than the default 4MB (2^9)
-REM when the page size is 8KB. This can improve allocation performance but will
-REM increase memory usage
+@REM Set the memory chunk size to 16MB (2^11) rather than the default 4MB (2^9)
+@REM when the page size is 8KB. This can improve allocation performance but will
+@REM increase memory usage
 set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Dio.netty.allocator.maxOrder=11
 
-REM ##################
-REM # Arrow
-REM ##################
+@REM ##################
+@REM # Arrow
+@REM ##################
 
-REM Disable safety checks to improve performance (uncomment if needed)
-REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Darrow.enable_null_check_for_get=false
+@REM Disable null checks to improve performance
+set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Darrow.enable_null_check_for_get=false
 
-REM Enable unsafe memory access to improve performance (uncomment if needed)
-REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Darrow.enable_unsafe_memory_access=true
+@REM Enable unsafe memory access to improve performance (uncomment if needed)
+@REM set IGINX_JAVA_OPTS=%IGINX_JAVA_OPTS% -Darrow.enable_unsafe_memory_access=true

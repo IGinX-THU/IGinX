@@ -108,11 +108,11 @@ public class FunctionParams {
       newExpressions.add(ExprUtils.copy(expression));
     }
     Map<String, Object> newKwargs = null;
-    if (kwargs != null && !kwargs.isEmpty()) {
+    if (kwargs != null) {
       newKwargs = new HashMap<>(kwargs);
     }
     List<Object> newArgs = null;
-    if (args != null && !args.isEmpty()) {
+    if (args != null) {
       newArgs = new ArrayList<>(args);
     }
     return new FunctionParams(newExpressions, newArgs, newKwargs, isDistinct);

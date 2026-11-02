@@ -243,4 +243,17 @@ public final class FragmentMeta {
   public static long sizeOf() {
     return 62L;
   }
+
+  public FragmentMeta copy() {
+    return new FragmentMeta(
+        keyInterval,
+        columnsInterval,
+        createdBy,
+        updatedBy,
+        masterStorageUnitId,
+        masterStorageUnit,
+        fakeStorageUnitId,
+        initialFragment,
+        dummyFragment);
+  }
 }

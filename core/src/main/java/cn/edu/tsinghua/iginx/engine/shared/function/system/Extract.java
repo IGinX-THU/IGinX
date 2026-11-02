@@ -19,6 +19,14 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.ScalarFunction;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpressionUtils;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.temporal.*;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionPlannerUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -31,7 +39,9 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.List;
 import java.util.TimeZone;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class Extract implements RowMappingFunction {
 
@@ -116,5 +126,59 @@ public class Extract implements RowMappingFunction {
             Collections.singletonList(
                 new Field("extract(" + path + ", " + field + ")", DataType.INTEGER)));
     return new Row(newHeader, row.getKey(), new Object[] {ret});
+  }
+
+  @Override
+  public ScalarExpression<?> transform(
+      ExecutorContext context, Schema schema, FunctionParams params, boolean setAlias)
+      throws ComputeException {
+    List<Object> args = params.getArgs();
+    List<ScalarExpression<?>> inputs =
+        PhysicalExpressionPlannerUtils.getRowMappingFunctionArgumentExpressions(
+            context, schema, params, false);
+
+    if (inputs.size() != 1) {
+      throw new ComputeException(
+          "unexpected input path number for extract, expected 1, but got " + inputs.size());
+    }
+    if (args.size() != 1) {
+      throw new ComputeException(
+          "unexpected args number for extract, expected 1, but got " + args.size());
+    }
+    Object arg = args.get(0);
+    if (!(arg instanceof byte[])) {
+      throw new ComputeException("The arg of for extract should be a string.");
+    }
+    ScalarFunction<?> function;
+    String functionArg = new String((byte[]) arg);
+    switch (new String((byte[]) arg)) {
+      case "year":
+        function = new Year();
+        break;
+      case "month":
+        function = new Month();
+        break;
+      case "day":
+        function = new Day();
+        break;
+      case "hour":
+        function = new Hour();
+        break;
+      case "minute":
+        function = new Minute();
+        break;
+      case "second":
+        function = new Second();
+        break;
+      default:
+        throw new ComputeException(
+            "The arg of for extract should be one of year, month, day, hour, minute, second, millisecond.");
+    }
+
+    Schema argumentsSchema =
+        ScalarExpressionUtils.getOutputSchema(context.getAllocator(), inputs, schema);
+    String outputColumnName =
+        "extract(" + argumentsSchema.getFields().get(0).getName() + ", " + functionArg + ")";
+    return new CallNode<>(function, setAlias ? outputColumnName : null, inputs);
   }
 }

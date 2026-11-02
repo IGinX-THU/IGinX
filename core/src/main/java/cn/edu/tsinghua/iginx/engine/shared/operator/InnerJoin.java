@@ -225,18 +225,7 @@ public class InnerJoin extends AbstractJoin {
 
   @Override
   public Operator copy() {
-    return new InnerJoin(
-        getSourceA().copy(),
-        getSourceB().copy(),
-        getPrefixA(),
-        getPrefixB(),
-        filter.copy(),
-        tagFilter == null ? null : tagFilter.copy(),
-        new ArrayList<>(joinColumns),
-        isNaturalJoin,
-        isJoinByKey,
-        getJoinAlgType(),
-        new ArrayList<>(getExtraJoinPrefix()));
+    return copyWithSource(getSourceA().copy(), getSourceB().copy());
   }
 
   @Override
@@ -246,7 +235,7 @@ public class InnerJoin extends AbstractJoin {
         sourceB,
         getPrefixA(),
         getPrefixB(),
-        filter.copy(),
+        filter == null ? null : filter.copy(),
         tagFilter == null ? null : tagFilter.copy(),
         new ArrayList<>(joinColumns),
         isNaturalJoin,

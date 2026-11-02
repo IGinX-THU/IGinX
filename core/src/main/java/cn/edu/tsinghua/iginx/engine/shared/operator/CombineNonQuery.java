@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class CombineNonQuery extends AbstractMultipleOperator {
 
@@ -31,7 +32,7 @@ public class CombineNonQuery extends AbstractMultipleOperator {
 
   @Override
   public Operator copy() {
-    return new CombineNonQuery(getSources());
+    return copyWithSource(getSources().stream().map(Source::copy).collect(Collectors.toList()));
   }
 
   @Override
