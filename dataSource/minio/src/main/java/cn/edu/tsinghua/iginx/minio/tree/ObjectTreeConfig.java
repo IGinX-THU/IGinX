@@ -28,7 +28,7 @@ import com.typesafe.config.ConfigValueType;
 import javax.annotation.Nullable;
 
 /**
- * Config of the FileTree dummy structure, parsed from {@code dummy.config.*}:
+ * Config of the FileTree and LegacyFilesystem dummy structures, parsed from {@code dummy.config.*}:
  *
  * <ul>
  *   <li>{@code dot}: how a dot in object names is written in column names, default {@code \.}
@@ -36,6 +36,8 @@ import javax.annotation.Nullable;
  *   <li>{@code boundary_level}: 0 to report the prefix as the column boundary, 1 to report the
  *       range of children names
  *   <li>{@code formats.<format>.*}: config of each format, such as {@code formats.CSV.inferSchema}
+ *   <li>{@code chunk_size_in_bytes}: size of chunks when objects are read as raw bytes in the
+ *       LegacyFilesystem structure, default 1048576 as filesystem
  * </ul>
  */
 public final class ObjectTreeConfig {
@@ -44,10 +46,14 @@ public final class ObjectTreeConfig {
   public static final String PREFIX = "prefix";
   public static final String BOUNDARY_LEVEL = "boundary_level";
   public static final String FORMATS = "formats";
+  public static final String CHUNK_SIZE_IN_BYTES = "chunk_size_in_bytes";
+
+  private static final long DEFAULT_CHUNK_SIZE_IN_BYTES = 1024 * 1024;
 
   private final String dot;
   @Nullable private final String prefix;
   private final int boundaryLevel;
+  private final int chunkSizeInBytes;
   private final Config formats;
 
   private ObjectTreeConfig(Config config) {
@@ -57,6 +63,15 @@ public final class ObjectTreeConfig {
     if (boundaryLevel != 0 && boundaryLevel != 1) {
       throw new IllegalArgumentException(BOUNDARY_LEVEL + " must be 0 or 1");
     }
+    long chunkSize =
+        config.hasPath(CHUNK_SIZE_IN_BYTES)
+            ? config.getMemorySize(CHUNK_SIZE_IN_BYTES).toBytes()
+            : DEFAULT_CHUNK_SIZE_IN_BYTES;
+    if (chunkSize <= 0 || chunkSize > Integer.MAX_VALUE) {
+      throw new IllegalArgumentException(
+          CHUNK_SIZE_IN_BYTES + " should be in (0, 2GB): " + chunkSize);
+    }
+    this.chunkSizeInBytes = (int) chunkSize;
     Config formats = ConfigFactory.empty();
     if (config.hasPath(FORMATS)) {
       ConfigValue value = config.getValue(FORMATS);
@@ -84,6 +99,10 @@ public final class ObjectTreeConfig {
     return boundaryLevel;
   }
 
+  public int getChunkSizeInBytes() {
+    return chunkSizeInBytes;
+  }
+
   /** config of a format by its name, empty if not given */
   public Config getFormatConfig(String format) {
     ConfigValue value = formats.root().get(format);
@@ -101,6 +120,8 @@ public final class ObjectTreeConfig {
         + prefix
         + ", boundaryLevel="
         + boundaryLevel
+        + ", chunkSizeInBytes="
+        + chunkSizeInBytes
         + ", formats="
         + formats.root().render()
         + '}';

@@ -48,9 +48,11 @@ public final class MinioConfig {
 
   public static final String DEFAULT_CREDENTIAL = "minioadmin";
   public static final String DEFAULT_DATA_BUCKET = "iginx-data";
+  public static final String LEGACY_FILESYSTEM = "LegacyFilesystem";
   public static final String FILE_TREE = "FileTree";
   public static final String OBJECT_KV = "ObjectKV";
-  public static final String DEFAULT_DUMMY_STRUCT = FILE_TREE;
+  /** same as filesystem: objects are read as raw bytes unless FileTree is chosen */
+  public static final String DEFAULT_DUMMY_STRUCT = LEGACY_FILESYSTEM;
 
   private final String endpointHost;
   private final int endpointPort;
@@ -99,9 +101,15 @@ public final class MinioConfig {
       throw new StorageInitializationException(
           "data bucket and dummy bucket should not be the same");
     }
-    if (!dummyStruct.equals(FILE_TREE) && !dummyStruct.equals(OBJECT_KV)) {
+    if (!dummyStruct.equals(LEGACY_FILESYSTEM)
+        && !dummyStruct.equals(FILE_TREE)
+        && !dummyStruct.equals(OBJECT_KV)) {
       throw new StorageInitializationException(
-          "unsupported " + DUMMY_STRUCT + ": " + dummyStruct + ", expect FileTree or ObjectKV");
+          "unsupported "
+              + DUMMY_STRUCT
+              + ": "
+              + dummyStruct
+              + ", expect LegacyFilesystem, FileTree or ObjectKV");
     }
     if (hasData && dummyBucket == null && (!dummyDir.isEmpty() || isObjectKv())) {
       throw new StorageInitializationException(
@@ -209,6 +217,10 @@ public final class MinioConfig {
 
   public boolean isObjectKv() {
     return OBJECT_KV.equals(dummyStruct);
+  }
+
+  public boolean isLegacyFilesystem() {
+    return LEGACY_FILESYSTEM.equals(dummyStruct);
   }
 
   @Nullable

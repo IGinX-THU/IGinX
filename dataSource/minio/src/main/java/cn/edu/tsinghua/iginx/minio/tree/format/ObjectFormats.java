@@ -44,6 +44,11 @@ public final class ObjectFormats {
 
   private ObjectFormats() {}
 
+  /** every object as raw bytes regardless of its extension, see {@link ByteStreamFormat} */
+  public static ObjectFormat byteStream(int chunkSize) {
+    return new ByteStreamFormat(chunkSize);
+  }
+
   public static ObjectFormat of(Path path) {
     String name = path.getFileName().toString();
     int dot = name.lastIndexOf('.');

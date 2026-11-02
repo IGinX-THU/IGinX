@@ -71,9 +71,10 @@ import org.slf4j.LoggerFactory;
  * MinIO (S3 compatible object storage) data source.
  *
  * <ul>
- *   <li>dummy data: existing objects are read with the FileTree structure by {@link
- *       ObjectTreeManager} (raw, csv, parquet...), through a read-only NIO file system over S3. The
- *       ObjectKV structure is also supported, which reads objects written in the layout of data.
+ *   <li>dummy data: existing objects are read through a read-only NIO file system over S3 by {@link
+ *       ObjectTreeManager}, as raw bytes with the LegacyFilesystem structure by default, or parsed
+ *       by their extensions (raw, csv, parquet...) with the FileTree structure. The ObjectKV
+ *       structure is also supported, which reads objects written in the layout of data.
  *   <li>data written by IGinX: stored in a dedicated bucket with {@link ObjectKvManager}, one
  *       directory per storage unit.
  * </ul>
@@ -181,7 +182,11 @@ public class MinioStorage implements IStorage {
         root = root.resolve(config.getDummyDir());
       }
     }
-    return new ObjectTreeManager(root, ObjectTreeConfig.of(config.getDummyConfig()), executor);
+    ObjectTreeConfig treeConfig = ObjectTreeConfig.of(config.getDummyConfig());
+    if (config.isLegacyFilesystem()) {
+      return ObjectTreeManager.legacyFilesystem(root, treeConfig, executor);
+    }
+    return new ObjectTreeManager(root, treeConfig, executor);
   }
 
   private void ensureBucket(String bucket) throws IOException {

@@ -96,12 +96,21 @@ public class MinIOCapacityExpansionIT extends BaseCapacityExpansionIT {
       LOGGER.error("add or remove read only storage engine failed ", e);
       fail();
     }
+
+    try (TempDummyDataSource ignored =
+        new TempDummyDataSource(session, FILE_TREE_PORT, minio, getLegacyDummyParams("a"))) {
+      testShowLegacyDummyColumns();
+    } catch (SessionException e) {
+      LOGGER.error("add or remove read only storage engine failed ", e);
+      fail();
+    }
   }
 
   @Override
   protected void testQuerySpecialHistoryData() {
     testQueryFileTree();
     testQueryFileTreeSpecialPath();
+    testQueryLegacyFilesystem();
   }
 
   /** test 桶中 a、csv 两个目录下的 txt、parquet、csv/tsv 文件按 FileTree 结构挂载后的查询 */
@@ -165,6 +174,15 @@ public class MinIOCapacityExpansionIT extends BaseCapacityExpansionIT {
     params.put(RAW_CHUNK_CONFIG + "pageSize", "1048576");
     params.put(CSV_CONFIG + "inferSchema", "true");
     params.put(CSV_CONFIG + "parseTypeFromHeader", "false");
+    return params;
+  }
+
+  /** 不指定 dummy.struct，默认为 LegacyFilesystem：与 filesystem 一致，所有文件都按字节流读取 */
+  private static Map<String, String> getLegacyDummyParams(String dummyDir) {
+    Map<String, String> params = newParamsWithCredentials();
+    params.put("dummy_bucket", FILE_TREE_BUCKET);
+    params.put("dummy_dir", dummyDir);
+    params.put("dummy.config.chunk_size_in_bytes", "10");
     return params;
   }
 
@@ -447,5 +465,61 @@ public class MinIOCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+---+------------------------------------------+-----------------------------+-------------------------+---------------------------------+\n"
             + "Total line number = 10\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
+  }
+
+  /** LegacyFilesystem 挂载 test 桶 a 目录：csv、parquet 不解析，每个文件一列 */
+  private static void testShowLegacyDummyColumns() {
+    String statement = "SHOW COLUMNS a.*;";
+    String expected =
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|         a.Iris\\.parquet|  BINARY|\n"
+            + "|    a.floatTest\\.parquet|  BINARY|\n"
+            + "|         a.lineitem\\.tsv|  BINARY|\n"
+            + "|          a.b.c.d.1\\.txt|  BINARY|\n"
+            + "|              a.e.2\\.txt|  BINARY|\n"
+            + "|            a.f.g.3\\.txt|  BINARY|\n"
+            + "|a.other.MT cars\\.parquet|  BINARY|\n"
+            + "|  a.other.price\\.parquet|  BINARY|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 8\n";
+    SQLTestTools.executeAndCompare(session, statement, expected, true);
+  }
+
+  /** LegacyFilesystem 的 key 为数据块起始的字节偏移，块大小为 chunk_size_in_bytes */
+  private void testQueryLegacyFilesystem() {
+    try (TempDummyDataSource ignored =
+        new TempDummyDataSource(session, FILE_TREE_PORT, minio, getLegacyDummyParams("a"))) {
+      String statement = "select 3\\.txt from a.f.g;";
+      String expect =
+          "ResultSets:\n"
+              + "+---+------------+\n"
+              + "|key|a.f.g.3\\.txt|\n"
+              + "+---+------------+\n"
+              + "|  0|  0123456789|\n"
+              + "| 10|  1011121314|\n"
+              + "| 20|  1516171819|\n"
+              + "| 30|  2021222324|\n"
+              + "| 40|          25|\n"
+              + "+---+------------+\n"
+              + "Total line number = 5\n";
+      SQLTestTools.executeAndCompare(session, statement, expect);
+
+      statement = "select 3\\.txt from a.f.g where key >= 5 and key < 15;";
+      expect =
+          "ResultSets:\n"
+              + "+---+------------+\n"
+              + "|key|a.f.g.3\\.txt|\n"
+              + "+---+------------+\n"
+              + "|  5|  5678910111|\n"
+              + "+---+------------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expect);
+    } catch (SessionException e) {
+      LOGGER.error("add or remove read only storage engine failed ", e);
+      fail();
+    }
   }
 }
