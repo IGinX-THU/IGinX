@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import okhttp3.OkHttpClient;
 import org.junit.Test;
 
 public class S3PathTest {
@@ -37,6 +38,7 @@ public class S3PathTest {
           MinioClient.builder()
               .endpoint("http://127.0.0.1:1")
               .credentials("minioadmin", "minioadmin")
+              .httpClient(new OkHttpClient())
               .build(),
           Collections.emptySet(),
           1024,

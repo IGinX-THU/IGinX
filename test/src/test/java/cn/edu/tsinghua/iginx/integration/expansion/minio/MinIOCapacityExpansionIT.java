@@ -23,6 +23,8 @@ import static cn.edu.tsinghua.iginx.integration.expansion.minio.MinIOHistoryData
 import static cn.edu.tsinghua.iginx.integration.expansion.minio.MinIOHistoryDataGenerator.FILE_TREE_BUCKET;
 import static cn.edu.tsinghua.iginx.integration.expansion.minio.MinIOHistoryDataGenerator.FILE_TREE_CSV_PORT;
 import static cn.edu.tsinghua.iginx.integration.expansion.minio.MinIOHistoryDataGenerator.FILE_TREE_PORT;
+import static cn.edu.tsinghua.iginx.integration.expansion.minio.MinIOHistoryDataGenerator.PASSWORD;
+import static cn.edu.tsinghua.iginx.integration.expansion.minio.MinIOHistoryDataGenerator.USERNAME;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.minio;
 import static org.junit.Assert.fail;
 
@@ -53,8 +55,15 @@ public class MinIOCapacityExpansionIT extends BaseCapacityExpansionIT {
     updatedParams.put("request_timeout_ms", "60000");
   }
 
-  private static Map<String, String> getAddStorageParams() {
+  private static Map<String, String> newParamsWithCredentials() {
     Map<String, String> params = new LinkedHashMap<>();
+    params.put("username", USERNAME);
+    params.put("password", PASSWORD);
+    return params;
+  }
+
+  private static Map<String, String> getAddStorageParams() {
+    Map<String, String> params = newParamsWithCredentials();
     params.put("dummy_bucket", DUMMY_BUCKET);
     params.put("dummy.struct", "ObjectKV");
     return params;
@@ -149,7 +158,7 @@ public class MinIOCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   private static Map<String, String> getFileTreeDummyParams(String dummyDir) {
-    Map<String, String> params = new LinkedHashMap<>();
+    Map<String, String> params = newParamsWithCredentials();
     params.put("dummy_bucket", FILE_TREE_BUCKET);
     params.put("dummy_dir", dummyDir);
     params.put("dummy.struct", FILE_TREE);
@@ -160,7 +169,7 @@ public class MinIOCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   private static Map<String, String> getFileTreeCsvDummyParams() {
-    Map<String, String> params = new LinkedHashMap<>();
+    Map<String, String> params = newParamsWithCredentials();
     params.put("dummy_bucket", FILE_TREE_BUCKET);
     params.put("dummy_dir", "csv");
     params.put("dummy.struct", FILE_TREE);

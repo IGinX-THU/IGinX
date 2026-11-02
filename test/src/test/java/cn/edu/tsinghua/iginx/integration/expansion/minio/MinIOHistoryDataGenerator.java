@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import okhttp3.OkHttpClient;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -52,9 +53,10 @@ public class MinIOHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   static final String LOCAL_IP = "127.0.0.1";
 
-  static final String USERNAME = "minioadmin";
+  /** 与 startup/minio.sh 一致：默认 minioadmin，可用环境变量覆盖 */
+  static final String USERNAME = getEnvOrDefault("MINIO_ROOT_USER", "minioadmin");
 
-  static final String PASSWORD = "minioadmin";
+  static final String PASSWORD = getEnvOrDefault("MINIO_ROOT_PASSWORD", "minioadmin");
 
   /** 历史数据以 ObjectKV 结构写入该桶，扩容测试中以 dummy_bucket 指定 */
   static final String DUMMY_BUCKET = "iginx-dummy";
@@ -79,10 +81,19 @@ public class MinIOHistoryDataGenerator extends BaseHistoryDataGenerator {
     Constant.readOnlyPort = 9002;
   }
 
+  /** 不使用 SDK 的默认 HTTP 客户端：它会加载 SSL_CERT_FILE 指向的证书，文件不存在时直接失败 */
+  private static final OkHttpClient HTTP_CLIENT = new OkHttpClient();
+
+  private static String getEnvOrDefault(String name, String defaultValue) {
+    String value = System.getenv(name);
+    return value == null || value.isEmpty() ? defaultValue : value;
+  }
+
   static MinioClient newClient(int port) {
     return MinioClient.builder()
         .endpoint(LOCAL_IP, port, false)
         .credentials(USERNAME, PASSWORD)
+        .httpClient(HTTP_CLIENT)
         .build();
   }
 

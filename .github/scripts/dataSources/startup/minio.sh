@@ -19,6 +19,7 @@
 
 # usage: minio.sh <port>
 # start a minio server on <port>, data is kept in ${SERVICE_DIR}/minio/<port>
+# credentials default to minioadmin/minioadmin, override with MINIO_ROOT_USER/MINIO_ROOT_PASSWORD
 set -e
 
 PORT=$1
@@ -26,8 +27,9 @@ WORK_DIR="${SERVICE_DIR:-$(pwd)/.github/actions/service}/minio"
 mkdir -p "$WORK_DIR/$PORT/data"
 cd "$WORK_DIR"
 
-MINIO_ROOT_USER=minioadmin MINIO_ROOT_PASSWORD=minioadmin \
-  nohup minio server "$PORT/data" --address ":$PORT" > "$PORT/minio.log" 2>&1 &
+MINIO_ROOT_USER="${MINIO_ROOT_USER:-minioadmin}" MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-minioadmin}" \
+  nohup minio server "$PORT/data" --address "127.0.0.1:$PORT" --console-address "127.0.0.1:$((PORT + 10000))" \
+  > "$PORT/minio.log" 2>&1 &
 echo $! > "$PORT/minio.pid"
 
 for i in $(seq 1 60); do

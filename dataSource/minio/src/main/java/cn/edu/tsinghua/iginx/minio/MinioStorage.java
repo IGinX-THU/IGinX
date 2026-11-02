@@ -156,6 +156,10 @@ public class MinioStorage implements IStorage {
         .build();
   }
 
+  /**
+   * Always pass our own http client: the default one of the SDK loads certificates from
+   * SSL_CERT_FILE and fails if that file does not exist.
+   */
   private static MinioClient newClient(MinioConfig config, OkHttpClient httpClient) {
     MinioClient.Builder builder =
         MinioClient.builder()
