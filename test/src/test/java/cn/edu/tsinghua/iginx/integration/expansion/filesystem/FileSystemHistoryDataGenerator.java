@@ -24,9 +24,9 @@ import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.PORT
 
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.filesystem.common.FileSystemException;
-import cn.edu.tsinghua.iginx.filesystem.service.FileSystemConfig;
 import cn.edu.tsinghua.iginx.filesystem.service.storage.StorageConfig;
 import cn.edu.tsinghua.iginx.filesystem.service.storage.StorageService;
+import cn.edu.tsinghua.iginx.filesystem.struct.legacy.parquet.LegacyParquet;
 import cn.edu.tsinghua.iginx.filesystem.thrift.DataUnit;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.DataViewGenerator;
@@ -84,7 +84,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     StorageConfig config = new StorageConfig();
     config.setRoot(PORT_TO_ROOT.get(port));
-    config.setStruct(FileSystemConfig.DEFAULT_DATA_STRUCT);
+    config.setStruct(LegacyParquet.NAME);
 
     LOGGER.debug("config root {}", Paths.get(config.getRoot()).toFile().getAbsolutePath());
 

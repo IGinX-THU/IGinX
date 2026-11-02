@@ -40,7 +40,7 @@ sed -i"" -e "s/#dummy.struct=[^#]*/#dummy.struct=LegacyParquet/g" $7
 
 sed -i"" -e "s/#chunk_size_in_bytes=[0-9]*/#chunk_size_in_bytes=8/g" $7
 
-sed -i"" -e "s/#write.buffer.size=[0-9]*/#write.buffer.size=1048576/g" $7
+sed -i"" -e "s/#db.memtable.capacity=[0-9]*/#db.memtable.capacity=1048576/g" $7
 
 sed -i"" -e "s/#client.connectPool.maxTotal=[0-9]*/#client.connectPool.maxTotal=2/g" $7
 

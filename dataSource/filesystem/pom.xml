@@ -39,6 +39,73 @@
             <artifactId>parquet-file</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.tsfile</groupId>
+            <artifactId>tsfile</artifactId>
+            <version>2.2.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.arrow</groupId>
+            <artifactId>arrow-compression</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.arrow</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.paimon</groupId>
+            <artifactId>paimon-common</artifactId>
+            <version>1.3.1</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.paimon</groupId>
+            <artifactId>paimon-format</artifactId>
+            <version>1.3.1</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce-client-core</artifactId>
+            <version>2.8.5</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+            <version>1.7.36</version>
+        </dependency>
+        <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
             <version>2.9.3</version>
@@ -58,6 +125,11 @@
             <groupId>org.glassfish</groupId>
             <artifactId>javax.json</artifactId>
             <version>1.1.4</version>
+        </dependency>
+        <dependency>
+            <groupId>it.unimi.dsi</groupId>
+            <artifactId>fastutil-core</artifactId>
+            <version>8.5.18</version>
         </dependency>
         <dependency>
             <groupId>com.typesafe</groupId>
@@ -83,6 +155,12 @@
 
     <repositories>
         <repository>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
             <id>parquet-file</id>
             <name>IGinX GitHub repository</name>
             <url>https://iginx-thu.github.io/Parquet/maven-repo</url>
@@ -93,7 +171,145 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <configuration>
+                    <minimizeJar>true</minimizeJar>
+                    <shadedArtifactAttached>true</shadedArtifactAttached>
+                    <artifactSet>
+                        <includes>
+                            <include>org.apache.arrow:arrow-compression</include>
+                            <include>cn.edu.tsinghua.iginx:parquet-file</include>
+                            <include>org.apache.tsfile:tsfile</include>
+
+                            <include>org.apache.paimon:paimon-common</include>
+                            <include>org.apache.paimon:paimon-api</include>
+                            <include>org.apache.paimon:paimon-format</include>
+                            <include>org.apache.hadoop:hadoop-common</include>
+                            <include>org.apache.hadoop:hadoop-annotations</include>
+                            <include>org.apache.hadoop:hadoop-mapreduce-client-core</include>
+                            <include>org.slf4j:jcl-over-slf4j</include>
+                            <include>commons-collections:commons-collections</include>
+
+                            <include>io.airlift:aircompressor</include>
+                            <include>org.xerial.snappy:snappy-java</include>
+                            <include>org.brotli:dec</include>
+                            <include>com.github.luben:zstd-jni</include>
+                            <include>at.yawk.lz4:lz4-java</include>
+                            <include>org.tukaani:xz</include>
+                            <include>org.apache.commons:commons-compress</include>
+
+                            <include>org.glassfish:javax.json</include>
+
+                            <include>com.github.ben-manes.caffeine:caffeine</include>
+                            <include>org.ehcache:sizeof</include>
+                            <include>it.unimi.dsi:fastutil-core</include>
+                            <include>com.typesafe:config</include>
+                        </includes>
+                    </artifactSet>
+                    <filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/*.SF</exclude>
+                                <exclude>META-INF/*.DSA</exclude>
+                                <exclude>META-INF/*.RSA</exclude>
+
+                                <exclude>META-INF/maven/**</exclude>
+                                <exclude>META-INF/DEPENDENCIES</exclude>
+                                <exclude>META-INF/MANIFEST.MF</exclude>
+                                <exclude>META-INF/versions/**</exclude>
+
+                                <exclude>META-INF/jandex.idx</exclude>
+                                <exclude>META-INF/ASL2.0</exclude>
+
+                                <exclude>module-info.class</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>com.github.ben-manes.caffeine:caffeine</artifact>
+                            <includes>
+                                <include>**</include>
+                            </includes>
+                        </filter>
+                        <filter>
+                            <artifact>at.yawk.lz4:lz4-java</artifact>
+                            <includes>
+                                <include>**</include>
+                            </includes>
+                        </filter>
+                        <filter>
+                            <artifact>org.apache.tsfile:tsfile</artifact>
+                            <includes>
+                                <include>**</include>
+                            </includes>
+                        </filter>
+                        <filter>
+                            <artifact>cn.edu.tsinghua.iginx:parquet-file</artifact>
+                            <includes>
+                                <include>**</include>
+                            </includes>
+                        </filter>
+                        <filter>
+                            <artifact>org.apache.paimon:paimon-format</artifact>
+                            <includes>
+                                <include>**</include>
+                            </includes>
+                            <excludes>
+                                <exclude>com/github/luben/zstd/**</exclude>
+                                <exclude>linux/**</exclude>
+                                <exclude>win/**</exclude>
+                                <exclude>darwin/**</exclude>
+                                <exclude>aix/**</exclude>
+                                <exclude>freebsd/**</exclude>
+                                <exclude>org/apache/paimon/shade/org/threeten/**</exclude>
+                                <exclude>org/apache/paimon/shade/org/apache/avro/**</exclude>
+                                <exclude>org/apache/paimon/shade/org/apache/hadoop/**</exclude>
+                                <exclude>org/apache/paimon/shade/org/apache/hive/**</exclude>
+                                <exclude>org/apache/paimon/shade/org/apache/orc/**</exclude>
+                                <exclude>org/apache/paimon/shade/org/apache/commons/**</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
+                    <transformers>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer"/>
+                    </transformers>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <phase>package</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
+                <configuration combine.self="override">
+                    <appendAssemblyId>false</appendAssemblyId>
+                    <inlineDescriptors>
+                        <inlineDescriptor>
+                            <id>driver</id>
+                            <formats>
+                                <format>dir</format>
+                            </formats>
+                            <includeBaseDirectory>false</includeBaseDirectory>
+                            <fileSets>
+                                <fileSet>
+                                    <directory>${project.build.directory}</directory>
+                                    <outputDirectory>driver/${project.artifactId}</outputDirectory>
+                                    <includes>
+                                        <include>${project.build.finalName}-shaded.jar</include>
+                                    </includes>
+                                </fileSet>
+                            </fileSets>
+                        </inlineDescriptor>
+                    </inlineDescriptors>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
