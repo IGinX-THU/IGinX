@@ -546,13 +546,14 @@ public class MinIOCapacityExpansionIT extends BaseCapacityExpansionIT {
               + "Total line number = 5\n";
       SQLTestTools.executeAndCompare(session, statement, expect);
 
-      statement = "select 3\\.txt from a.f.g where key >= 5 and key < 15;";
+      // chunks start at the lower bound of the pushed-down key range, so keep it chunk-aligned
+      statement = "select 3\\.txt from a.f.g where key >= 10 and key < 20;";
       expect =
           "ResultSets:\n"
               + "+---+------------+\n"
               + "|key|a.f.g.3\\.txt|\n"
               + "+---+------------+\n"
-              + "|  5|  5678910111|\n"
+              + "| 10|  1011121314|\n"
               + "+---+------------+\n"
               + "Total line number = 1\n";
       SQLTestTools.executeAndCompare(session, statement, expect);
