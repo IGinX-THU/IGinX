@@ -53,6 +53,8 @@ public class MinIOHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   static final String LOCAL_IP = "127.0.0.1";
 
+  static final boolean isOnWin = System.getProperty("os.name").toLowerCase().contains("win");
+
   /** 与 startup/minio.sh 一致：默认 minioadmin，可用环境变量覆盖 */
   static final String USERNAME = getEnvOrDefault("MINIO_ROOT_USER", "minioadmin");
 
@@ -175,10 +177,15 @@ public class MinIOHistoryDataGenerator extends BaseHistoryDataGenerator {
     // │   └── other
     // │       ├── MT cars.parquet
     // │       └── price.parquet
+    // ├── escape (仅在 linux 和 mac 上创建)
+    // │   └── path
+    // │       └── a\nb.txt
     // └── txt
-    //     └── dir!@#$%^&()[]{};',.=+~ -目录
-    //         ├── example!@#$%^&()[]{};',.=+~ -.txt
-    //         └── 示例!@#$%^&()[]{};',.=+~ -.TXT
+    //     ├── dir!@#$%^&()[]{};',.=+~ -目录
+    //     │   ├── example!@#$%^&()[]{};',.=+~ -.txt
+    //     │   └── 示例!@#$%^&()[]{};',.=+~ -.TXT
+    //     └── dir\Ndir\Ddir (仅在 linux 和 mac 上创建)
+    //         └── example.txt
     StringBuilder content1 = new StringBuilder();
     StringBuilder content2 = new StringBuilder();
     StringBuilder content3 = new StringBuilder();
@@ -213,6 +220,11 @@ public class MinIOHistoryDataGenerator extends BaseHistoryDataGenerator {
       String folderName = "txt/dir" + specialName + "目录/";
       putResource(client, "dummy/txt/example.txt", folderName + "example" + specialName + ".txt");
       putResource(client, "dummy/txt/example.txt", folderName + "示例" + specialName + ".TXT");
+      // windows 上的 MinIO 把对象存为文件，文件名不能含换行和反斜杠
+      if (!isOnWin) {
+        putObject(client, "escape/path/a\nb.txt", "abcdefg".getBytes());
+        putResource(client, "dummy/txt/example.txt", "txt/dir\\Ndir\\Ddir/example.txt");
+      }
       LOGGER.info("write special history data to {}:{} success", LOCAL_IP, port);
     } catch (Exception e) {
       LOGGER.error("write special history data to {}:{} failure", LOCAL_IP, port, e);

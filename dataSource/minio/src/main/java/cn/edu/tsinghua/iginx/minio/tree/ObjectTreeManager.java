@@ -46,7 +46,7 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
@@ -61,7 +61,7 @@ import org.slf4j.LoggerFactory;
  * applied to merged rows. Tags are not supported, the tag filter is ignored.
  *
  * <p>The LegacyFilesystem structure shares the tree of columns, but reads every object as raw bytes
- * without parsing, see {@link #legacyFilesystem}.
+ * without parsing and also escapes backslashes in names, see {@link #legacyFilesystem}.
  */
 public class ObjectTreeManager implements ObjectManager {
 
@@ -70,31 +70,35 @@ public class ObjectTreeManager implements ObjectManager {
   private final Path root;
   private final ObjectTreeConfig config;
   private final ExecutorService executor;
-  private final Function<Path, ObjectFormat> formatOf;
+  /** null for the FileTree structure */
+  @Nullable private final ObjectFormat byteStream;
 
   /** the FileTree structure: objects are parsed by the format of their extensions */
   public ObjectTreeManager(Path root, ObjectTreeConfig config, ExecutorService executor)
       throws IOException {
-    this(root, config, executor, ObjectFormats::of);
+    this(root, config, executor, null);
   }
 
-  /** the LegacyFilesystem structure: every object is a single column of raw bytes */
+  /**
+   * the LegacyFilesystem structure: every object is a single column of raw bytes, and backslashes
+   * in names are escaped as filesystem does
+   */
   public static ObjectTreeManager legacyFilesystem(
       Path root, ObjectTreeConfig config, ExecutorService executor) throws IOException {
-    ObjectFormat byteStream = ObjectFormats.byteStream(config.getChunkSizeInBytes());
-    return new ObjectTreeManager(root, config, executor, path -> byteStream);
+    return new ObjectTreeManager(
+        root, config, executor, ObjectFormats.byteStream(config.getChunkSizeInBytes()));
   }
 
   private ObjectTreeManager(
       Path root,
       ObjectTreeConfig config,
       ExecutorService executor,
-      Function<Path, ObjectFormat> formatOf)
+      @Nullable ObjectFormat byteStream)
       throws IOException {
     this.root = Objects.requireNonNull(root).normalize();
     this.config = Objects.requireNonNull(config);
     this.executor = Objects.requireNonNull(executor);
-    this.formatOf = Objects.requireNonNull(formatOf);
+    this.byteStream = byteStream;
     if (!Files.isDirectory(this.root) && !Files.isRegularFile(this.root)) {
       throw new NoSuchFileException(this.root.toString());
     }
@@ -150,14 +154,26 @@ public class ObjectTreeManager implements ObjectManager {
   }
 
   private String nameOf(Path path) {
+    if (byteStream != null) {
+      return IginxPaths.getLegacy(path.getFileName().toString(), config.getDot());
+    }
     return IginxPaths.get(path.getFileName(), config.getDot());
+  }
+
+  @Nullable
+  private List<String> patternsOf(DataTarget target) {
+    List<String> patterns = target.getPatterns();
+    if (byteStream == null || patterns == null) {
+      return patterns;
+    }
+    return patterns.stream().map(IginxPaths::toLegacyPattern).collect(Collectors.toList());
   }
 
   @Override
   public RowStream query(DataTarget target) throws IOException {
     List<Future<RowStream>> futures = new ArrayList<>();
     try {
-      collect(config.getPrefix(), root, target.getPatterns(), target, futures);
+      collect(config.getPrefix(), root, patternsOf(target), target, futures);
     } catch (IOException | RuntimeException e) {
       futures.forEach(future -> future.cancel(true));
       throw e;
@@ -266,7 +282,7 @@ public class ObjectTreeManager implements ObjectManager {
   private RowStream readObject(
       @Nullable String prefix, Path path, List<String> patterns, DataTarget target)
       throws IOException {
-    ObjectFormat format = formatOf.apply(path);
+    ObjectFormat format = byteStream != null ? byteStream : ObjectFormats.of(path);
     ObjectFormat.Reader reader =
         format.newReader(prefix, path, config.getFormatConfig(format.getName()));
     Map<String, DataType> schema = reader.find(patterns);

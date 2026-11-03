@@ -19,9 +19,13 @@
  */
 package cn.edu.tsinghua.iginx.minio;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.ESCAPED_DOT;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.minio.common.IginxPaths;
 import cn.edu.tsinghua.iginx.minio.kv.ObjectKvManager;
+import cn.edu.tsinghua.iginx.minio.tree.ObjectTreeConfig;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.util.*;
@@ -129,6 +133,10 @@ public final class MinioConfig {
     }
     if (prefix == null) {
       prefix = defaultPrefix();
+      if (prefix != null && isLegacyFilesystem()) {
+        String dot = fileTreeParams.getOrDefault(ObjectTreeConfig.DOT, ESCAPED_DOT);
+        prefix = IginxPaths.getLegacy(prefix, dot);
+      }
     }
     this.embeddedPrefix = emptyToNull(prefix);
     fileTreeParams.remove("prefix");

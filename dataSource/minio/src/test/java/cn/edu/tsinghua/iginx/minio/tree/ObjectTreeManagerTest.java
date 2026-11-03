@@ -36,7 +36,10 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -59,11 +62,11 @@ public class ObjectTreeManagerTest {
   @After
   public void tearDown() throws IOException {
     executor.shutdownNow();
-    Files.delete(root.resolve("sub").resolve("c.txt"));
-    Files.delete(root.resolve("sub"));
-    Files.delete(root.resolve("a.csv"));
-    Files.delete(root.resolve("b.parquet"));
-    Files.delete(root);
+    try (Stream<Path> paths = Files.walk(root)) {
+      for (Path path : paths.sorted(Comparator.reverseOrder()).collect(Collectors.toList())) {
+        Files.delete(path);
+      }
+    }
   }
 
   private ObjectTreeConfig config() {
@@ -105,6 +108,27 @@ public class ObjectTreeManagerTest {
     expected.put("mnt.b\\.parquet", DataType.BINARY);
     expected.put("mnt.sub.c\\.txt", DataType.BINARY);
     assertEquals(expected, columns(manager, null));
+  }
+
+  @Test
+  public void testLegacyFilesystemEscapesNames() throws Exception {
+    // backslashes are not allowed in file names on windows
+    Assume.assumeFalse(System.getProperty("os.name").toLowerCase().startsWith("win"));
+    Path dir = root.resolve("d.e").resolve("p\\q");
+    Files.createDirectories(dir);
+    Files.write(dir.resolve("f.txt"), "x".getBytes(StandardCharsets.UTF_8));
+
+    ObjectTreeManager legacy = ObjectTreeManager.legacyFilesystem(root, config(), executor);
+    Map<String, DataType> expected =
+        Collections.singletonMap("mnt.d\\.e.p\\\\q.f\\.txt", DataType.BINARY);
+    assertEquals(expected, columns(legacy, Collections.singletonList("mnt.d\\.e.*")));
+    assertEquals(expected, columns(legacy, Collections.singletonList("mnt.d\\.e.p\\q.*")));
+    assertEquals(expected, columns(legacy, Collections.singletonList("mnt.d\\.e.p\\\\q.*")));
+
+    ObjectTreeManager fileTree = new ObjectTreeManager(root, config(), executor);
+    assertEquals(
+        Collections.singletonMap("mnt.d\\.e.p\\q.f\\.txt", DataType.BINARY),
+        columns(fileTree, Collections.singletonList("mnt.d\\.e.*")));
   }
 
   @Test

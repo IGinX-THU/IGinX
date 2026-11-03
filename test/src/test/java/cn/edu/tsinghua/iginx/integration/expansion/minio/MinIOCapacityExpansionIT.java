@@ -109,8 +109,10 @@ public class MinIOCapacityExpansionIT extends BaseCapacityExpansionIT {
   @Override
   protected void testQuerySpecialHistoryData() {
     testQueryFileTree();
+    testEscape();
     testQueryFileTreeSpecialPath();
     testQueryLegacyFilesystem();
+    testQueryLegacyFilesystemSpecialPath();
   }
 
   /** test 桶中 a、csv 两个目录下的 txt、parquet、csv/tsv 文件按 FileTree 结构挂载后的查询 */
@@ -124,6 +126,29 @@ public class MinIOCapacityExpansionIT extends BaseCapacityExpansionIT {
       testQueryParquets();
       testQueryCSV();
       testQueryMultiFormat();
+    } catch (SessionException e) {
+      LOGGER.error("add or remove read only storage engine failed ", e);
+      fail();
+    }
+  }
+
+  /** 文件名含换行符，windows 上没有该数据 */
+  private void testEscape() {
+    if (MinIOHistoryDataGenerator.isOnWin) {
+      return;
+    }
+    try (TempDummyDataSource ignored =
+        new TempDummyDataSource(session, FILE_TREE_PORT, minio, getFileTreeEscapeDummyParams())) {
+      String statement = "select `a\nb\\.txt` from escape.path;";
+      String expect =
+          "ResultSets:\n"
+              + "+---+--------------------+\n"
+              + "|key|escape.path.a\nb\\.txt|\n"
+              + "+---+--------------------+\n"
+              + "|  0|             abcdefg|\n"
+              + "+---+--------------------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expect);
     } catch (SessionException e) {
       LOGGER.error("add or remove read only storage engine failed ", e);
       fail();
@@ -182,7 +207,21 @@ public class MinIOCapacityExpansionIT extends BaseCapacityExpansionIT {
     Map<String, String> params = newParamsWithCredentials();
     params.put("dummy_bucket", FILE_TREE_BUCKET);
     params.put("dummy_dir", dummyDir);
-    params.put("dummy.config.chunk_size_in_bytes", "10");
+    return params;
+  }
+
+  private static Map<String, String> getLegacyDummyParams(String dummyDir, int chunkSize) {
+    Map<String, String> params = getLegacyDummyParams(dummyDir);
+    params.put("dummy.config.chunk_size_in_bytes", String.valueOf(chunkSize));
+    return params;
+  }
+
+  private static Map<String, String> getFileTreeEscapeDummyParams() {
+    Map<String, String> params = newParamsWithCredentials();
+    params.put("dummy_bucket", FILE_TREE_BUCKET);
+    params.put("dummy_dir", "escape");
+    params.put("dummy.struct", FILE_TREE);
+    params.put(RAW_CHUNK_CONFIG + "pageSize", "1048576");
     return params;
   }
 
@@ -491,7 +530,7 @@ public class MinIOCapacityExpansionIT extends BaseCapacityExpansionIT {
   /** LegacyFilesystem 的 key 为数据块起始的字节偏移，块大小为 chunk_size_in_bytes */
   private void testQueryLegacyFilesystem() {
     try (TempDummyDataSource ignored =
-        new TempDummyDataSource(session, FILE_TREE_PORT, minio, getLegacyDummyParams("a"))) {
+        new TempDummyDataSource(session, FILE_TREE_PORT, minio, getLegacyDummyParams("a", 10))) {
       String statement = "select 3\\.txt from a.f.g;";
       String expect =
           "ResultSets:\n"
@@ -517,6 +556,74 @@ public class MinIOCapacityExpansionIT extends BaseCapacityExpansionIT {
               + "+---+------------+\n"
               + "Total line number = 1\n";
       SQLTestTools.executeAndCompare(session, statement, expect);
+    } catch (SessionException e) {
+      LOGGER.error("add or remove read only storage engine failed ", e);
+      fail();
+    }
+  }
+
+  /** 与 filesystem 一致：LegacyFilesystem 的列名（含挂载目录名）中，点和反斜杠都被转义 */
+  private void testQueryLegacyFilesystemSpecialPath() {
+    try (TempDummyDataSource ignored =
+        new TempDummyDataSource(
+            session,
+            FILE_TREE_PORT,
+            minio,
+            getLegacyDummyParams("txt/dir!@#$%^&()[]{};',.=+~ -目录"))) {
+      String statement = "SHOW COLUMNS `dir!@#$%^&()[]{};',\\.=+~ -目录`.*;";
+      String expected =
+          "Columns:\n"
+              + "+------------------------------------------------------------------+--------+\n"
+              + "|                                                              Path|DataType|\n"
+              + "+------------------------------------------------------------------+--------+\n"
+              + "|dir!@#$%^&()[]{};',\\.=+~ -目录.example!@#$%^&()[]{};',\\.=+~ -\\.txt|  BINARY|\n"
+              + "|   dir!@#$%^&()[]{};',\\.=+~ -目录.示例!@#$%^&()[]{};',\\.=+~ -\\.TXT|  BINARY|\n"
+              + "+------------------------------------------------------------------+--------+\n"
+              + "Total line number = 2\n";
+      SQLTestTools.executeAndCompare(session, statement, expected, true);
+
+      statement =
+          "select `example!@#$%^&()[]{};',\\.=+~ -\\.txt`, `示例!@#$%^&()[]{};',\\.=+~ -\\.TXT` from `dir!@#$%^&()[]{};',\\.=+~ -目录`;";
+      expected =
+          "ResultSets:\n"
+              + "+---+------------------------------------------------------------------+---------------------------------------------------------------+\n"
+              + "|key|dir!@#$%^&()[]{};',\\.=+~ -目录.example!@#$%^&()[]{};',\\.=+~ -\\.txt|dir!@#$%^&()[]{};',\\.=+~ -目录.示例!@#$%^&()[]{};',\\.=+~ -\\.TXT|\n"
+              + "+---+------------------------------------------------------------------+---------------------------------------------------------------+\n"
+              + "|  0|                                                      example line|                                                   example line|\n"
+              + "+---+------------------------------------------------------------------+---------------------------------------------------------------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expected);
+    } catch (SessionException e) {
+      LOGGER.error("add or remove read only storage engine failed ", e);
+      fail();
+    }
+    if (MinIOHistoryDataGenerator.isOnWin) {
+      return;
+    }
+    try (TempDummyDataSource ignored =
+        new TempDummyDataSource(
+            session, FILE_TREE_PORT, minio, getLegacyDummyParams("txt/dir\\Ndir\\Ddir"))) {
+      String statement = "SHOW COLUMNS `dir\\Ndir\\Ddir`.*;";
+      String expected =
+          "Columns:\n"
+              + "+----------------------------+--------+\n"
+              + "|                        Path|DataType|\n"
+              + "+----------------------------+--------+\n"
+              + "|dir\\\\Ndir\\\\Ddir.example\\.txt|  BINARY|\n"
+              + "+----------------------------+--------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expected, true);
+
+      statement = "select `example\\.txt` from *;";
+      expected =
+          "ResultSets:\n"
+              + "+---+----------------------------+\n"
+              + "|key|dir\\\\Ndir\\\\Ddir.example\\.txt|\n"
+              + "+---+----------------------------+\n"
+              + "|  0|                example line|\n"
+              + "+---+----------------------------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expected);
     } catch (SessionException e) {
       LOGGER.error("add or remove read only storage engine failed ", e);
       fail();

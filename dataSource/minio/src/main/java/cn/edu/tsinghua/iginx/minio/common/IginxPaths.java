@@ -62,6 +62,22 @@ public final class IginxPaths {
     return String.join(DOT, nodes);
   }
 
+  /**
+   * name of an object or directory in the LegacyFilesystem structure, same as filesystem: both
+   * backslashes and dots are escaped
+   */
+  public static String getLegacy(String name, String dot) {
+    return name.replace("\\", "\\\\").replace(DOT, dot);
+  }
+
+  /**
+   * pattern written in the escaped form of the LegacyFilesystem structure, so that both {@code
+   * a\b.*} and {@code a\\b.*} match the columns of directory {@code a\b}, as filesystem does
+   */
+  public static String toLegacyPattern(String pattern) {
+    return String.join(DOT, split(pattern));
+  }
+
   /** relative object path of an IGinX path */
   public static Path toFilePath(@Nullable String path, String dot, FileSystem fs) {
     if (path == null) {
