@@ -63,6 +63,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
+import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,6 +87,12 @@ public class MinioStorage implements IStorage {
   static final String IGINX_DATA_PREFIX = "iginx_";
 
   private static final int IO_THREADS = 16;
+
+  /**
+   * Must be shorter than the idle timeout of the server (30s for MinIO), otherwise a request may be
+   * sent on a connection that the server is closing and fail with "Connection reset".
+   */
+  private static final long KEEP_ALIVE_SECONDS = 20;
 
   private final MinioConfig config;
   private final OkHttpClient httpClient;
@@ -154,6 +161,7 @@ public class MinioStorage implements IStorage {
         .readTimeout(config.getRequestTimeoutMs(), TimeUnit.MILLISECONDS)
         .writeTimeout(config.getRequestTimeoutMs(), TimeUnit.MILLISECONDS)
         .retryOnConnectionFailure(true)
+        .connectionPool(new ConnectionPool(IO_THREADS, KEEP_ALIVE_SECONDS, TimeUnit.SECONDS))
         .build();
   }
 
