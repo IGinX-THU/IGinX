@@ -260,6 +260,13 @@ runs:
               paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
               statements: s/^#storageEngineList=127.0.0.1#1521#relational#engine=oracle/storageEngineList=127.0.0.1#1521#relational#engine=oracle/g
 
+        - if: inputs.DB-name == 'MinIO'
+          name: Change MinIO Config
+          uses: ./.github/actions/edit
+          with:
+              paths: ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-*/conf/config.properties
+              statements: s|^#storageEngineList=127.0.0.1#9000#minio.*$|storageEngineList=127.0.0.1#9000#minio#username=minioadmin#password=minioadmin#data_bucket=iginx-data#dummy_bucket=iginx-dummy#dummy.struct=ObjectKV#has_data=false#is_read_only=false|g
+
         - if: inputs.DB-name == 'FileSystem'
           name: Modify IGinX Config
           uses: ./.github/actions/edit

@@ -42,6 +42,7 @@
         <module>relational</module>
         <module>vectordb</module>
         <module>neo4j</module>
+        <module>minio</module>
     </modules>
 
     <properties>

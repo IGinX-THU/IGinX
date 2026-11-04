@@ -1,0 +1,33 @@
+name: "minio"
+description: "stop, clean and start minio in order"
+inputs:
+    stop:
+        description: "whether to stop"
+        required: true
+    clean:
+        description: "whether to clean"
+        required: true
+    start:
+        description: "whether to start"
+        required: true
+    ports:
+        description: "ports to run on"
+        required: false
+        default: "9000"
+
+runs:
+    using: "composite"
+    steps:
+        - if: fromJSON(inputs.stop) || fromJSON(inputs.clean)
+          name: unimplemented
+          shell: bash
+          run: exit 1
+
+        - if: fromJSON(inputs.start)
+          name: Start minio
+          shell: bash
+          run: |
+              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/minio.sh"
+              for port in ${{ inputs.ports }}; do
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/minio.sh" $port
+              done
