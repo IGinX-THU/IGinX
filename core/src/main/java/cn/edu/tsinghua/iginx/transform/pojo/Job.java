@@ -130,7 +130,7 @@ public class Job {
         ExportWriter batchWriter = new CollectionWriter();
         if (i == req.getTaskListSize() - 1) {
           batchWriter = writer;
-        } else if (i + 1 < req.getTaskListSize()) {
+        } else {
           TaskInfo nextInfo = req.getTaskList().get(i + 1);
           if (nextInfo.getTaskType().equals(TaskType.SQL)
               && task.isPythonTask()

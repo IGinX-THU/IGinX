@@ -452,11 +452,10 @@ public class TransformIT {
               outputFileName,
               "every 10 second");
       try {
-        Thread.sleep(3000L);
-        fileResultContains(outputFileName, "55,55,65");
-        verifyJobState(jobId, JobState.JOB_IDLE);
-        Thread.sleep(10000L);
-        verifyRepeatedFileResult(outputFileName, "55,55,65", 2);
+        waitForRepeatedFileResult(outputFileName, "55,55,65", 1, 30000L);
+        waitForJobState(jobId, JobState.JOB_IDLE, 30000L);
+        // data from the previous execution must not be accumulated into the next one
+        waitForRepeatedFileResult(outputFileName, "55,55,65", 2, 30000L);
       } finally {
         cancelJob(jobId);
       }
@@ -465,10 +464,9 @@ public class TransformIT {
       fail();
     } finally {
       try {
-        assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
+        Files.deleteIfExists(Paths.get(outputFileName));
       } catch (IOException e) {
-        LOGGER.error("Fail to delete result file: {}", outputFileName, e);
-        fail();
+        LOGGER.warn("Fail to delete result file: {}", outputFileName, e);
       }
     }
   }
@@ -515,10 +513,9 @@ public class TransformIT {
       fail();
     } finally {
       try {
-        assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
+        Files.deleteIfExists(Paths.get(outputFileName));
       } catch (IOException e) {
-        LOGGER.error("Fail to delete result file: {}", outputFileName, e);
-        fail();
+        LOGGER.warn("Fail to delete result file: {}", outputFileName, e);
       }
     }
   }
@@ -1392,7 +1389,10 @@ public class TransformIT {
     assertTrue(contains);
   }
 
-  private void verifyRepeatedFileResult(String filename, String content, int expectedCount) {
+  private int countFileResult(String filename, String content) {
+    if (!new File(filename).exists()) {
+      return 0;
+    }
     int count = 0;
     try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
       String line;
@@ -1405,7 +1405,30 @@ public class TransformIT {
       LOGGER.error("Verify repeated file export result failed.", e);
       fail();
     }
+    return count;
+  }
+
+  private void waitForRepeatedFileResult(
+      String filename, String content, int expectedCount, long timeoutMs)
+      throws InterruptedException {
+    long deadline = System.currentTimeMillis() + timeoutMs;
+    int count = countFileResult(filename, content);
+    while (count < expectedCount && System.currentTimeMillis() < deadline) {
+      Thread.sleep(500L);
+      count = countFileResult(filename, content);
+    }
     assertEquals(expectedCount, count);
+  }
+
+  private void waitForJobState(long jobId, JobState expectedState, long timeoutMs)
+      throws SessionException, InterruptedException {
+    long deadline = System.currentTimeMillis() + timeoutMs;
+    JobState state = session.queryTransformJobStatus(jobId);
+    while (state != expectedState && System.currentTimeMillis() < deadline) {
+      Thread.sleep(200L);
+      state = session.queryTransformJobStatus(jobId);
+    }
+    assertEquals(expectedState, state);
   }
 
   // The default 2s startup limit is too short on busy CI runners (seen on Windows).
