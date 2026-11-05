@@ -49,6 +49,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import javax.mail.MessagingException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.*;
@@ -430,70 +431,6 @@ public class TransformIT {
   }
 
   @Test
-  public void cancelOneScheduledJobDoesNotStopOtherScheduledJobsTest() {
-    LOGGER.info("cancelOneScheduledJobDoesNotStopOtherScheduledJobsTest");
-    String firstOutput =
-        OUTPUT_DIR_PREFIX + File.separator + "export_file_cancel_isolation_first.txt";
-    String secondOutput =
-        OUTPUT_DIR_PREFIX + File.separator + "export_file_cancel_isolation_second.txt";
-    long firstJobId = -1;
-    long secondJobId = -1;
-    boolean firstJobCancelled = false;
-    boolean testPassed = false;
-    try {
-      Files.deleteIfExists(Paths.get(firstOutput));
-      Files.deleteIfExists(Paths.get(secondOutput));
-
-      List<TaskInfo> taskInfoList = new ArrayList<>();
-      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
-      sqlTask.setSqlList(Collections.singletonList("SELECT s1 FROM us.d1 WHERE key = 0;"));
-      taskInfoList.add(sqlTask);
-
-      firstJobId =
-          session.commitTransformJob(taskInfoList, ExportType.FILE, firstOutput, "every 1 second");
-      secondJobId =
-          session.commitTransformJob(taskInfoList, ExportType.FILE, secondOutput, "every 1 second");
-
-      Thread.sleep(4000L);
-      assertTrue(getFileLineCount(firstOutput) > 1);
-      assertTrue(getFileLineCount(secondOutput) > 1);
-
-      cancelJob(firstJobId);
-      firstJobCancelled = true;
-
-      int firstJobLineCount = getFileLineCount(firstOutput);
-      int secondJobLineCount = getFileLineCount(secondOutput);
-      Thread.sleep(4000L);
-      assertEquals(firstJobLineCount, getFileLineCount(firstOutput));
-      assertTrue(getFileLineCount(secondOutput) > secondJobLineCount);
-      testPassed = true;
-    } catch (SessionException | IOException | InterruptedException e) {
-      LOGGER.error("Transform: execute fail. Caused by:", e);
-      fail();
-    } finally {
-      if (firstJobId > 0 && !firstJobCancelled) {
-        cancelJob(firstJobId);
-      }
-      if (secondJobId > 0) {
-        cancelJob(secondJobId);
-      }
-      if (testPassed) {
-        try {
-          Files.deleteIfExists(Paths.get(firstOutput));
-          Files.deleteIfExists(Paths.get(secondOutput));
-        } catch (IOException e) {
-          LOGGER.error("Fail to delete transform output file.", e);
-          fail();
-        }
-      }
-    }
-  }
-
-  private int getFileLineCount(String filename) throws IOException {
-    return Files.readAllLines(Paths.get(filename)).size();
-  }
-
-  @Test
   public void commitStopOnFailureTest() {
     LOGGER.info("commitStopOnFailureTest");
     try {
@@ -618,6 +555,93 @@ public class TransformIT {
       LOGGER.error("Fail to delete result file: {}", outputFileName, e);
       fail();
     }
+  }
+
+  @Test
+  public void cancelOneScheduledJobDoesNotStopOtherScheduledJobsTest() {
+    LOGGER.info("cancelOneScheduledJobDoesNotStopOtherScheduledJobsTest");
+    String firstOutput =
+        OUTPUT_DIR_PREFIX + File.separator + "export_file_cancel_isolation_first.txt";
+    String secondOutput =
+        OUTPUT_DIR_PREFIX + File.separator + "export_file_cancel_isolation_second.txt";
+    long firstJobId = -1;
+    long secondJobId = -1;
+    boolean firstJobCancelled = false;
+    boolean testPassed = false;
+    try {
+      Files.deleteIfExists(Paths.get(firstOutput));
+      Files.deleteIfExists(Paths.get(secondOutput));
+
+      List<TaskInfo> taskInfoList = new ArrayList<>();
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(Collections.singletonList("SELECT s1 FROM us.d1 WHERE key = 0;"));
+      taskInfoList.add(sqlTask);
+
+      firstJobId =
+          session.commitTransformJob(taskInfoList, ExportType.FILE, firstOutput, "every 1 second");
+      secondJobId =
+          session.commitTransformJob(taskInfoList, ExportType.FILE, secondOutput, "every 1 second");
+
+      // header + at least one data row
+      waitForFileLineCountAtLeast(firstOutput, 2, 30000L);
+      waitForFileLineCountAtLeast(secondOutput, 2, 30000L);
+
+      cancelJob(firstJobId);
+      firstJobCancelled = true;
+      // cancellation does not interrupt an execution that has already been fired
+      Thread.sleep(2000L);
+
+      long firstJobLineCount = countFileLines(firstOutput);
+      long secondJobLineCount = countFileLines(secondOutput);
+      // let the remaining job run several more times before checking the cancelled one
+      waitForFileLineCountAtLeast(secondOutput, secondJobLineCount + 3, 30000L);
+      assertEquals(firstJobLineCount, countFileLines(firstOutput));
+      testPassed = true;
+    } catch (SessionException | IOException | InterruptedException e) {
+      LOGGER.error("Transform: execute fail. Caused by:", e);
+      fail();
+    } finally {
+      if (firstJobId > 0 && !firstJobCancelled) {
+        cancelJob(firstJobId);
+      }
+      if (secondJobId > 0) {
+        cancelJob(secondJobId);
+      }
+      // keep the output files of a failed run for investigation
+      if (testPassed) {
+        for (String output : Arrays.asList(firstOutput, secondOutput)) {
+          try {
+            Files.deleteIfExists(Paths.get(output));
+          } catch (IOException e) {
+            LOGGER.warn("Fail to delete result file: {}", output, e);
+          }
+        }
+      }
+    }
+  }
+
+  private long countFileLines(String filename) throws IOException {
+    Path path = Paths.get(filename);
+    if (!Files.exists(path)) {
+      return 0;
+    }
+    try (Stream<String> lines = Files.lines(path)) {
+      return lines.count();
+    }
+  }
+
+  private void waitForFileLineCountAtLeast(String filename, long minLineCount, long timeoutMs)
+      throws IOException, InterruptedException {
+    long deadline = System.currentTimeMillis() + timeoutMs;
+    long lineCount = countFileLines(filename);
+    while (lineCount < minLineCount && System.currentTimeMillis() < deadline) {
+      Thread.sleep(200L);
+      lineCount = countFileLines(filename);
+    }
+    assertTrue(
+        String.format(
+            "Expected at least %d lines in %s, got %d.", minLineCount, filename, lineCount),
+        lineCount >= minLineCount);
   }
 
   @Ignore // the time system on github action is somehow bugged, thus it cannot be tested in action
