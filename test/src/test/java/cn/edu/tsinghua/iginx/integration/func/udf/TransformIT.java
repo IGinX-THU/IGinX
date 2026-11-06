@@ -574,22 +574,24 @@ public class TransformIT {
 
       List<TaskInfo> taskInfoList = new ArrayList<>();
       TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
-      sqlTask.setSqlList(Collections.singletonList("SELECT s1 FROM us.d1 WHERE key = 0;"));
+      // VectorDB cannot push down "key = 0"
+      sqlTask.setSqlList(Collections.singletonList("SELECT s1 FROM us.d1 WHERE key < 1;"));
       taskInfoList.add(sqlTask);
 
       firstJobId =
-          session.commitTransformJob(taskInfoList, ExportType.FILE, firstOutput, "every 1 second");
+          session.commitTransformJob(taskInfoList, ExportType.FILE, firstOutput, "every 3 second");
       secondJobId =
-          session.commitTransformJob(taskInfoList, ExportType.FILE, secondOutput, "every 1 second");
+          session.commitTransformJob(taskInfoList, ExportType.FILE, secondOutput, "every 3 second");
 
       // header + at least one data row
       waitForFileLineCountAtLeast(firstOutput, 2, 30000L);
       waitForFileLineCountAtLeast(secondOutput, 2, 30000L);
 
+      // An execution fired while the job is being cancelled overwrites the CLOSED state, so
+      // cancel right after an execution has written its output, far from the next trigger.
+      waitForFileLineCountAtLeast(firstOutput, countFileLines(firstOutput) + 1, 30000L);
       cancelJob(firstJobId);
       firstJobCancelled = true;
-      // cancellation does not interrupt an execution that has already been fired
-      Thread.sleep(2000L);
 
       long firstJobLineCount = countFileLines(firstOutput);
       long secondJobLineCount = countFileLines(secondOutput);
