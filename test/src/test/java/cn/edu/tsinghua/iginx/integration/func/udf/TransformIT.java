@@ -431,6 +431,97 @@ public class TransformIT {
   }
 
   @Test
+  public void commitScheduledBatchTransformTest() {
+    LOGGER.info("commitScheduledBatchTransformTest");
+    String outputFileName =
+        OUTPUT_DIR_PREFIX + File.separator + "export_file_scheduled_batch_python_job.txt";
+    try {
+      registerTask("AddOneTransformer");
+      registerTask("SumTransformer");
+
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(Collections.singletonList(QUERY_SQL_3));
+      TaskInfo addOnePyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
+      addOnePyTask.setPyTaskName("AddOneTransformer");
+      TaskInfo sumPyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.BATCH);
+      sumPyTask.setPyTaskName("SumTransformer");
+
+      long jobId =
+          session.commitTransformJob(
+              Arrays.asList(sqlTask, addOnePyTask, sumPyTask),
+              ExportType.FILE,
+              outputFileName,
+              "every 10 second");
+      try {
+        waitForRepeatedFileResult(outputFileName, "55,55,65", 1, 30000L);
+        waitForJobState(jobId, JobState.JOB_IDLE, 30000L);
+        // data from the previous execution must not be accumulated into the next one
+        waitForRepeatedFileResult(outputFileName, "55,55,65", 2, 30000L);
+      } finally {
+        cancelJob(jobId);
+      }
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform: execute fail. Caused by:", e);
+      fail();
+    } finally {
+      try {
+        Files.deleteIfExists(Paths.get(outputFileName));
+      } catch (IOException e) {
+        LOGGER.warn("Fail to delete result file: {}", outputFileName, e);
+      }
+    }
+  }
+
+  @Test
+  public void commitBatchTransformWithTemporaryTableTest() {
+    LOGGER.info("commitBatchTransformWithTemporaryTableTest");
+    String outputFileName =
+        OUTPUT_DIR_PREFIX
+            + File.separator
+            + "export_file_batch_python_job_with_temporary_table.txt";
+    try {
+      registerTask("AddOneTransformer");
+      registerTask("SumTransformer");
+
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      sqlTask.setSqlList(Collections.singletonList(QUERY_SQL_3));
+      TaskInfo addOneTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
+      addOneTask.setPyTaskName("AddOneTransformer");
+      TaskInfo sumTask = new TaskInfo(TaskType.PYTHON, DataFlowType.BATCH);
+      sumTask.setPyTaskName("SumTransformer");
+      sumTask.setOutputPrefix("batchsum");
+      TaskInfo temporaryTableSqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      temporaryTableSqlTask.setSqlList(Collections.singletonList("SELECT * FROM batchsum;"));
+
+      long jobId =
+          session.commitTransformJob(
+              Arrays.asList(sqlTask, addOneTask, sumTask, temporaryTableSqlTask),
+              ExportType.FILE,
+              outputFileName);
+      verifyJobFinishedBlocked(jobId);
+      if (needCompareResult) {
+        List<String> lines = Files.readAllLines(Paths.get(outputFileName));
+        assertEquals(2, lines.size());
+        String[] values = lines.get(1).split(",", -1);
+        assertEquals(4, values.length);
+        Long.parseLong(values[0]);
+        assertEquals("55", values[1]);
+        assertEquals("55", values[2]);
+        assertEquals("65", values[3]);
+      }
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform: execute fail. Caused by:", e);
+      fail();
+    } finally {
+      try {
+        Files.deleteIfExists(Paths.get(outputFileName));
+      } catch (IOException e) {
+        LOGGER.warn("Fail to delete result file: {}", outputFileName, e);
+      }
+    }
+  }
+
+  @Test
   public void commitStopOnFailureTest() {
     LOGGER.info("commitStopOnFailureTest");
     try {
@@ -1386,6 +1477,48 @@ public class TransformIT {
       fail();
     }
     assertTrue(contains);
+  }
+
+  private int countFileResult(String filename, String content) {
+    if (!new File(filename).exists()) {
+      return 0;
+    }
+    int count = 0;
+    try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        if (line.contains(content)) {
+          count++;
+        }
+      }
+    } catch (IOException e) {
+      LOGGER.error("Verify repeated file export result failed.", e);
+      fail();
+    }
+    return count;
+  }
+
+  private void waitForRepeatedFileResult(
+      String filename, String content, int expectedCount, long timeoutMs)
+      throws InterruptedException {
+    long deadline = System.currentTimeMillis() + timeoutMs;
+    int count = countFileResult(filename, content);
+    while (count < expectedCount && System.currentTimeMillis() < deadline) {
+      Thread.sleep(500L);
+      count = countFileResult(filename, content);
+    }
+    assertEquals(expectedCount, count);
+  }
+
+  private void waitForJobState(long jobId, JobState expectedState, long timeoutMs)
+      throws SessionException, InterruptedException {
+    long deadline = System.currentTimeMillis() + timeoutMs;
+    JobState state = session.queryTransformJobStatus(jobId);
+    while (state != expectedState && System.currentTimeMillis() < deadline) {
+      Thread.sleep(200L);
+      state = session.queryTransformJobStatus(jobId);
+    }
+    assertEquals(expectedState, state);
   }
 
   // The default 2s startup limit is too short on busy CI runners (seen on Windows).

@@ -55,6 +55,7 @@ public class BatchStageRunner implements Runner {
 
   @Override
   public void start() throws TransformException {
+    writer = batchStage.getExportWriter();
     Task task = batchStage.getTask();
     if (task.isPythonTask()) {
       pemjaWorker = driver.createWorker((PythonTask) task, writer);
@@ -70,6 +71,7 @@ public class BatchStageRunner implements Runner {
     CollectionWriter collectionWriter =
         (CollectionWriter) batchStage.getBeforeStage().getExportWriter();
     BatchData batchData = collectionWriter.getCollectedData();
+    collectionWriter.reset();
 
     mutex.lock();
     writer.writeBatch(batchData);
