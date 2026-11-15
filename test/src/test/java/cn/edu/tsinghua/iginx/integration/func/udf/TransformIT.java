@@ -49,6 +49,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import javax.mail.MessagingException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.*;
@@ -554,6 +555,95 @@ public class TransformIT {
       LOGGER.error("Fail to delete result file: {}", outputFileName, e);
       fail();
     }
+  }
+
+  @Test
+  public void cancelOneScheduledJobDoesNotStopOtherScheduledJobsTest() {
+    LOGGER.info("cancelOneScheduledJobDoesNotStopOtherScheduledJobsTest");
+    String firstOutput =
+        OUTPUT_DIR_PREFIX + File.separator + "export_file_cancel_isolation_first.txt";
+    String secondOutput =
+        OUTPUT_DIR_PREFIX + File.separator + "export_file_cancel_isolation_second.txt";
+    long firstJobId = -1;
+    long secondJobId = -1;
+    boolean firstJobCancelled = false;
+    boolean testPassed = false;
+    try {
+      Files.deleteIfExists(Paths.get(firstOutput));
+      Files.deleteIfExists(Paths.get(secondOutput));
+
+      List<TaskInfo> taskInfoList = new ArrayList<>();
+      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+      // VectorDB cannot push down "key = 0"
+      sqlTask.setSqlList(Collections.singletonList("SELECT s1 FROM us.d1 WHERE key < 1;"));
+      taskInfoList.add(sqlTask);
+
+      firstJobId =
+          session.commitTransformJob(taskInfoList, ExportType.FILE, firstOutput, "every 3 second");
+      secondJobId =
+          session.commitTransformJob(taskInfoList, ExportType.FILE, secondOutput, "every 3 second");
+
+      // header + at least one data row
+      waitForFileLineCountAtLeast(firstOutput, 2, 30000L);
+      waitForFileLineCountAtLeast(secondOutput, 2, 30000L);
+
+      // An execution fired while the job is being cancelled overwrites the CLOSED state, so
+      // cancel right after an execution has written its output, far from the next trigger.
+      waitForFileLineCountAtLeast(firstOutput, countFileLines(firstOutput) + 1, 30000L);
+      cancelJob(firstJobId);
+      firstJobCancelled = true;
+
+      long firstJobLineCount = countFileLines(firstOutput);
+      long secondJobLineCount = countFileLines(secondOutput);
+      // let the remaining job run several more times before checking the cancelled one
+      waitForFileLineCountAtLeast(secondOutput, secondJobLineCount + 3, 30000L);
+      assertEquals(firstJobLineCount, countFileLines(firstOutput));
+      testPassed = true;
+    } catch (SessionException | IOException | InterruptedException e) {
+      LOGGER.error("Transform: execute fail. Caused by:", e);
+      fail();
+    } finally {
+      if (firstJobId > 0 && !firstJobCancelled) {
+        cancelJob(firstJobId);
+      }
+      if (secondJobId > 0) {
+        cancelJob(secondJobId);
+      }
+      // keep the output files of a failed run for investigation
+      if (testPassed) {
+        for (String output : Arrays.asList(firstOutput, secondOutput)) {
+          try {
+            Files.deleteIfExists(Paths.get(output));
+          } catch (IOException e) {
+            LOGGER.warn("Fail to delete result file: {}", output, e);
+          }
+        }
+      }
+    }
+  }
+
+  private long countFileLines(String filename) throws IOException {
+    Path path = Paths.get(filename);
+    if (!Files.exists(path)) {
+      return 0;
+    }
+    try (Stream<String> lines = Files.lines(path)) {
+      return lines.count();
+    }
+  }
+
+  private void waitForFileLineCountAtLeast(String filename, long minLineCount, long timeoutMs)
+      throws IOException, InterruptedException {
+    long deadline = System.currentTimeMillis() + timeoutMs;
+    long lineCount = countFileLines(filename);
+    while (lineCount < minLineCount && System.currentTimeMillis() < deadline) {
+      Thread.sleep(200L);
+      lineCount = countFileLines(filename);
+    }
+    assertTrue(
+        String.format(
+            "Expected at least %d lines in %s, got %d.", minLineCount, filename, lineCount),
+        lineCount >= minLineCount);
   }
 
   @Ignore // the time system on github action is somehow bugged, thus it cannot be tested in action
