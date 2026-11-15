@@ -39,6 +39,7 @@ import cn.edu.tsinghua.iginx.engine.logical.optimizer.IRuleCollection;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
+import cn.edu.tsinghua.iginx.engine.physical.storage.descriptor.HostPolicy;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.exception.StatusCode;
@@ -270,6 +271,7 @@ public class IginxWorker implements IService.Iface {
     for (RemovedStorageEngineInfo info : removedStorageEngineInfoList) {
       StorageEngineMeta storageEngineMeta = null;
       String infoIp = convertHostNameToHostAddress(info.getIp());
+      String infoHost = addressOf(info.getIp(), HostPolicy.PRESERVE_HOST);
       String infoSchemaPrefix = info.getSchemaPrefix();
       String infoDataPrefix = info.getDataPrefix();
       int infoPort = info.getPort();
@@ -278,7 +280,9 @@ public class IginxWorker implements IService.Iface {
             metaSchemaPrefix = meta.getSchemaPrefix(),
             metaDataPrefix = meta.getDataPrefix();
         int metaPort = meta.getPort();
-        if (!infoIp.equals(metaIp)) {
+        HostPolicy policy =
+            StorageManager.getDescriptor(meta.getStorageEngine()).hostPolicy(meta.getExtraParams());
+        if (!metaIp.equals(policy == HostPolicy.PRESERVE_HOST ? infoHost : infoIp)) {
           continue;
         }
         if (infoPort != metaPort) {
@@ -339,10 +343,10 @@ public class IginxWorker implements IService.Iface {
     Status status = new Status(RpcUtils.SUCCESS.code);
 
     for (StorageEngine storageEngine : storageEngines) {
-      String ip = convertHostNameToHostAddress(storageEngine.getIp());
       int port = storageEngine.getPort();
       StorageEngineType type = storageEngine.getType();
       Map<String, String> extraParams = storageEngine.getExtraParams();
+      String ip = addressOf(storageEngine.getIp(), type, extraParams);
       // 仅add时，默认为true
       boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "true"));
       String dataPrefix = null;
@@ -353,8 +357,8 @@ public class IginxWorker implements IService.Iface {
       boolean readOnly =
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "true"));
 
-      if (!isValidHost(ip)) { // IP 不合法
-        partialFailAndLog(status, String.format("ip %s is invalid.", ip));
+      if (ip == null) { // IP 不合法
+        partialFailAndLog(status, String.format("ip %s is invalid.", storageEngine.getIp()));
         continue;
       }
       if (isEmbeddedStorageEngine(type) && !isLocalHost(ip)) { // 非本地的文件系统引擎不可注册

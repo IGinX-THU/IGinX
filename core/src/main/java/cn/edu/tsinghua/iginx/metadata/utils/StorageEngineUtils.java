@@ -20,21 +20,54 @@
 package cn.edu.tsinghua.iginx.metadata.utils;
 
 import static cn.edu.tsinghua.iginx.conf.Constants.*;
+import static cn.edu.tsinghua.iginx.utils.HostUtils.convertHostNameToHostAddress;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
+import static cn.edu.tsinghua.iginx.utils.HostUtils.isValidHost;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
+import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
+import cn.edu.tsinghua.iginx.engine.physical.storage.descriptor.HostPolicy;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.File;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 
 public class StorageEngineUtils {
 
   public static boolean isEmbeddedStorageEngine(StorageEngineType type) {
     return type.equals(StorageEngineType.filesystem);
+  }
+
+  private static final Pattern HOST_NAME =
+      Pattern.compile("[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*");
+
+  /** 按驱动声明的地址策略得到存入元数据的地址，不合法时返回 null */
+  @Nullable
+  public static String addressOf(
+      String host, StorageEngineType type, Map<String, String> extraParams) {
+    return addressOf(host, StorageManager.getDescriptor(type).hostPolicy(extraParams));
+  }
+
+  /**
+   * 存入元数据的地址，不合法时返回 null。
+   *
+   * <p>RESOLVE_TO_IP：解析为 IP，要求是合法的 IPv4。PRESERVE_HOST：保留输入并转为小写，只校验格式（不能为空，不能带协议、端口或路径），
+   * 能否连通由注册时驱动的连接测试检验。
+   */
+  @Nullable
+  public static String addressOf(String host, HostPolicy policy) {
+    if (policy == HostPolicy.PRESERVE_HOST) {
+      String normalized = host.trim().toLowerCase(Locale.ROOT);
+      return HOST_NAME.matcher(normalized).matches() ? normalized : null;
+    }
+    String ip = convertHostNameToHostAddress(host);
+    return isValidHost(ip) ? ip : null;
   }
 
   private static boolean isDirValid(String dir) {
