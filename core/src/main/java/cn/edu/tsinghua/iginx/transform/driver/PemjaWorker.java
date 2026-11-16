@@ -38,6 +38,10 @@ import pemja.core.PythonInterpreter;
 public class PemjaWorker {
   private static final Logger LOGGER = LoggerFactory.getLogger(PemjaWorker.class);
 
+  private static final String TRANSFORM_INPUT = "__iginx_transform_input";
+
+  private static final String TRANSFORM_OUTPUT = "__iginx_transform_output";
+
   private final String identifier;
 
   private final String moduleName;
@@ -95,7 +99,20 @@ public class PemjaWorker {
     // use unique name in shared interpreter
     String obj = (moduleName + className).replace(".", "a");
     interpreter.exec(String.format("%s = %s.%s()", obj, moduleName, className));
-    List<Object> res = (List<Object>) interpreter.invokeMethod(obj, UDF_FUNC, data);
+    // Pemja caches bound methods, so invokeMethod can keep calling an old instance after reload.
+    // Execute the call directly; a global helper passed to invoke also has unsafe cache ownership.
+    List<Object> res;
+    try {
+      interpreter.set(TRANSFORM_INPUT, data);
+      interpreter.exec(
+          String.format("%s = %s.%s(%s)", TRANSFORM_OUTPUT, obj, UDF_FUNC, TRANSFORM_INPUT));
+      res = (List<Object>) interpreter.get(TRANSFORM_OUTPUT);
+    } finally {
+      interpreter.exec(
+          String.format(
+              "globals().pop('%s', None); globals().pop('%s', None)",
+              TRANSFORM_INPUT, TRANSFORM_OUTPUT));
+    }
 
     try {
       PemjaReader reader = new PemjaReader(res, config.getBatchSize());
