@@ -496,14 +496,14 @@ public class TransformIT {
   @Test
   public void commitScheduledBatchTemporaryTableTransformTest() {
     TaskInfo sumTask = pythonTransformTask("SumTransformer", DataFlowType.BATCH);
-    sumTask.setOutputPrefix("scheduled_batch_sum");
+    sumTask.setOutputPrefix("scheduledbatchsum");
     verifyScheduledTransformResults(
         "scheduled_batch_to_sql",
         Arrays.asList(
             sqlTransformTask(QUERY_SQL_3),
             pythonTransformTask("AddOneTransformer", DataFlowType.STREAM),
             sumTask,
-            sqlTransformTask("SELECT * FROM scheduled_batch_sum;")),
+            sqlTransformTask("SELECT * FROM scheduledbatchsum;")),
         "55,55,65",
         true);
   }
