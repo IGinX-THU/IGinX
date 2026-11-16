@@ -79,6 +79,7 @@ public class RowTransformConstantFoldingRule extends Rule {
           Expression foldedExpression = ExprUtils.foldExpression(flattenedExpression);
           functionCall.getParams().setExpression(0, foldedExpression);
           String newName = foldedExpression.getColumnName();
+          functionCall.getParams().getPaths().set(0, newName);
           aliasList.add(new Pair<>(newName, oldName));
         }
       }

@@ -33,6 +33,7 @@
     <modules>
         <!-- dependency module must be the first one -->
         <module>dependency</module>
+        <module>arrow-patch</module>
         <module>shared</module>
         <module>thrift</module>
         <module>session</module>
@@ -99,6 +100,11 @@
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
                 <artifactId>iginx-shared</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.edu.tsinghua</groupId>
+                <artifactId>arrow-0patch</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

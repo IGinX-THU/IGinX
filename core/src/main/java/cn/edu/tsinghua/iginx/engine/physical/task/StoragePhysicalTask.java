@@ -21,13 +21,14 @@ package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import java.util.List;
 
-public class StoragePhysicalTask extends AbstractPhysicalTask {
+public class StoragePhysicalTask extends AbstractPhysicalTask<RowStream> {
 
   private final FragmentMeta targetFragment;
   private final boolean sync;
@@ -121,5 +122,10 @@ public class StoragePhysicalTask extends AbstractPhysicalTask {
     visitor.enter();
     visitor.visit(this);
     visitor.leave();
+  }
+
+  @Override
+  public Class<RowStream> getResultClass() {
+    return RowStream.class;
   }
 }

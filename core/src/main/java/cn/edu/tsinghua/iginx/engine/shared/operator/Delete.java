@@ -58,8 +58,8 @@ public class Delete extends AbstractUnaryOperator {
   public Operator copy() {
     return new Delete(
         (FragmentSource) getSource().copy(),
-        new ArrayList<>(keyRanges),
-        new ArrayList<>(patterns),
+        keyRanges == null ? null : new ArrayList<>(keyRanges),
+        patterns == null ? null : new ArrayList<>(patterns),
         tagFilter == null ? null : tagFilter.copy());
   }
 

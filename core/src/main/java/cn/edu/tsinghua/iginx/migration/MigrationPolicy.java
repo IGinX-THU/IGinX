@@ -287,13 +287,14 @@ public abstract class MigrationPolicy {
       pathRegexSet.add(fragmentMeta.getMasterStorageUnitId());
       ShowColumns showColumns =
           new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
-      RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
       SortedSet<String> pathSet = new TreeSet<>();
-      while (rowStream.hasNext()) {
-        Row row = rowStream.next();
-        String timeSeries = new String((byte[]) row.getValue(0));
-        if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
-          pathSet.add(timeSeries);
+      try (RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns)) {
+        while (rowStream.hasNext()) {
+          Row row = rowStream.next();
+          String timeSeries = new String((byte[]) row.getValue(0));
+          if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
+            pathSet.add(timeSeries);
+          }
         }
       }
       logger.info("start to add new fragment");
@@ -493,23 +494,25 @@ public abstract class MigrationPolicy {
       pathRegexSet.add(fragmentMeta.getMasterStorageUnitId());
       ShowColumns showColumns =
           new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
-      RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
+
       SortedSet<String> pathSet = new TreeSet<>();
-      rowStream
-          .getHeader()
-          .getFields()
-          .forEach(
-              field -> {
-                String timeSeries = field.getName();
-                if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
-                  pathSet.add(timeSeries);
-                }
-              });
+      try (RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns)) {
+        rowStream
+            .getHeader()
+            .getFields()
+            .forEach(
+                field -> {
+                  String timeSeries = field.getName();
+                  if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
+                    pathSet.add(timeSeries);
+                  }
+                });
+      }
       // 开始迁移数据
       Migration migration =
           new Migration(
               new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), storageUnitMeta);
-      physicalEngine.execute(new RequestContext(), migration);
+      try (RowStream ignored = physicalEngine.execute(new RequestContext(), migration)) {}
       // 迁移完开始删除原数据
 
       List<String> paths = new ArrayList<>();
@@ -522,7 +525,7 @@ public abstract class MigrationPolicy {
               fragmentMeta.getKeyInterval().getEndKey(),
               false));
       Delete delete = new Delete(new FragmentSource(fragmentMeta), keyRanges, paths, null);
-      physicalEngine.execute(new RequestContext(), delete);
+      try (RowStream ignored = physicalEngine.execute(new RequestContext(), delete)) {}
     } catch (Exception e) {
       logger.error(
           "encounter error when migrate data from {} to {} ", sourceStorageId, targetStorageId, e);
@@ -562,7 +565,7 @@ public abstract class MigrationPolicy {
         Migration migration =
             new Migration(
                 new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
-        physicalEngine.execute(new RequestContext(), migration);
+        try (RowStream ignored = physicalEngine.execute(new RequestContext(), migration)) {}
       }
       return true;
     } catch (Exception e) {

@@ -19,6 +19,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.udf.python;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
@@ -30,6 +33,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.DataUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import java.util.List;
 import java.util.Map;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class PyUDTF extends PyUDF implements UDTF {
 
@@ -92,6 +96,13 @@ public class PyUDTF extends PyUDF implements UDTF {
         RowUtils.constructHeaderWithFirstTwoRowsUsingFuncName(
             res, row.getHeader().hasKey(), funcName);
     return RowUtils.constructNewRowWithKey(header, hasKey ? key : row.getKey(), res.get(2));
+  }
+
+  @Override
+  public ScalarExpression<?> transform(
+      ExecutorContext context, Schema schema, FunctionParams params, boolean setAlias)
+      throws ComputeException {
+    throw new ComputeException("PyUDTF is not implemented for ScalarExpression.");
   }
 
   @Override

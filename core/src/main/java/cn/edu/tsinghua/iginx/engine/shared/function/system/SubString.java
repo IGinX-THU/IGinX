@@ -19,6 +19,12 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.CallNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.expression.ScalarExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.scalar.string.BinarySlice;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.util.exception.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.utils.PhysicalExpressionPlannerUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -30,6 +36,8 @@ import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import org.apache.arrow.vector.types.pojo.Schema;
 
 public class SubString implements RowMappingFunction {
 
@@ -60,9 +68,7 @@ public class SubString implements RowMappingFunction {
 
   @Override
   public Row transform(Row row, FunctionParams params) throws Exception {
-    if (params.getPaths().size() != 1 || params.getArgs().size() != 2) {
-      throw new IllegalArgumentException("Unexpected params for substring.");
-    }
+    checkArgs(params);
 
     String path = params.getPaths().get(0);
     Value valueA = row.getAsValue(path);
@@ -73,16 +79,8 @@ public class SubString implements RowMappingFunction {
       throw new IllegalArgumentException("Unexpected data type for substring function.");
     }
 
-    long start, length;
-    if (!(params.getArgs().get(0) instanceof Long)) {
-      throw new IllegalArgumentException("The 2nd arg 'start' for substring should be a number.");
-    }
-    if (!(params.getArgs().get(1) instanceof Long)) {
-      throw new IllegalArgumentException("The 3rd arg 'length' for substring should be a number.");
-    }
-
-    start = (Long) params.getArgs().get(0);
-    length = (Long) params.getArgs().get(1);
+    long start = (Long) params.getArgs().get(0);
+    long length = (Long) params.getArgs().get(1);
     byte[] original = valueA.getBinaryV();
     byte[] ret = Arrays.copyOfRange(original, (int) (start - 1), (int) length);
 
@@ -93,5 +91,37 @@ public class SubString implements RowMappingFunction {
                 new Field(
                     "substring(" + path + ", " + start + ", " + length + ")", DataType.BINARY)));
     return new Row(newHeader, row.getKey(), new Object[] {ret});
+  }
+
+  private void checkArgs(FunctionParams params) {
+    if (params.getPaths().size() != 1 || params.getArgs().size() != 2) {
+      throw new IllegalArgumentException("Unexpected params for substring.");
+    }
+    if (!(params.getArgs().get(0) instanceof Long)) {
+      throw new IllegalArgumentException("The 2nd arg 'start' for substring should be a number.");
+    }
+    if (!(params.getArgs().get(1) instanceof Long)) {
+      throw new IllegalArgumentException("The 3rd arg 'length' for substring should be a number.");
+    }
+  }
+
+  @Override
+  public ScalarExpression<?> transform(
+      ExecutorContext context, Schema schema, FunctionParams params, boolean setAlias)
+      throws ComputeException {
+    checkArgs(params);
+
+    String path = params.getPaths().get(0);
+    List<ScalarExpression<?>> inputs =
+        PhysicalExpressionPlannerUtils.getRowMappingFunctionArgumentExpressions(
+            context, schema, params, false);
+    long start = (Long) params.getArgs().get(0);
+    long length = (Long) params.getArgs().get(1);
+    int startFrom0 = (int) start - 1;
+
+    return new CallNode<>(
+        new BinarySlice(startFrom0, (int) length - startFrom0),
+        setAlias ? "substring(" + path + ", " + start + ", " + length + ")" : null,
+        inputs);
   }
 }
