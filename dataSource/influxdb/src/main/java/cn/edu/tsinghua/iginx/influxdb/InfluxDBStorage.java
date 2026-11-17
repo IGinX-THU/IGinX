@@ -107,6 +107,15 @@ public class InfluxDBStorage implements IStorage {
 
   private static final String DELETE_DATA = "_measurement=\"%s\" AND _field=\"%s\"";
 
+  private static final String DELETE_MEASUREMENT = "_measurement=\"%s\"";
+
+  // InfluxDB rejects delete ranges outside its supported timestamp range.
+  private static final OffsetDateTime DELETE_ALL_START =
+      OffsetDateTime.parse("1677-09-22T00:00:00Z");
+
+  private static final OffsetDateTime DELETE_ALL_STOP =
+      OffsetDateTime.parse("2262-04-11T00:00:00Z");
+
   private static final String SHOW_TIME_SERIES =
       "from(bucket:\"%s\") |> range(start: time(v: 0), stop: time(v: 9223372036854775807)) |> filter(fn: (r) => (r._measurement =~ /.*/ and r._field =~ /.+/)) |> first()";
 
@@ -1440,6 +1449,22 @@ public class InfluxDBStorage implements IStorage {
       if (bucket == null) {
         return new TaskExecuteResult(null, null);
       }
+      // InfluxDB OSS 2.x cannot delete by field, but a whole measurement can be deleted without
+      // dropping the bucket shared with other columns.
+      List<String> measurements = getWholeMeasurements(delete);
+      if (measurements != null) {
+        for (String measurement : measurements) {
+          client
+              .getDeleteApi()
+              .delete(
+                  DELETE_ALL_START,
+                  DELETE_ALL_STOP,
+                  String.format(DELETE_MEASUREMENT, FluxUtils.escapeStringLiteral(measurement)),
+                  bucket,
+                  organization);
+        }
+        return new TaskExecuteResult(null, null);
+      }
       bucketMap.remove(storageUnit);
       client.getBucketsApi().deleteBucket(bucket);
       return new TaskExecuteResult(null, null);
@@ -1487,6 +1512,26 @@ public class InfluxDBStorage implements IStorage {
       }
     }
     return new TaskExecuteResult(null, null);
+  }
+
+  /** Returns the measurements if every pattern is exactly "measurement.*", otherwise null. */
+  private static List<String> getWholeMeasurements(Delete delete) {
+    if (delete.getTagFilter() != null) {
+      return null;
+    }
+    List<String> measurements = new ArrayList<>();
+    for (String pattern : delete.getPatterns()) {
+      int index = pattern.indexOf('.');
+      if (index <= 0 || !pattern.substring(index).equals(".*")) {
+        return null;
+      }
+      String measurement = pattern.substring(0, index);
+      if (measurement.contains("*")) {
+        return null;
+      }
+      measurements.add(measurement);
+    }
+    return measurements.isEmpty() ? null : measurements;
   }
 
   public static String toString(FluxTable table, FluxRecord record) {
