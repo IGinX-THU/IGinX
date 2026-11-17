@@ -1540,7 +1540,7 @@ public class TransformIT {
       registerTask("SumTransformer");
       long jobId =
           session.commitTransformJob(
-              tasks, ExportType.FILE, outputFile.toString(), "every 3 second");
+              tasks, ExportType.FILE, outputFile.toString(), "every 5 second");
       try {
         for (int execution = 1; execution <= 3; execution++) {
           waitForScheduledFileResults(jobId, outputFile, execution, temporaryTable, 30000L);
