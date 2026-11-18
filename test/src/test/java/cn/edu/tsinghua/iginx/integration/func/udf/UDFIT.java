@@ -1644,7 +1644,7 @@ public class UDFIT {
 
     Assume.assumeFalse(
         "Test skipped: Python >= 3.13, transformers is not supported.", pythonNewerThan313());
-    // test importing large models
+    // test downloading large models
     statement = "select " + name + "(s1, 3) from us.d1 where s1 < 10;";
     start = System.currentTimeMillis();
     ret = tool.executeFail(statement);
