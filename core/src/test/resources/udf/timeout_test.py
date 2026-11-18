@@ -1,4 +1,3 @@
-import os
 import time
 import threading
 
@@ -24,10 +23,7 @@ class TimeoutTest:
     def downloadLargeModel(self, data, args, kvargs):
         """download big ML models to test timeout when downloading"""
         print("start to get models...")
-        # Do not import torch (e.g. via transformers) here: a timeout that interrupts the import
-        # leaves torch half-initialized and breaks every later "import torch" in this process.
-        # hf_xet downloads in a single native call, which the timeout cannot interrupt.
-        os.environ["HF_HUB_DISABLE_XET"] = "1"
-        from huggingface_hub import hf_hub_download
-        hf_hub_download("Salesforce/blip-image-captioning-base", "pytorch_model.bin", force_download=True)
+        from transformers import BlipProcessor, BlipForConditionalGeneration
+        processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+        model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
         print("finished downloading.")
