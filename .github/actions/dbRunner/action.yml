@@ -116,7 +116,7 @@ runs:
                 if [ "$RUNNER_OS" == "Windows" ]; then
                   sh -c "cd $dir/; nohup sbin/start-server.bat &"
                 else
-                  sudo -E sh -c "cd $dir/; nohup sbin/start-server.sh >/dev/null 2>&1 &"
+                  sudo env JAVA_HOME="$JAVA_HOME" sh -c "cd $dir/; nohup sbin/start-server.sh >/dev/null 2>&1 &"
                 fi
                 if ! "$wait_script" "iotdb" "120" "$port"; then
                   for f in "$dir"/logs/*.log; do
