@@ -25,7 +25,7 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.filesystem.format.csv.CsvFormat;
 import cn.edu.tsinghua.iginx.filesystem.format.raw.RawFormat;
-import cn.edu.tsinghua.iginx.filesystem.service.FileSystemConfig;
+import cn.edu.tsinghua.iginx.filesystem.struct.legacy.parquet.LegacyParquet;
 import cn.edu.tsinghua.iginx.filesystem.struct.tree.FileTree;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
@@ -54,7 +54,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private static Map<String, String> getAddStorageParams() {
     Map<String, String> params = new LinkedHashMap<>();
-    params.put("dummy.struct", FileSystemConfig.DEFAULT_DATA_STRUCT);
+    params.put("dummy.struct", LegacyParquet.NAME);
     return params;
   }
 

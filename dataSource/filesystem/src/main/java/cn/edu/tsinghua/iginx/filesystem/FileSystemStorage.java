@@ -104,7 +104,8 @@ public class FileSystemStorage implements IStorage {
         String.join(".", FileSystemConfig.Fields.data, StorageConfig.Fields.struct);
     isLegacyParquet =
         LegacyParquet.NAME.equals(
-            meta.getExtraParams().getOrDefault(dataStructPath, LegacyParquet.NAME));
+            meta.getExtraParams()
+                .getOrDefault(dataStructPath, FileSystemConfig.DEFAULT_DATA_STRUCT));
 
     InetSocketAddress address = new InetSocketAddress(meta.getIp(), meta.getPort());
     this.fileSystemConfig = toFileSystemConfig(meta);

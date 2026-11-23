@@ -269,11 +269,11 @@ runs:
                   s/^#storageEngineList=127.0.0.1#[0-9]*#filesystem/storageEngineList=127.0.0.1#6668#filesystem/g
                   s|dir=[^#]*|dir=${{ steps.project.outputs.workspace }}/test/iginx_mn|g
                   s|dummy_dir=[^#]*|dummy_dir=${{ steps.project.outputs.workspace }}/test/mn|g
-                  s/data.config.write.buffer.size=[0-9]*/data.config.write.buffer.size=1048576/g
+                  s/data.config.db.memtable.capacity=[0-9]*/data.config.db.memtable.capacity=1048576/g
                   s/dummy.struct=[^#]*/dummy.struct=LegacyParquet/g
                   s/chunk_size_in_bytes=[0-9]*/chunk_size_in_bytes=8/g
-                  s/write.buffer.size=[0-9]*/write.buffer.size=1048576/g
-                  s/data.config.write.buffer.timeout=[0-9]*s/data.config.write.buffer.timeout=0/g
+                  s/db.memtable.capacity=[0-9]*/db.memtable.capacity=1048576/g
+                  s/data.config.db.memtable.timeout=[0-9]*s/data.config.db.memtable.timeout=0/g
                   s/client.connectPool.maxTotal=[0-9]*/client.connectPool.maxTotal=2/g
 
         - name: Set Read-Only
