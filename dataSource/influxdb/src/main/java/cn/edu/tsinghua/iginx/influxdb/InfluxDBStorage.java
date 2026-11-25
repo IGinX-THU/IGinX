@@ -73,11 +73,12 @@ import com.influxdb.query.FluxTable;
 import io.reactivex.rxjava3.core.Flowable;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -105,16 +106,14 @@ public class InfluxDBStorage implements IStorage {
   private static final String QUERY_DATA_ALL =
       "from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s)) |> filter(fn: (r) => (r._measurement =%s and r._field =%s))";
 
-  private static final String DELETE_DATA = "_measurement=\"%s\" AND _field=\"%s\"";
-
   private static final String DELETE_MEASUREMENT = "_measurement=\"%s\"";
 
-  // InfluxDB rejects delete ranges outside its supported timestamp range.
-  private static final OffsetDateTime DELETE_ALL_START =
-      OffsetDateTime.parse("1677-09-22T00:00:00Z");
+  private static final String DELETE_ALL_MEASUREMENTS = "";
 
-  private static final OffsetDateTime DELETE_ALL_STOP =
-      OffsetDateTime.parse("2262-04-11T00:00:00Z");
+  // Nanosecond timestamps accepted by the InfluxDB delete API; both bounds are inclusive there.
+  private static final long MIN_DELETE_KEY = Long.MIN_VALUE + 2;
+
+  private static final long MAX_DELETE_KEY = Long.MAX_VALUE - 1;
 
   private static final String SHOW_TIME_SERIES =
       "from(bucket:\"%s\") |> range(start: time(v: 0), stop: time(v: 9223372036854775807)) |> filter(fn: (r) => (r._measurement =~ /.*/ and r._field =~ /.+/)) |> first()";
@@ -1444,94 +1443,115 @@ public class InfluxDBStorage implements IStorage {
   @Override
   public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
     String storageUnit = dataArea.getStorageUnit();
-    if (delete.getKeyRanges() == null || delete.getKeyRanges().size() == 0) { // 没有传任何 time range
-      Bucket bucket = bucketMap.get(storageUnit);
-      if (bucket == null) {
-        return new TaskExecuteResult(null, null);
-      }
-      // InfluxDB OSS 2.x cannot delete by field, but a whole measurement can be deleted without
-      // dropping the bucket shared with other columns.
-      List<String> measurements = getWholeMeasurements(delete);
-      if (measurements != null) {
-        for (String measurement : measurements) {
-          client
-              .getDeleteApi()
-              .delete(
-                  DELETE_ALL_START,
-                  DELETE_ALL_STOP,
-                  String.format(DELETE_MEASUREMENT, FluxUtils.escapeStringLiteral(measurement)),
-                  bucket,
-                  organization);
-        }
-        return new TaskExecuteResult(null, null);
-      }
-      bucketMap.remove(storageUnit);
-      client.getBucketsApi().deleteBucket(bucket);
-      return new TaskExecuteResult(null, null);
-    }
-    // 删除某些序列的某一段数据
-    Bucket bucket = bucketMap.get(storageUnit);
-    if (bucket == null) {
-      synchronized (this) {
-        bucket = bucketMap.get(storageUnit);
-        if (bucket == null) {
-          List<Bucket> bucketList =
-              client.getBucketsApi().findBucketsByOrgName(this.organizationName).stream()
-                  .filter(b -> b.getName().equals(storageUnit))
-                  .collect(Collectors.toList());
-          if (bucketList.isEmpty()) {
-            bucket = client.getBucketsApi().createBucket(storageUnit, organization);
-          } else {
-            bucket = bucketList.get(0);
-          }
-          bucketMap.put(storageUnit, bucket);
-        }
-      }
-    }
-    if (bucket == null) { // 没有数据，当然也不用删除
-      return new TaskExecuteResult(null, null);
+    List<String> measurements;
+    try {
+      measurements = getDeletedMeasurements(delete.getPatterns(), delete.getTagFilter());
+    } catch (InfluxDBTaskExecuteFailureException e) {
+      return new TaskExecuteResult(null, e);
     }
 
-    List<InfluxDBSchema> schemas =
-        delete.getPatterns().stream().map(InfluxDBSchema::new).collect(Collectors.toList());
-    for (InfluxDBSchema schema : schemas) {
-      for (KeyRange keyRange : delete.getKeyRanges()) {
-        client
-            .getDeleteApi()
-            .delete(
-                OffsetDateTime.ofInstant(
-                    Instant.ofEpochMilli(keyRange.getActualBeginKey()), ZoneId.of("UTC")),
-                OffsetDateTime.ofInstant(
-                    Instant.ofEpochMilli(keyRange.getActualEndKey()), ZoneId.of("UTC")),
-                String.format(
-                    DELETE_DATA,
-                    FluxUtils.escapeStringLiteral(schema.getMeasurement()),
-                    FluxUtils.escapeStringLiteral(schema.getField())),
-                bucket,
-                organization);
+    try {
+      Bucket bucket = findBucket(storageUnit);
+      if (bucket == null) { // nothing has been written to this storage unit
+        return new TaskExecuteResult(null, null);
       }
+      List<KeyRange> keyRanges = delete.getKeyRanges();
+      if (keyRanges == null || keyRanges.isEmpty()) {
+        if (measurements == null) {
+          bucketMap.remove(storageUnit);
+          client.getBucketsApi().deleteBucket(bucket);
+          return new TaskExecuteResult(null, null);
+        }
+        keyRanges =
+            Collections.singletonList(new KeyRange(MIN_DELETE_KEY, true, MAX_DELETE_KEY, true));
+      }
+
+      List<String> predicates = new ArrayList<>();
+      if (measurements == null) {
+        predicates.add(DELETE_ALL_MEASUREMENTS);
+      } else {
+        for (String measurement : measurements) {
+          predicates.add(
+              String.format(DELETE_MEASUREMENT, FluxUtils.escapeStringLiteral(measurement)));
+        }
+      }
+      for (KeyRange keyRange : keyRanges) {
+        // keys are written with nanosecond precision
+        long begin = Math.max(keyRange.getActualBeginKey(), MIN_DELETE_KEY);
+        long end = Math.min(keyRange.getActualEndKey(), MAX_DELETE_KEY);
+        if (begin > end) {
+          continue;
+        }
+        for (String predicate : predicates) {
+          client
+              .getDeleteApi()
+              .delete(nsToDateTime(begin), nsToDateTime(end), predicate, bucket, organization);
+        }
+      }
+    } catch (Exception e) {
+      LOGGER.error("encounter error when delete data in influxdb: ", e);
+      return new TaskExecuteResult(
+          null,
+          new InfluxDBTaskExecuteFailureException("execute delete task in influxdb failure", e));
     }
     return new TaskExecuteResult(null, null);
   }
 
-  /** Returns the measurements if every pattern is exactly "measurement.*", otherwise null. */
-  private static List<String> getWholeMeasurements(Delete delete) {
-    if (delete.getTagFilter() != null) {
+  /**
+   * Returns the measurements to delete, or null to delete every measurement of the storage unit.
+   *
+   * <p>InfluxDB can only delete by measurement and time, not by field, so any other request is
+   * rejected instead of deleting more or less than requested.
+   */
+  static List<String> getDeletedMeasurements(List<String> patterns, TagFilter tagFilter)
+      throws InfluxDBTaskExecuteFailureException {
+    if (tagFilter != null) {
+      throw new InfluxDBTaskExecuteFailureException(
+          "InfluxDB does not support deleting data with a tag filter");
+    }
+    if (patterns == null || patterns.isEmpty()) { // compaction removes the whole storage unit
       return null;
     }
-    List<String> measurements = new ArrayList<>();
-    for (String pattern : delete.getPatterns()) {
+    // every path written to InfluxDB has at least two levels, so "*.*" matches all of them;
+    // the patterns are a union, so other patterns next to them change nothing
+    if (patterns.contains("*") || patterns.contains("*.*")) {
+      return null;
+    }
+    Set<String> measurements = new LinkedHashSet<>();
+    for (String pattern : patterns) {
       int index = pattern.indexOf('.');
-      if (index <= 0 || !pattern.substring(index).equals(".*")) {
-        return null;
-      }
-      String measurement = pattern.substring(0, index);
-      if (measurement.contains("*")) {
-        return null;
+      String measurement = index > 0 ? pattern.substring(0, index) : "";
+      if (measurement.isEmpty()
+          || measurement.contains("*")
+          || !pattern.substring(index).equals(".*")) {
+        throw new InfluxDBTaskExecuteFailureException(
+            String.format(
+                "InfluxDB only supports deleting all data (\"*\") or whole measurements"
+                    + " (\"<measurement>.*\"), but got \"%s\"",
+                pattern));
       }
       measurements.add(measurement);
     }
-    return measurements.isEmpty() ? null : measurements;
+    return new ArrayList<>(measurements);
+  }
+
+  private Bucket findBucket(String storageUnit) {
+    Bucket bucket = bucketMap.get(storageUnit);
+    if (bucket != null) {
+      return bucket;
+    }
+    // the bucket may exist without being cached, e.g. after a restart
+    bucket = client.getBucketsApi().findBucketByName(storageUnit);
+    if (bucket == null || !organization.getId().equals(bucket.getOrgID())) {
+      return null;
+    }
+    return bucket;
+  }
+
+  private static OffsetDateTime nsToDateTime(long ns) {
+    return OffsetDateTime.ofInstant(
+        Instant.ofEpochSecond(Math.floorDiv(ns, 1_000_000_000L), Math.floorMod(ns, 1_000_000_000L)),
+        ZoneOffset.UTC);
   }
 
   public static String toString(FluxTable table, FluxRecord record) {

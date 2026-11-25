@@ -2658,6 +2658,74 @@ public class SQLSessionIT {
     executor.executeAndCompare(queryOverDeleteRange, expected);
   }
 
+  /** Engines that cannot delete arbitrary columns must reject such deletions without data loss. */
+  @Test
+  public void testRejectUnsupportedDelete() {
+    if (isAbleToDelete || isScaling) {
+      return;
+    }
+    executor.execute("INSERT INTO ms.d1(key, s1) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);");
+
+    assertDeleteRejected("DELETE COLUMNS us.d1.s1;");
+    assertDeleteRejected("DELETE COLUMNS *.s1;");
+    assertDeleteRejected("DELETE COLUMNS us.*, ms.d1.s1;");
+    assertDeleteRejected("DELETE FROM us.d1.s1 WHERE key > 105 AND key < 115;");
+    assertDeleteRejected("DELETE COLUMNS us.* WITH k = v;");
+    assertDeleteRejected("DELETE FROM us.* WHERE key > 105 AND key < 115 WITH k = v;");
+
+    executor.executeAndCompareLineCount(
+        "SELECT s1, s2, s3, s4 FROM us.d1 WHERE key >= 100 AND key < 120;", 20);
+    executor.executeAndCompareLineCount("SELECT s1 FROM ms.d1;", 5);
+  }
+
+  /** Engines that cannot delete arbitrary columns must still delete whole first-level paths. */
+  @Test
+  public void testDeleteWholeMeasurement() {
+    if (isAbleToDelete || isScaling) {
+      return;
+    }
+    executor.execute("INSERT INTO ms.d1(key, s1) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);");
+
+    executor.execute("DELETE FROM us.* WHERE key >= 100 AND key < 110;");
+    executor.executeAndCompareLineCount(
+        "SELECT s1, s2, s3, s4 FROM us.d1 WHERE key >= 95 AND key < 115;", 10);
+    executor.executeAndCompareLineCount("SELECT s1 FROM ms.d1;", 5);
+
+    executor.execute("DELETE FROM * WHERE key > 1 AND key <= 3;");
+    executor.executeAndCompareLineCount("SELECT s1, s2, s3, s4 FROM us.d1 WHERE key < 5;", 3);
+    String expected =
+        "ResultSets:\n"
+            + "+---+--------+\n"
+            + "|key|ms.d1.s1|\n"
+            + "+---+--------+\n"
+            + "|  1|       1|\n"
+            + "|  4|       4|\n"
+            + "|  5|       5|\n"
+            + "+---+--------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare("SELECT s1 FROM ms.d1;", expected);
+
+    executor.execute("DELETE COLUMNS us.*;");
+    executor.executeAndCompareLineCount("SELECT s1, s2, s3, s4 FROM us.d1;", 0);
+    executor.executeAndCompare("SELECT s1 FROM ms.d1;", expected);
+
+    executor.execute("DELETE FROM ms.d1.s1, * WHERE key >= 4 AND key < 5;");
+    executor.executeAndCompareLineCount("SELECT s1 FROM ms.d1;", 2);
+
+    executor.execute("DELETE FROM ms.*;");
+    executor.executeAndCompareLineCount("SELECT s1 FROM ms.d1;", 0);
+  }
+
+  private void assertDeleteRejected(String statement) {
+    try {
+      session.executeSql(statement);
+    } catch (SessionException e) {
+      LOGGER.info("Statement: \"{}\" is rejected as expected: {}", statement, e.getMessage());
+      return;
+    }
+    fail("Statement should be rejected: " + statement);
+  }
+
   @Test
   public void testGroupBy() {
     String insert =
