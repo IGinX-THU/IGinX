@@ -60,6 +60,7 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.influxdb.client.BucketsQuery;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.InfluxDBClientOptions;
@@ -67,6 +68,7 @@ import com.influxdb.client.domain.Bucket;
 import com.influxdb.client.domain.Organization;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
+import com.influxdb.exceptions.NotFoundException;
 import com.influxdb.query.FluxColumn;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
@@ -114,6 +116,9 @@ public class InfluxDBStorage implements IStorage {
   private static final long MIN_DELETE_KEY = Long.MIN_VALUE + 2;
 
   private static final long MAX_DELETE_KEY = Long.MAX_VALUE - 1;
+
+  // the largest page the InfluxDB bucket API accepts
+  private static final int BUCKET_PAGE_SIZE = 100;
 
   private static final String SHOW_TIME_SERIES =
       "from(bucket:\"%s\") |> range(start: time(v: 0), stop: time(v: 9223372036854775807)) |> filter(fn: (r) => (r._measurement =~ /.*/ and r._field =~ /.+/)) |> first()";
@@ -185,7 +190,7 @@ public class InfluxDBStorage implements IStorage {
   }
 
   private void reloadHistoryData() {
-    List<Bucket> buckets = client.getBucketsApi().findBucketsByOrg(organization);
+    List<Bucket> buckets = findAllBucketsInOrg();
     for (Bucket bucket : buckets) {
       if (bucket.getType() == Bucket.TypeEnum.SYSTEM) {
         continue;
@@ -266,8 +271,7 @@ public class InfluxDBStorage implements IStorage {
   @Override
   public Flowable<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
     List<Column> timeseries = new ArrayList<>();
-    for (Bucket bucket :
-        client.getBucketsApi().findBucketsByOrgName(organization.getName())) { // get all the bucket
+    for (Bucket bucket : findAllBucketsInOrg()) {
       // query all the series by querying all the data with first()
 
       String unitPattern = "unit\\d{10}"; // unit后跟10个数字
@@ -431,7 +435,7 @@ public class InfluxDBStorage implements IStorage {
     KeyInterval keyInterval = dataArea.getKeyInterval();
     Filter filter = select.getFilter();
 
-    if (client.getBucketsApi().findBucketByName(storageUnit) == null) {
+    if (findBucketInOrg(storageUnit) == null) {
       LOGGER.warn("storage engine {} doesn't exist", storageUnit);
       return new TaskExecuteResult(
           new InfluxDBQueryRowStream(Collections.emptyList(), project, filter));
@@ -511,7 +515,7 @@ public class InfluxDBStorage implements IStorage {
     String storageUnit = dataArea.getStorageUnit();
     KeyInterval keyInterval = dataArea.getKeyInterval();
 
-    if (client.getBucketsApi().findBucketByName(storageUnit) == null) {
+    if (findBucketInOrg(storageUnit) == null) {
       LOGGER.warn("storage engine {} doesn't exist", storageUnit);
       return new TaskExecuteResult(
           new InfluxDBQueryRowStream(Collections.emptyList(), project, null));
@@ -571,13 +575,13 @@ public class InfluxDBStorage implements IStorage {
 
       if (bucketName.equals("*")) {
         // 通配符需要特殊判断，InfluxDB无法在bucket name上使用正则表达式匹配，并且仅查询type为user的bucket
-        List<Bucket> buckets = client.getBucketsApi().findBucketsByOrg(organization);
+        List<Bucket> buckets = findAllBucketsInOrg();
         for (Bucket bucket : buckets) {
           if (bucket.getType() == Bucket.TypeEnum.USER) {
             bucketNameList.add(bucket.getName());
           }
         }
-      } else if (client.getBucketsApi().findBucketByName(bucketName) == null) {
+      } else if (findBucketInOrg(bucketName) == null) {
         LOGGER.warn("storage engine {} doesn't exist", bucketName);
         continue;
       } else {
@@ -1258,14 +1262,9 @@ public class InfluxDBStorage implements IStorage {
       synchronized (this) {
         bucket = bucketMap.get(storageUnit);
         if (bucket == null) {
-          List<Bucket> bucketList =
-              client.getBucketsApi().findBucketsByOrgName(this.organizationName).stream()
-                  .filter(b -> b.getName().equals(storageUnit))
-                  .collect(Collectors.toList());
-          if (bucketList.isEmpty()) {
+          bucket = findBucketInOrg(storageUnit);
+          if (bucket == null) {
             bucket = client.getBucketsApi().createBucket(storageUnit, organization);
-          } else {
-            bucket = bucketList.get(0);
           }
           bucketMap.put(storageUnit, bucket);
         }
@@ -1354,14 +1353,9 @@ public class InfluxDBStorage implements IStorage {
       synchronized (this) {
         bucket = bucketMap.get(storageUnit);
         if (bucket == null) {
-          List<Bucket> bucketList =
-              client.getBucketsApi().findBucketsByOrgName(this.organizationName).stream()
-                  .filter(b -> b.getName().equals(storageUnit))
-                  .collect(Collectors.toList());
-          if (bucketList.isEmpty()) {
+          bucket = findBucketInOrg(storageUnit);
+          if (bucket == null) {
             bucket = client.getBucketsApi().createBucket(storageUnit, organization);
-          } else {
-            bucket = bucketList.get(0);
           }
           bucketMap.put(storageUnit, bucket);
         }
@@ -1541,11 +1535,43 @@ public class InfluxDBStorage implements IStorage {
       return bucket;
     }
     // the bucket may exist without being cached, e.g. after a restart
-    bucket = client.getBucketsApi().findBucketByName(storageUnit);
-    if (bucket == null || !organization.getId().equals(bucket.getOrgID())) {
-      return null;
+    bucket = findBucketInOrg(storageUnit);
+    if (bucket != null) {
+      bucketMap.put(storageUnit, bucket);
     }
     return bucket;
+  }
+
+  /**
+   * Bucket names are only unique within an organization, and listing buckets returns only the first
+   * page, so the lookup is filtered by both on the server.
+   */
+  private Bucket findBucketInOrg(String name) {
+    BucketsQuery query = new BucketsQuery();
+    query.setOrgID(organization.getId());
+    query.setName(name);
+    try {
+      List<Bucket> buckets = client.getBucketsApi().findBuckets(query);
+      return buckets.isEmpty() ? null : buckets.get(0);
+    } catch (NotFoundException e) { // returned instead of an empty list when filtered by orgID
+      return null;
+    }
+  }
+
+  /** Lists every bucket of this organization; a single request returns at most one page. */
+  private List<Bucket> findAllBucketsInOrg() {
+    List<Bucket> buckets = new ArrayList<>();
+    BucketsQuery query = new BucketsQuery();
+    query.setOrgID(organization.getId());
+    query.setLimit(BUCKET_PAGE_SIZE);
+    while (true) {
+      query.setOffset(buckets.size());
+      List<Bucket> page = client.getBucketsApi().findBuckets(query);
+      buckets.addAll(page);
+      if (page.size() < BUCKET_PAGE_SIZE) {
+        return buckets;
+      }
+    }
   }
 
   private static OffsetDateTime nsToDateTime(long ns) {
