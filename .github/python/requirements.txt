@@ -3,7 +3,7 @@
 #   pip install -r .github/python/requirements.txt -c .github/python/constraints.txt
 pandas==2.3.1
 numpy==2.3.2
-pemjax==0.2.3
+pemjax==0.2.4
 thrift==0.22.0
 fastparquet==2024.11.0
 tqdm==4.67.1
