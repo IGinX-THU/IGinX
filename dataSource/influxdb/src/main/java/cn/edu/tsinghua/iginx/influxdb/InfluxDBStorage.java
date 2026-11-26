@@ -1434,46 +1434,82 @@ public class InfluxDBStorage implements IStorage {
     return null;
   }
 
+  /**
+   * 删除一个存储单元（对应 InfluxDB 中的一个 bucket）里的数据。
+   *
+   * <p>InfluxDB 的删除接口只能按“时间范围 + measurement”删除，无法按 field（即路径第一级之后的部分）删除，也不支持按 tag
+   * 过滤条件做精确删除。因此这里只支持两类删除：
+   *
+   * <ul>
+   *   <li>删除全部数据：路径为 "*" 或 "*.*"；
+   *   <li>删除整个 measurement：路径形如 "measurement.*"。
+   * </ul>
+   *
+   * 其余请求（如删除某一列 "a.b"、带通配符的 measurement "a*.*"、带 tag 过滤条件）一律报错，宁可拒绝也不多删或少删。
+   *
+   * <p>整体流程：
+   *
+   * <ol>
+   *   <li>先校验删除请求，得到要删除的 measurement 列表，不支持的请求直接返回错误，不访问 InfluxDB；
+   *   <li>查找存储单元对应的 bucket，不存在说明从未写入过数据，直接视为删除成功；
+   *   <li>没有 key 范围且删除全部数据时，直接删除整个 bucket；
+   *   <li>否则按 measurement 构造删除谓词，对每个 key 范围逐一调用删除接口。
+   * </ol>
+   */
   @Override
   public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
     String storageUnit = dataArea.getStorageUnit();
+    // 第一步：校验并解析删除路径。返回 null 表示删除全部 measurement，否则为要删除的 measurement 列表
     List<String> measurements;
     try {
       measurements = getDeletedMeasurements(delete.getPatterns(), delete.getTagFilter());
     } catch (InfluxDBTaskExecuteFailureException e) {
+      // 不支持的删除请求，在真正删除之前就返回错误，保证不会删掉任何数据
       return new TaskExecuteResult(null, e);
     }
 
     try {
+      // 第二步：查找存储单元对应的 bucket
       Bucket bucket = findBucket(storageUnit);
-      if (bucket == null) { // nothing has been written to this storage unit
+      if (bucket == null) {
+        // bucket 只在第一次写入时创建，不存在说明该存储单元没有数据，无需删除
         return new TaskExecuteResult(null, null);
       }
       List<KeyRange> keyRanges = delete.getKeyRanges();
       if (keyRanges == null || keyRanges.isEmpty()) {
+        // 第三步：没有 key 范围，表示删除对应路径下的全部数据（如 DELETE COLUMNS 或删除整个分片）
         if (measurements == null) {
+          // 删除全部数据时直接删掉整个 bucket，同时清除缓存，之后再写入时会重新创建 bucket
           bucketMap.remove(storageUnit);
           client.getBucketsApi().deleteBucket(bucket);
           return new TaskExecuteResult(null, null);
         }
+        // 只删除部分 measurement 时，用 InfluxDB 允许的最大时间范围来覆盖全部数据
         keyRanges =
             Collections.singletonList(new KeyRange(MIN_DELETE_KEY, true, MAX_DELETE_KEY, true));
       }
 
+      // 第四步：构造删除谓词。空谓词表示删除 bucket 内所有 measurement，
+      // 否则每个 measurement 对应一个 _measurement="xxx" 谓词（InfluxDB 删除谓词不支持 OR，只能逐个删除）
       List<String> predicates = new ArrayList<>();
       if (measurements == null) {
         predicates.add(DELETE_ALL_MEASUREMENTS);
       } else {
         for (String measurement : measurements) {
+          // 对 measurement 名中的引号、反斜杠等字符转义，避免破坏谓词语法
           predicates.add(
               String.format(DELETE_MEASUREMENT, FluxUtils.escapeStringLiteral(measurement)));
         }
       }
+      // 第五步：对每个 key 范围、每个谓词调用一次删除接口
       for (KeyRange keyRange : keyRanges) {
-        // keys are written with nanosecond precision
+        // 写入时 key 直接作为纳秒精度的时间戳，因此 key 范围就是纳秒时间范围。
+        // getActualBeginKey/getActualEndKey 已把开闭区间换算成闭区间，与 InfluxDB 删除接口的 start、stop
+        // 都包含端点的语义一致；再截断到 InfluxDB 允许的时间范围内，超出会被服务端拒绝
         long begin = Math.max(keyRange.getActualBeginKey(), MIN_DELETE_KEY);
         long end = Math.min(keyRange.getActualEndKey(), MAX_DELETE_KEY);
         if (begin > end) {
+          // 截断后为空范围，没有可删除的数据
           continue;
         }
         for (String predicate : predicates) {
@@ -1492,29 +1528,43 @@ public class InfluxDBStorage implements IStorage {
   }
 
   /**
-   * Returns the measurements to delete, or null to delete every measurement of the storage unit.
+   * 校验删除请求，并解析出要删除的 measurement。
    *
-   * <p>InfluxDB can only delete by measurement and time, not by field, so any other request is
-   * rejected instead of deleting more or less than requested.
+   * <p>IGinX 路径写入 InfluxDB 时，第一级作为 measurement，其余部分作为 field。InfluxDB 只能按 measurement 和时间删除，不能按
+   * field 删除，所以只接受能精确映射到 measurement 的路径，其余情况抛出异常。
+   *
+   * @param patterns 要删除的路径，多个路径之间是并集关系
+   * @param tagFilter 删除时的 tag 过滤条件
+   * @return 要删除的 measurement 列表（已去重）；返回 null 表示删除存储单元内的全部 measurement
+   * @throws InfluxDBTaskExecuteFailureException 删除请求无法在 InfluxDB 中精确执行时抛出
    */
   static List<String> getDeletedMeasurements(List<String> patterns, TagFilter tagFilter)
       throws InfluxDBTaskExecuteFailureException {
+    // InfluxDB 删除谓词只支持 tag 等值条件的 AND 组合，无法表达 IGinX 的通用 tag 过滤条件，统一拒绝
     if (tagFilter != null) {
       throw new InfluxDBTaskExecuteFailureException(
           "InfluxDB does not support deleting data with a tag filter");
     }
-    if (patterns == null || patterns.isEmpty()) { // compaction removes the whole storage unit
+    // 路径为空表示删除整个存储单元，例如数据压缩（compaction）后清理旧分片
+    if (patterns == null || patterns.isEmpty()) {
       return null;
     }
-    // every path written to InfluxDB has at least two levels, so "*.*" matches all of them;
-    // the patterns are a union, so other patterns next to them change nothing
+    // 写入 InfluxDB 的路径至少有两级（measurement.field），所以 "*.*" 和 "*" 一样能匹配全部数据。
+    // 多个路径之间是并集，只要包含其中之一就等价于删除全部，其他路径无需再校验，
+    // 例如 ["a.b", "*"] 会删除全部数据而不是报错
     if (patterns.contains("*") || patterns.contains("*.*")) {
       return null;
     }
+    // 用 LinkedHashSet 去重并保持原有顺序，避免对同一个 measurement 重复发送删除请求
     Set<String> measurements = new LinkedHashSet<>();
     for (String pattern : patterns) {
+      // 以第一个 '.' 为界，前半部分是 measurement，后半部分必须恰好是 ".*"
       int index = pattern.indexOf('.');
       String measurement = index > 0 ? pattern.substring(0, index) : "";
+      // 以下情况都无法精确删除，直接报错：
+      // 1. 没有 '.' 或以 '.' 开头，取不到 measurement，如 "a"、".*"；
+      // 2. measurement 中带通配符，如 "a*.*"，而 InfluxDB 删除谓词只支持等值匹配，不支持通配符；
+      // 3. '.' 之后不是 ".*"，即只删除部分 field，如 "a.b"、"a.b.*"、"a.*.c"
       if (measurement.isEmpty()
           || measurement.contains("*")
           || !pattern.substring(index).equals(".*")) {
@@ -1529,12 +1579,16 @@ public class InfluxDBStorage implements IStorage {
     return new ArrayList<>(measurements);
   }
 
+  /**
+   * 查找存储单元对应的 bucket，找不到时返回 null。
+   *
+   * <p>先查本地缓存；缓存未命中时（例如 IGinX 重启后缓存为空）再到本组织下按名称查询，查到后放入缓存，避免之后每次删除都发一次 HTTP 请求。
+   */
   private Bucket findBucket(String storageUnit) {
     Bucket bucket = bucketMap.get(storageUnit);
     if (bucket != null) {
       return bucket;
     }
-    // the bucket may exist without being cached, e.g. after a restart
     bucket = findBucketInOrg(storageUnit);
     if (bucket != null) {
       bucketMap.put(storageUnit, bucket);
