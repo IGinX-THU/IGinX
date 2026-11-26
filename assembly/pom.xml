@@ -35,7 +35,7 @@
 
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
-        <zookeeper.version>3.7.2</zookeeper.version>
+        <zookeeper.version>3.9.7</zookeeper.version>
     </properties>
 
     <dependencies>
