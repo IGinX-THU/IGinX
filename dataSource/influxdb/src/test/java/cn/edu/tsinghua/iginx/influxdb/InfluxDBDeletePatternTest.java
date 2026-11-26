@@ -39,7 +39,7 @@ public class InfluxDBDeletePatternTest {
     assertNull(getDeletedMeasurements(Collections.singletonList("*"), null));
     assertNull(getDeletedMeasurements(Collections.singletonList("*.*"), null));
     assertNull(getDeletedMeasurements(Arrays.asList("a.*", "*"), null));
-    // "*" covers every other pattern, wherever it appears
+    // 只要包含 "*" 或 "*.*"，无论位置在前还是在后，都删除全部数据，其他路径（即使本身不支持）不再校验
     assertNull(getDeletedMeasurements(Arrays.asList("*.*", "b.c"), null));
     assertNull(getDeletedMeasurements(Arrays.asList("b.c", "*"), null));
   }
@@ -63,7 +63,7 @@ public class InfluxDBDeletePatternTest {
           InfluxDBTaskExecuteFailureException.class,
           () -> getDeletedMeasurements(Collections.singletonList(pattern), null));
     }
-    // one unsupported pattern rejects the whole request, so nothing is deleted
+    // 不包含 "*" 时，只要有一个路径不支持就整体报错，一条数据都不删
     assertThrows(
         InfluxDBTaskExecuteFailureException.class,
         () -> getDeletedMeasurements(Arrays.asList("a.*", "b.c"), null));

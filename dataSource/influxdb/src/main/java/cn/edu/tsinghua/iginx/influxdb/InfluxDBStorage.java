@@ -112,12 +112,12 @@ public class InfluxDBStorage implements IStorage {
 
   private static final String DELETE_ALL_MEASUREMENTS = "";
 
-  // Nanosecond timestamps accepted by the InfluxDB delete API; both bounds are inclusive there.
+  // InfluxDB 删除接口允许的纳秒时间戳范围，超出会被服务端拒绝；删除接口的 start、stop 都包含端点
   private static final long MIN_DELETE_KEY = Long.MIN_VALUE + 2;
 
   private static final long MAX_DELETE_KEY = Long.MAX_VALUE - 1;
 
-  // the largest page the InfluxDB bucket API accepts
+  // 列出 bucket 时每页的数量，100 是 InfluxDB bucket 接口允许的最大值，再大会返回 400 错误
   private static final int BUCKET_PAGE_SIZE = 100;
 
   private static final String SHOW_TIME_SERIES =
@@ -1437,15 +1437,46 @@ public class InfluxDBStorage implements IStorage {
   /**
    * 删除一个存储单元（对应 InfluxDB 中的一个 bucket）里的数据。
    *
-   * <p>InfluxDB 的删除接口只能按“时间范围 + measurement”删除，无法按 field（即路径第一级之后的部分）删除，也不支持按 tag
-   * 过滤条件做精确删除。因此这里只支持两类删除：
+   * <p>写入时 IGinX 的 key 作为 InfluxDB 的时间戳，路径第一级作为 measurement，其余部分作为 field。InfluxDB 的删除接口只能按时间范围和
+   * measurement 删除，无法按 field 删除，也不支持按 tag 过滤条件做精确删除。
+   *
+   * <p>一个删除请求由路径、key 范围、tag 过滤条件三部分组成，各部分的支持情况：
    *
    * <ul>
-   *   <li>删除全部数据：路径为 "*" 或 "*.*"；
-   *   <li>删除整个 measurement：路径形如 "measurement.*"。
+   *   <li>路径：受限制，只支持以下两种，其他路径一律报错：
+   *       <ul>
+   *         <li>"*" 或 "*.*"：删除全部数据；
+   *         <li>"measurement.*"：删除整个 measurement，measurement 中不能带通配符。
+   *       </ul>
+   *       有多个路径时，按以下策略处理：
+   *       <ul>
+   *         <li>包含 "*" 或 "*.*"：删除全部数据，其他路径不再校验，即使其中有本身不支持的路径（如 "a.b"）也照样删除全部数据，不会报错；
+   *         <li>不包含 "*" 或 "*.*"：每个路径都必须是 "measurement.*"，只要有一个不是就整体报错，一条数据都不删。
+   *       </ul>
+   *   <li>key 范围：不受限制，可以不带（表示全部 key），也可以带一个或多个范围。
+   *   <li>tag 过滤条件：不支持，带了就报错。
    * </ul>
    *
-   * 其余请求（如删除某一列 "a.b"、带通配符的 measurement "a*.*"、带 tag 过滤条件）一律报错，宁可拒绝也不多删或少删。
+   * <p>可以执行的例子：
+   *
+   * <ul>
+   *   <li>{@code DELETE FROM *;}
+   *   <li>{@code DELETE FROM * WHERE key > 1 AND key <= 3;}
+   *   <li>{@code DELETE COLUMNS a.*, b.*;}
+   *   <li>{@code DELETE FROM a.* WHERE key > 1 AND key <= 3;}
+   *   <li>{@code DELETE FROM a.b, * WHERE key < 10;}：包含 "*"，删除 key 小于 10 的全部数据（a.b 本身不支持，但不影响）
+   * </ul>
+   *
+   * <p>会报错的例子（宁可拒绝，也不多删或少删）：
+   *
+   * <ul>
+   *   <li>{@code DELETE COLUMNS a.b;}：只删除一列；
+   *   <li>{@code DELETE FROM a.b WHERE key < 10;}：只删除一列，带 key 范围也不行；
+   *   <li>{@code DELETE COLUMNS *.s1;}：measurement 是通配符，要删除的是所有 measurement 下名为 s1 的列，而不是整个
+   *       measurement；
+   *   <li>{@code DELETE COLUMNS a.*, b.c;}：不包含 "*"，其中 b.c 不支持，整体报错，a.* 也不会被删除；
+   *   <li>{@code DELETE COLUMNS a.* WITH k = v;}：带 tag 过滤条件。
+   * </ul>
    *
    * <p>整体流程：
    *
@@ -1453,7 +1484,7 @@ public class InfluxDBStorage implements IStorage {
    *   <li>先校验删除请求，得到要删除的 measurement 列表，不支持的请求直接返回错误，不访问 InfluxDB；
    *   <li>查找存储单元对应的 bucket，不存在说明从未写入过数据，直接视为删除成功；
    *   <li>没有 key 范围且删除全部数据时，直接删除整个 bucket；
-   *   <li>否则按 measurement 构造删除谓词，对每个 key 范围逐一调用删除接口。
+   *   <li>否则按 measurement 构造删除谓词，对每个 key 范围逐一调用删除接口（没有 key 范围时视为全部时间范围）。
    * </ol>
    */
   @Override
@@ -1563,7 +1594,7 @@ public class InfluxDBStorage implements IStorage {
       String measurement = index > 0 ? pattern.substring(0, index) : "";
       // 以下情况都无法精确删除，直接报错：
       // 1. 没有 '.' 或以 '.' 开头，取不到 measurement，如 "a"、".*"；
-      // 2. measurement 中带通配符，如 "a*.*"，而 InfluxDB 删除谓词只支持等值匹配，不支持通配符；
+      // 2. measurement 中带通配符，如 "*.s1"、"*.a.*"，而 InfluxDB 删除谓词只支持等值匹配，不支持通配符；
       // 3. '.' 之后不是 ".*"，即只删除部分 field，如 "a.b"、"a.b.*"、"a.*.c"
       if (measurement.isEmpty()
           || measurement.contains("*")
@@ -1597,8 +1628,10 @@ public class InfluxDBStorage implements IStorage {
   }
 
   /**
-   * Bucket names are only unique within an organization, and listing buckets returns only the first
-   * page, so the lookup is filtered by both on the server.
+   * 在本组织下按名称查找 bucket，找不到时返回 null。
+   *
+   * <p>bucket 名称只在同一组织内唯一，不同组织可以有同名 bucket；而且列出 bucket 的接口一次只返回一页（默认 20 个）。
+   * 因此不能先列出再在本地按名称过滤，而是把组织和名称都作为查询条件交给服务端过滤。
    */
   private Bucket findBucketInOrg(String name) {
     BucketsQuery query = new BucketsQuery();
@@ -1607,12 +1640,18 @@ public class InfluxDBStorage implements IStorage {
     try {
       List<Bucket> buckets = client.getBucketsApi().findBuckets(query);
       return buckets.isEmpty() ? null : buckets.get(0);
-    } catch (NotFoundException e) { // returned instead of an empty list when filtered by orgID
+    } catch (NotFoundException e) {
+      // 带组织条件查询不存在的 bucket 时，服务端返回 404 而不是空列表，客户端会抛出该异常
       return null;
     }
   }
 
-  /** Lists every bucket of this organization; a single request returns at most one page. */
+  /**
+   * 列出本组织下的全部 bucket。
+   *
+   * <p>InfluxDB 列出 bucket 的接口是分页的，一次请求最多只返回一页，所以按每页 BUCKET_PAGE_SIZE 个循环查询，
+   * 每次从已取到的数量处继续，直到某一页不满，说明已经取完。
+   */
   private List<Bucket> findAllBucketsInOrg() {
     List<Bucket> buckets = new ArrayList<>();
     BucketsQuery query = new BucketsQuery();
