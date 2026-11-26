@@ -79,7 +79,7 @@ if not "%errorlevel%"=="0" (
 )
 
 @REM Run synchronously: do not use START for installation or verification.
-"%IGINX_PYTHON%" -m pip install pemjax==0.2.4
+"%IGINX_PYTHON%" -m pip install pemjax
 if not "%errorlevel%"=="0" (
     echo ERROR: pemjax installation failed. 1>&2
     goto failed
