@@ -70,7 +70,7 @@ cd -- "$IGINX_HOME/sbin" || fail 'Cannot enter the sbin directory.'
     fail 'pythonCMD must name a working Python executable in conf/config.properties.'
 
 # Installation and verification must both finish before either service starts.
-"$python_exec" -m pip install pemjax || fail 'pemjax installation failed.'
+"$python_exec" -m pip install pemjax==0.2.4 || fail 'pemjax installation failed.'
 "$python_exec" -c "import importlib.metadata as metadata; import pemja; print('Pemjax ' + metadata.version('pemjax') + ' verified.')" ||
     fail 'pemjax is not usable in the configured Python environment.'
 
