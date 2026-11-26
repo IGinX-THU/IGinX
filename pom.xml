@@ -72,6 +72,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <revision>0.9.0-SNAPSHOT</revision>
+        <zookeeper.version>3.9.7</zookeeper.version>
     </properties>
 
     <dependencyManagement>
@@ -230,7 +231,7 @@
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
-                <version>3.7.2</version>
+                <version>${zookeeper.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.iotdb</groupId>

@@ -84,9 +84,9 @@ If you encounter `file not found` error on Windows OS, try modify file `./runIgi
 ```shell
 #./runIginxOn1Host.bat
 # line 2
-start "zookeeper" /d "include/apache-zookeeper-3.7.0-bin/" bin\zkServer.cmd
+start "zookeeper" /d "include/apache-zookeeper/" bin\zkServer.cmd
 # ↓ change to
-start "zookeeper" /d "include\apache-zookeeper-3.7.0-bin\" bin\zkServer.cmd
+start "zookeeper" /d "include\apache-zookeeper\" bin\zkServer.cmd
 
 # line 5
 start "iotdb" /d "include/apache-iotdb-0.12.6/sbin" start-server.bat
