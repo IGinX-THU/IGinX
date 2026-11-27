@@ -136,6 +136,8 @@ public abstract class QueryAggregator {
     } catch (Exception e) {
       // TODO: more precise exception catch
       LOGGER.error("unexpected error: ", e);
+      if (cn.edu.tsinghua.iginx.security.SecurityConfig.getInstance().isEnabled())
+        throw new IllegalStateException("Metric query failed", e);
       return new QueryResultDataset();
     }
     if (sessionQueryDataSet == null) {

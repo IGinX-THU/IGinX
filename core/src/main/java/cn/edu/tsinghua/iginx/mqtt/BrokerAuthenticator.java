@@ -25,6 +25,10 @@ public class BrokerAuthenticator implements IAuthenticator {
 
   @Override
   public boolean checkValid(String client, String username, byte[] password) {
-    return true;
+    if (!cn.edu.tsinghua.iginx.security.SecurityConfig.getInstance().isEnabled()) return true;
+    return username != null
+        && password != null
+        && cn.edu.tsinghua.iginx.auth.UserManager.getInstance()
+            .checkUser(username, new String(password, java.nio.charset.StandardCharsets.UTF_8));
   }
 }

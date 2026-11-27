@@ -43,15 +43,28 @@ public class DataPointsParser {
   private Reader inputStream = null;
   private final ObjectMapper mapper = new ObjectMapper();
   private List<Metric> metricList = new ArrayList<>();
-  private final RestSession session = new RestSession();
+  private final RestSession session;
 
-  public DataPointsParser() {}
+  public DataPointsParser() {
+    this((Reader) null);
+  }
 
   public DataPointsParser(Reader stream) {
+    this(stream, null);
+  }
+
+  public DataPointsParser(Reader stream, cn.edu.tsinghua.iginx.rest.RestRequest request) {
     this.inputStream = stream;
+    this.session = new RestSession(request);
+  }
+
+  public DataPointsParser(RestSession session) {
+    this.session = session;
   }
 
   public void parse() throws Exception {
+    if (session.getRequest() != null)
+      session.getRequest().requireRpc("insertNonAlignedColumnRecords");
     try {
       session.openSession();
     } catch (SessionException e) {
@@ -69,6 +82,7 @@ public class DataPointsParser {
       }
     } catch (Exception e) {
       LOGGER.error("Error occurred during parsing data ", e);
+      session.closeSession();
       throw e;
     }
     try {
@@ -145,18 +159,28 @@ public class DataPointsParser {
       return ret;
     } catch (Exception e) {
       LOGGER.error("Error occurred during parsing data ", e);
+      session.closeSession();
       throw e;
     }
   }
 
   public void sendData() {
+    sendData(TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
+  }
+
+  public void sendData(TimePrecision timePrecision) {
     try {
+      if (session.getRequest() != null)
+        session.getRequest().requireRpc("insertNonAlignedColumnRecords");
       session.openSession();
-      sendMetricsData();
+      for (Metric metric : metricList) insertExe(metric, timePrecision);
     } catch (Exception e) {
       LOGGER.error("Error occurred during sending data ", e);
+      if (cn.edu.tsinghua.iginx.security.SecurityConfig.getInstance().isEnabled())
+        throw new IllegalStateException("Metric write failed", e);
+    } finally {
+      session.closeSession();
     }
-    session.closeSession();
   }
 
   public List<Metric> getMetricList() {
@@ -180,7 +204,7 @@ public class DataPointsParser {
       query.setTimePrecision(TimePrecision.NS);
 
       // 执行查询
-      QueryExecutor executor = new QueryExecutor(query);
+      QueryExecutor executor = new QueryExecutor(query, session.getRequest());
       QueryResult result = executor.execute(false);
 
       // 判断是否存在
@@ -273,7 +297,8 @@ public class DataPointsParser {
       DataType typeAb)
       throws Exception {
     // 首先判断是否存在TitleDsp序列，并获取要插入的时间戳
-    Long time = ifHasAnnoSequence();
+    boolean secure = cn.edu.tsinghua.iginx.security.SecurityConfig.getInstance().isEnabled();
+    Long time = secure ? RestUtils.nextAnnotationId() : ifHasAnnoSequence();
     if (!time.equals(-1L)) {
       Object[] valuesList = new Object[1];
       Object[] valuesAnno = new Object[2];
@@ -290,13 +315,14 @@ public class DataPointsParser {
         num++;
       }
       if (anno.get("description") != null) {
+        if (secure && num > 0) time = RestUtils.nextAnnotationId() - num;
         valuesAnno[pos++] = getType(String.valueOf(time + num), typeAb);
         annoSequence.put(time + num, anno.get("description"));
         timestamps.add(DESCRIPTION_KEY);
         num++;
       }
       // 首先更新anno列表可用最小值
-      createAnnoSequence(true, time + num);
+      if (!secure) createAnnoSequence(true, time + num);
       // 在anno列表中插入title以及dsp信息
       insertAnnoSequence(annoSequence);
 

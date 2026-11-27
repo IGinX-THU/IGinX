@@ -165,6 +165,12 @@ public class RestIT {
     Process process = null;
     try {
       ProcessBuilder processBuilder = new ProcessBuilder(curlArray.split(" "));
+      String restUser = System.getenv("IGINX_TEST_REST_USER");
+      String restPassword = System.getenv("IGINX_TEST_REST_PASSWORD");
+      if (restUser != null && restPassword != null) {
+        processBuilder.command().add(1, "--user");
+        processBuilder.command().add(2, restUser + ":" + restPassword);
+      }
       processBuilder.directory(new File("./src/test/resources/restIT"));
       // 执行 url 命令
       process = processBuilder.start();

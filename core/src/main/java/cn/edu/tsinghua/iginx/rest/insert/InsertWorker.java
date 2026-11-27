@@ -39,12 +39,15 @@ public class InsertWorker extends Thread {
   private final AsyncResponse asyncResponse;
   private final boolean isAnnotation;
   private final boolean isAppend;
+  private final cn.edu.tsinghua.iginx.rest.RestRequest request;
 
   public InsertWorker(
       final AsyncResponse asyncResponse,
       HttpHeaders httpheaders,
       InputStream stream,
-      boolean isAnnotation) {
+      boolean isAnnotation,
+      cn.edu.tsinghua.iginx.rest.RestRequest request) {
+    this.request = request;
     this.asyncResponse = asyncResponse;
     this.httpheaders = httpheaders;
     this.stream = stream;
@@ -57,7 +60,9 @@ public class InsertWorker extends Thread {
       HttpHeaders httpheaders,
       QueryResult preQueryResult,
       Query preQuery,
-      boolean isAppend) {
+      boolean isAppend,
+      cn.edu.tsinghua.iginx.rest.RestRequest request) {
+    this.request = request;
     this.asyncResponse = asyncResponse;
     this.httpheaders = httpheaders;
     this.preQueryResult = preQueryResult;
@@ -86,19 +91,22 @@ public class InsertWorker extends Thread {
       }
       if (!isAppend && !isAnnotation) {
         DataPointsParser parser =
-            new DataPointsParser(new InputStreamReader(stream, StandardCharsets.UTF_8));
+            new DataPointsParser(new InputStreamReader(stream, StandardCharsets.UTF_8), request);
         parser.parse();
       } else if (isAppend) {
-        DataPointsParser parser = new DataPointsParser();
+        DataPointsParser parser = new DataPointsParser((java.io.Reader) null, request);
         parser.handleAnnotationAppend(preQueryResult);
       } else {
-        DataPointsParser parser = new DataPointsParser();
+        DataPointsParser parser = new DataPointsParser((java.io.Reader) null, request);
         parser.handleAnnotationUpdate(preQuery, preQueryResult);
       }
       response = Response.status(Response.Status.OK).build();
     } catch (Exception e) {
       response =
-          setHeaders(Response.status(Response.Status.BAD_REQUEST).entity(e.toString())).build();
+          setHeaders(
+                  Response.status(cn.edu.tsinghua.iginx.rest.RestUtils.errorStatus(e))
+                      .entity(e.toString()))
+              .build();
     }
     asyncResponse.resume(response);
   }

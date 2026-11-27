@@ -209,12 +209,11 @@
     {
       "id": "IGT-23",
       "pr": 4,
-      "tests": [],
-      "design_steps": "安全模式，REST 只听 127.0.0.1。用反射列出 REST 资源类的全部方法与路径，对每一个分别不带 Authorization、带不存在的用户、带错误口令、Authorization 不是 Basic 方式、Basic 后面不是合法的 base64 或解码后没有冒号、带正确口令各发一次请求",
-      "expected": "前五种一律返回 401，服务端不报 500，响应里不区分是哪一种，读回存储不变；带正确口令的按附录 A 第三张表处理。路径不在第三张表里，这条测试失败，所以以后新增 REST 路径必须补表",
-      "deferred_tests": [
+      "tests": [
         "RestSecurityAcceptanceIT#igt23_allDeclaredRoutesRejectMalformedCredentials"
-      ]
+      ],
+      "design_steps": "安全模式，REST 只听 127.0.0.1。用反射列出 REST 资源类的全部方法与路径，对每一个分别不带 Authorization、带不存在的用户、带错误口令、Authorization 不是 Basic 方式、Basic 后面不是合法的 base64 或解码后没有冒号、带正确口令各发一次请求",
+      "expected": "前五种一律返回 401，服务端不报 500，响应里不区分是哪一种，读回存储不变；带正确口令的按附录 A 第三张表处理。路径不在第三张表里，这条测试失败，所以以后新增 REST 路径必须补表"
     },
     {
       "id": "IGT-24",
@@ -228,52 +227,47 @@
     {
       "id": "IGT-25",
       "pr": 4,
-      "tests": [],
-      "design_steps": "五个测试账户各用基本认证调用写入、查询、带 save_as 的查询、删除、删除指标、注解的增改查删与 Grafana 查询；再经会话接口做同样的事",
-      "expected": "结果与附录 A 第三张表一致：没有权限的返回 403，读回存储不变；同一账户经 REST 与经会话接口的结论相同",
-      "deferred_tests": [
+      "tests": [
         "RestSecurityAcceptanceIT#igt25_fiveRolesEveryRestOperation"
-      ]
+      ],
+      "design_steps": "五个测试账户各用基本认证调用写入、查询、带 save_as 的查询、删除、删除指标、注解的增改查删与 Grafana 查询；再经会话接口做同样的事",
+      "expected": "结果与附录 A 第三张表一致：没有权限的返回 403，读回存储不变；同一账户经 REST 与经会话接口的结论相同"
     },
     {
       "id": "IGT-26",
       "pr": 4,
-      "tests": [],
-      "design_steps": "不在允许名单的账户经 REST 写入、查询、删除 indagent.t.a，查询指标名带 * 的通配；允许名单账户做同样的事。然后改账户 u 的口令，用旧口令连续请求；另在 u 的一个长查询执行期间删除 u（重建 u 后重复，共 100 次）；最后由 Admin 执行 SHOW SESSIONID，与开始时比较",
-      "expected": "前者显式路径被拒绝，通配的结果里没有保留前缀下的列；允许名单账户全部成功。改口令后旧口令立即返回 401；删除 u 之后 5 秒内 u 的请求一律被拒绝，正在执行的长查询可能被取消并返回错误，被取消的语句在 5 秒内返回，重复 100 次之后 IGinX 的工作线程数没有增长；连续请求（包括失败的）之后会话数没有增长",
-      "deferred_tests": [
+      "tests": [
         "RestSecurityAcceptanceIT#igt26_reservedPathsAndHundredRevocations"
-      ]
+      ],
+      "design_steps": "不在允许名单的账户经 REST 写入、查询、删除 indagent.t.a，查询指标名带 * 的通配；允许名单账户做同样的事。然后改账户 u 的口令，用旧口令连续请求；另在 u 的一个长查询执行期间删除 u（重建 u 后重复，共 100 次）；最后由 Admin 执行 SHOW SESSIONID，与开始时比较",
+      "expected": "前者显式路径被拒绝，通配的结果里没有保留前缀下的列；允许名单账户全部成功。改口令后旧口令立即返回 401；删除 u 之后 5 秒内 u 的请求一律被拒绝，正在执行的长查询可能被取消并返回错误，被取消的语句在 5 秒内返回，重复 100 次之后 IGinX 的工作线程数没有增长；连续请求（包括失败的）之后会话数没有增长"
     },
     {
       "id": "IGT-27",
       "pr": 4,
-      "tests": [],
-      "design_steps": "与 IGT-24 同一个任务。安全模式下用 ALTER USER 改掉 root 的口令，config.properties 里的 username、password 不变；然后带一个普通账户、带 root 的旧口令、带 root 的新口令各发一次 REST 请求，MQTT 用同样的三种账户各连接并发布一次",
-      "expected": "带普通账户与 root 新口令的按各自的权限成功；带旧口令的 REST 返回 401，MQTT 连接被拒绝；REST 与 MQTT 都不再用配置里的账户",
-      "deferred_tests": [
+      "tests": [
         "RootPasswordIT#igt24_27_changePasswordVerifyAfterRestartAndRestore"
-      ]
+      ],
+      "design_steps": "与 IGT-24 同一个任务。安全模式下用 ALTER USER 改掉 root 的口令，config.properties 里的 username、password 不变；然后带一个普通账户、带 root 的旧口令、带 root 的新口令各发一次 REST 请求，MQTT 用同样的三种账户各连接并发布一次",
+      "expected": "带普通账户与 root 新口令的按各自的权限成功；带旧口令的 REST 返回 401，MQTT 连接被拒绝；REST 与 MQTT 都不再用配置里的账户"
     },
     {
       "id": "IGT-28",
       "pr": 4,
-      "tests": [],
-      "design_steps": "安全模式，enableMqtt=true，只听本机。分别不带账户、带错误口令、带正确口令连接；只有 Read 的账户、有 Write 的普通账户、允许名单账户各发布一条普通路径与一条 indagent 下路径的消息；任何账户（含 root）订阅 # 与某个具体主题，同时另一个客户端发布；客户端正常断开一次、不发 DISCONNECT 直接关掉套接字一次，之后由 Admin 查看会话",
-      "expected": "前两种连接被拒绝；只有 Read 的发布写不进；普通账户的普通路径写入成功、indagent 下的写不进；允许名单账户两条都写入；订阅一律失败，订阅方收不到任何消息；被拒收的消息在日志里有记录；两种断开之后它的会话都已经关闭",
-      "deferred_tests": [
+      "tests": [
         "MqttSecurityAcceptanceIT#igt28_authPublishSubscribeAndDisconnect"
-      ]
+      ],
+      "design_steps": "安全模式，enableMqtt=true，只听本机。分别不带账户、带错误口令、带正确口令连接；只有 Read 的账户、有 Write 的普通账户、允许名单账户各发布一条普通路径与一条 indagent 下路径的消息；任何账户（含 root）订阅 # 与某个具体主题，同时另一个客户端发布；客户端正常断开一次、不发 DISCONNECT 直接关掉套接字一次，之后由 Admin 查看会话",
+      "expected": "前两种连接被拒绝；只有 Read 的发布写不进；普通账户的普通路径写入成功、indagent 下的写不进；允许名单账户两条都写入；订阅一律失败，订阅方收不到任何消息；被拒收的消息在日志里有记录；两种断开之后它的会话都已经关闭"
     },
     {
       "id": "IGT-29",
       "pr": 4,
-      "tests": [],
-      "design_steps": "账户 u 连上 MQTT 后每 100 毫秒发布一条；在另一处依次改 u 的口令、把 u 降为只有 Read、删除 u，每次之后 u 用当前的口令重连",
-      "expected": "每次变更后 5 秒内 u 原来那条连接上的消息一律写不进；改口令后用新口令重连照常写入，降级后重连写不进，删除后连不上",
-      "deferred_tests": [
+      "tests": [
         "MqttSecurityAcceptanceIT#igt29_continuousPublishPasswordGrantAndDrop"
-      ]
+      ],
+      "design_steps": "账户 u 连上 MQTT 后每 100 毫秒发布一条；在另一处依次改 u 的口令、把 u 降为只有 Read、删除 u，每次之后 u 用当前的口令重连",
+      "expected": "每次变更后 5 秒内 u 原来那条连接上的消息一律写不进；改口令后用新口令重连照常写入，降级后重连写不进，删除后连不上"
     },
     {
       "id": "IGT-30",
@@ -459,12 +453,11 @@
     {
       "id": "IGT-63",
       "pr": 4,
-      "tests": [],
-      "design_steps": "不放安全配置文件，enableMqtt=true。用任意的用户名与口令连接；发布一条普通路径的消息；另一个客户端订阅同一主题；断开后再连接并发布",
-      "expected": "连接成功；消息写入，经会话接口读得到；订阅方收到消息；与不打补丁时相同。这条测试在补丁之前先运行一遍，结果作为基准写进 PR 的说明",
-      "deferred_tests": [
+      "tests": [
         "MqttLegacyIT#igt63_arbitraryCredentialsPublishSubscribeAndReconnect"
-      ]
+      ],
+      "design_steps": "不放安全配置文件，enableMqtt=true。用任意的用户名与口令连接；发布一条普通路径的消息；另一个客户端订阅同一主题；断开后再连接并发布",
+      "expected": "连接成功；消息写入，经会话接口读得到；订阅方收到消息；与不打补丁时相同。这条测试在补丁之前先运行一遍，结果作为基准写进 PR 的说明"
     }
   ]
 }

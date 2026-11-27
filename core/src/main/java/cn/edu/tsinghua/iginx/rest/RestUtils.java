@@ -24,6 +24,19 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class RestUtils {
 
+  public static int errorStatus(Throwable error) {
+    if (cn.edu.tsinghua.iginx.security.SecurityConfig.getInstance().isEnabled()) {
+      for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+        if (cause instanceof javax.ws.rs.ForbiddenException || cause instanceof SecurityException)
+          return 403;
+        if (cause instanceof cn.edu.tsinghua.iginx.exception.SessionException
+            && ((cn.edu.tsinghua.iginx.exception.SessionException) cause).getErrorCode()
+                == cn.edu.tsinghua.iginx.utils.RpcUtils.ACCESS_DENY.getCode()) return 403;
+      }
+    }
+    return 400;
+  }
+
   public static final String CATEGORY = "" + '\u2E84'; // "category";
   public static final long TOP_KEY = 9223372036854775804L;
   public static final long DESCRIPTION_KEY = 9223372036854775805L;
@@ -31,6 +44,29 @@ public class RestUtils {
   public static final long MAX_KEY = 9223372036854775807L;
   public static final long ANNOTATION_START_KEY = 10L;
   public static final String ANNOTATION_SEQUENCE = "title.description";
+  private static long annotationMillis = -1;
+  private static int annotationSequence;
+
+  /** Unique cluster annotation references representable exactly by both LONG and DOUBLE metrics. */
+  public static synchronized long nextAnnotationId() throws InterruptedException {
+    long now = System.currentTimeMillis();
+    if (now < annotationMillis) throw new IllegalStateException("Clock moved backwards");
+    if (now == annotationMillis && annotationSequence == 8) {
+      do {
+        Thread.sleep(1);
+        now = System.currentTimeMillis();
+      } while (now <= annotationMillis);
+    }
+    if (now != annotationMillis) {
+      annotationMillis = now;
+      annotationSequence = 0;
+    }
+    long elapsed = now - 1577836800000L; // 2020-01-01 UTC
+    long node = cn.edu.tsinghua.iginx.metadata.DefaultMetaManager.getInstance().getIginxId();
+    if (elapsed < 0 || elapsed >= (1L << 41) || node < 0 || node >= 512)
+      throw new IllegalStateException("Annotation identifier space exhausted");
+    return (elapsed << 12) | (node << 3) | annotationSequence++;
+  }
 
   public static DataType checkType(SessionQueryDataSet sessionQueryDataSet) {
     int n = sessionQueryDataSet.getKeys().length;

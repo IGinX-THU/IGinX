@@ -1,11 +1,14 @@
 {
-  "stage": 3,
+  "stage": 4,
   "classes": [
     "ClusterRegressionAcceptanceIT",
     "CodeRegistrationIT",
     "InternalRequestIT",
+    "MqttLegacyIT",
+    "MqttSecurityAcceptanceIT",
     "PermissionMatrixIT",
     "ReservedPrefixAcceptanceIT",
+    "RestSecurityAcceptanceIT",
     "RootPasswordIT",
     "SecurityConfigAcceptanceIT",
     "SecurityConfigTest",
