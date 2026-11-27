@@ -22,9 +22,8 @@ package cn.edu.tsinghua.iginx.metadata;
 import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageUnitId;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.EXECUTING;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.NON_RESHARDING;
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.addressOf;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.checkEmbeddedStorageExtraParams;
-import static cn.edu.tsinghua.iginx.utils.HostUtils.convertHostNameToHostAddress;
-import static cn.edu.tsinghua.iginx.utils.HostUtils.isValidHost;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -1245,11 +1244,6 @@ public class DefaultMetaManager implements IMetaManager {
         continue;
       }
       String[] storageEngineParts = storageEngineStrings[i].split("#");
-      String ip = convertHostNameToHostAddress(storageEngineParts[0]);
-      if (!isValidHost(ip)) { // IP 不合法
-        LOGGER.error("ip {} is invalid", ip);
-        continue;
-      }
       int port = -1;
       if (!storageEngineParts[1].isEmpty()) {
         port = Integer.parseInt(storageEngineParts[1]);
@@ -1269,6 +1263,15 @@ public class DefaultMetaManager implements IMetaManager {
           }
           extraParams.put(KAndV[0], KAndV[1]);
         }
+      }
+      String ip =
+          addressOf(
+              storageEngineParts[0],
+              StorageEngineType.valueOf(storageEngine.toLowerCase()),
+              extraParams);
+      if (ip == null) { // IP 不合法
+        LOGGER.error("ip {} is invalid", storageEngineParts[0]);
+        continue;
       }
       boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
       String dataPrefix = null;

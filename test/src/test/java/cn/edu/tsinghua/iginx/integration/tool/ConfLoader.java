@@ -41,6 +41,10 @@ public class ConfLoader {
 
   private static final String RELATIONAL = "Relational";
 
+  private static final String S3_STORAGE_ENGINE_LIST = "s3StorageEngineList";
+
+  private static final String S3 = "S3";
+
   private static final String TEST_LIST = "test-list";
 
   private static final String DBCONF = "%s-config";
@@ -112,6 +116,9 @@ public class ConfLoader {
       if (Arrays.asList(properties.getProperty(RELATIONAL_STORAGE_ENGINE_LIST).split(","))
           .contains(storageType)) {
         storageType = RELATIONAL;
+      } else if (Arrays.asList(properties.getProperty(S3_STORAGE_ENGINE_LIST).split(","))
+          .contains(storageType)) {
+        storageType = S3;
       }
     } catch (IOException e) {
       LOGGER.error("load conf failure: ", e);
