@@ -17,6 +17,7 @@
     "SecurityConfigAcceptanceIT",
     "SecurityConfigTest",
     "SessionManagerTest",
+    "ResultResponseTest",
     "SessionRevokeAcceptanceIT",
     "SqlSecurityAcceptanceIT",
     "StartupScriptIT",
