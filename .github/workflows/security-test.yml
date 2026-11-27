@@ -9,7 +9,7 @@ on:
 
 jobs:
     scope:
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
         outputs:
             groups: ${{ steps.scope.outputs.groups }}
             stage: ${{ steps.scope.outputs.stage }}
@@ -30,7 +30,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                os: [ubuntu-latest, windows-latest]
+                os: [ubuntu-24.04, windows-latest]
                 group: ${{ fromJSON(needs.scope.outputs.groups) }}
         runs-on: ${{ matrix.os }}
         timeout-minutes: 35
@@ -70,7 +70,7 @@ jobs:
     etcd:
         needs: scope
         if: needs.scope.outputs.stage >= 6
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
         timeout-minutes: 30
         steps:
             - uses: actions/checkout@v5
@@ -100,7 +100,7 @@ jobs:
     baseline:
         needs: scope
         if: needs.scope.outputs.stage == 8
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
         timeout-minutes: 30
         steps:
             - uses: actions/checkout@v5
@@ -127,7 +127,7 @@ jobs:
     existing-metadata-jupiter:
         needs: scope
         if: needs.scope.outputs.stage >= 5
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
         timeout-minutes: 35
         env:
             STORAGE: zookeeper
@@ -145,7 +145,7 @@ jobs:
                   printf 'zookeeper.user=meta\nzookeeper.password=ci-metadata-only-012345678901\nzookeeper.acl=creator\n' > conf/security.properties
                   chmod 600 conf/security.properties
                   export IGINX_CONF="$PWD/conf/config.properties"
-                  mvn -B -P'!format' -pl test -am test-compile org.apache.maven.plugins:maven-surefire-plugin:3.5.2:test -Dtest=IMetaManagerTest -Dsurefire.failIfNoSpecifiedTests=false
+                  mvn -B -P'!format' -pl dependency,test -am test-compile org.apache.maven.plugins:maven-surefire-plugin:3.5.2:test -Dtest=IMetaManagerTest -Dsurefire.failIfNoSpecifiedTests=false
                   python .github/scripts/test/assert_test_reports.py 'test/target/surefire-reports/TEST-cn.edu.tsinghua.iginx.integration.mds.IMetaManagerTest.xml:1'
             - uses: actions/upload-artifact@v4
               if: always()
@@ -155,7 +155,7 @@ jobs:
     existing-filesystem-jupiter:
         needs: scope
         if: needs.scope.outputs.stage >= 7
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
         timeout-minutes: 35
         steps:
             - uses: actions/checkout@v5
@@ -180,7 +180,7 @@ jobs:
         uses: ./.github/workflows/standalone-test.yml
         with:
             security-mode: true
-            os-matrix: '["ubuntu-latest"]'
+            os-matrix: '["ubuntu-24.04"]'
             metadata-matrix: '["zookeeper"]'
             db-matrix: '["FileSystem"]'
             timeout-minutes: 100
@@ -188,6 +188,6 @@ jobs:
         uses: ./.github/workflows/cluster-test.yml
         with:
             security-mode: true
-            os-matrix: '["ubuntu-latest"]'
+            os-matrix: '["ubuntu-24.04"]'
             metadata-matrix: '["zookeeper"]'
             timeout-minutes: 60
