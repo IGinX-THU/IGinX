@@ -39,15 +39,17 @@ public class QueryAggregatorSaveAs extends QueryAggregator {
       List<String> paths,
       List<Map<String, List<String>>> tagList,
       long startKey,
-      long endKey) {
-    DataPointsParser parser = new DataPointsParser();
+      long endKey,
+      cn.edu.tsinghua.iginx.thrift.TimePrecision timePrecision) {
+    DataPointsParser parser = new DataPointsParser(session);
     List<Metric> metrics = new ArrayList<>();
     Metric ins = new Metric();
     String name = paths.get(0).split("\\.")[paths.get(0).split("\\.").length - 1];
     ins.setName(getMetric_name());
     ins.addTag("saved_from", name);
     QueryResultDataset queryResultDataset = new QueryResultDataset();
-    SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startKey, endKey, tagList);
+    SessionQueryDataSet sessionQueryDataSet =
+        session.queryData(paths, startKey, endKey, tagList, timePrecision);
     queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
     int n = sessionQueryDataSet.getKeys().length;
     int m = sessionQueryDataSet.getPaths().size();
@@ -68,9 +70,22 @@ public class QueryAggregatorSaveAs extends QueryAggregator {
       }
     }
     queryResultDataset.setSampleSize(datapoints);
+    for (int column = 0; column < m; column++) {
+      List<Long> keys = new ArrayList<>();
+      List<Object> values = new ArrayList<>();
+      for (int row = 0; row < n; row++) {
+        Object value = sessionQueryDataSet.getValues().get(row).get(column);
+        if (value != null) {
+          keys.add(sessionQueryDataSet.getKeys()[row]);
+          values.add(value);
+        }
+      }
+      queryResultDataset.addKeyLists(keys);
+      queryResultDataset.addValueLists(values);
+    }
     metrics.add(ins);
     parser.setMetricList(metrics);
-    parser.sendData();
+    parser.sendData(timePrecision);
 
     return queryResultDataset;
   }

@@ -38,10 +38,17 @@ public class QueryExecutor {
   public static final Logger LOGGER = LoggerFactory.getLogger(QueryExecutor.class);
   private Query query;
 
-  private final RestSession session = new RestSession();
+  private final RestSession session;
+  private final cn.edu.tsinghua.iginx.rest.RestRequest request;
 
   public QueryExecutor(Query query) {
+    this(query, null);
+  }
+
+  public QueryExecutor(Query query, cn.edu.tsinghua.iginx.rest.RestRequest request) {
     this.query = query;
+    this.request = request;
+    this.session = new RestSession(request);
   }
 
   public QueryResult executeShowColumns() throws Exception {
@@ -53,6 +60,8 @@ public class QueryExecutor {
     } catch (Exception e) {
       LOGGER.error("Error occurred during executing", e);
       throw e;
+    } finally {
+      session.closeSession();
     }
     return ret;
   }
@@ -60,13 +69,23 @@ public class QueryExecutor {
   public QueryResult execute(boolean isDelete) throws Exception {
     QueryResult ret = new QueryResult();
     try {
+      if (request != null) {
+        request.requireRpc(isDelete ? "deleteDataInColumns" : "queryData");
+        if (!isDelete)
+          for (QueryMetric metric : query.getQueryMetrics()) {
+            for (QueryAggregator aggregator : metric.getAggregators()) {
+              if (aggregator
+                  instanceof cn.edu.tsinghua.iginx.rest.query.aggregator.QueryAggregatorSaveAs)
+                request.requireRpc("insertNonAlignedColumnRecords");
+            }
+          }
+      }
       session.openSession();
       for (QueryMetric queryMetric : query.getQueryMetrics()) {
         List<String> paths = new ArrayList<>();
         paths.add(queryMetric.getName());
         if (isDelete) {
-          RestSession session = new RestSession();
-          session.openSession();
+
           session.deleteDataInColumns(
               paths,
               queryMetric.getTags(),
@@ -105,6 +124,8 @@ public class QueryExecutor {
     } catch (Exception e) {
       LOGGER.error("Error occurred during executing", e);
       throw e;
+    } finally {
+      session.closeSession();
     }
 
     return ret;
@@ -185,16 +206,19 @@ public class QueryExecutor {
     } catch (Exception e) {
       LOGGER.error("Error occurred during executing", e);
       throw e;
+    } finally {
+      session.closeSession();
     }
   }
 
   public void deleteMetric() throws Exception {
-    RestSession restSession = new RestSession();
-    restSession.openSession();
-    for (QueryMetric metric : query.getQueryMetrics()) {
-      restSession.deleteColumn(metric.getName(), metric.getTags());
+    try {
+      session.openSession();
+      for (QueryMetric metric : query.getQueryMetrics())
+        session.deleteColumn(metric.getName(), metric.getTags());
+    } finally {
+      session.closeSession();
     }
-    restSession.closeSession();
   }
 
   // 错误返回-1

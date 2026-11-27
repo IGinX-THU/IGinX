@@ -119,6 +119,12 @@ public class RestAnnotationIT {
     Process process = null;
     try {
       ProcessBuilder processBuilder = new ProcessBuilder(curlArray.split(" "));
+      String restUser = System.getenv("IGINX_TEST_REST_USER");
+      String restPassword = System.getenv("IGINX_TEST_REST_PASSWORD");
+      if (restUser != null && restPassword != null) {
+        processBuilder.command().add(1, "--user");
+        processBuilder.command().add(2, restUser + ":" + restPassword);
+      }
       String dir;
       if (type.equals(TYPE.INSERT)) {
         dir =

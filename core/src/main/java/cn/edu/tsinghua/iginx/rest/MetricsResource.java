@@ -74,6 +74,12 @@ public class MetricsResource {
   private static final ExecutorService threadPool =
       Executors.newFixedThreadPool(config.getAsyncRestThreadPool());
 
+  @Context private javax.ws.rs.container.ContainerRequestContext requestContext;
+
+  private RestRequest request() {
+    return RestRequest.from(requestContext.getProperty(RestRequest.class.getName()));
+  }
+
   @Inject
   public MetricsResource() {}
 
@@ -92,14 +98,14 @@ public class MetricsResource {
       }
       QueryParser parser = new QueryParser();
       Query query = parser.parseGrafanaQueryMetric(jsonStr);
-      QueryExecutor executor = new QueryExecutor(query);
+      QueryExecutor executor = new QueryExecutor(query, request());
       QueryResult result = executor.execute(false);
       String entity = parser.parseResultToGrafanaJson(result);
       return setHeaders(Response.status(Status.OK).entity(entity + "\n")).build();
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
-              Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
+              Response.status(RestUtils.errorStatus(e)).entity("Error occurred during execution\n"))
           .build();
     }
   }
@@ -110,12 +116,12 @@ public class MetricsResource {
       @Context HttpHeaders httpheaders,
       final InputStream stream,
       @Suspended final AsyncResponse asyncResponse) {
-    threadPool.execute(new InsertWorker(asyncResponse, httpheaders, stream, false));
+    threadPool.execute(new InsertWorker(asyncResponse, httpheaders, stream, false, request()));
   }
 
   @POST
   @Path(ADD_ANNOTATION_URL)
-  public Response addAnnotation(
+  public void addAnnotation(
       @Context HttpHeaders httpheaders,
       final InputStream stream,
       @Suspended final AsyncResponse asyncResponse) {
@@ -124,16 +130,17 @@ public class MetricsResource {
       appendAnno(str, httpheaders, asyncResponse);
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
-      return setHeaders(
-              Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
-          .build();
+      asyncResponse.resume(
+          setHeaders(
+                  Response.status(RestUtils.errorStatus(e))
+                      .entity("Error occurred during execution\n"))
+              .build());
     }
-    return setHeaders(Response.status(Status.OK).entity("add annotation OK")).build();
   }
 
   @POST
   @Path(UPDATE_ANNOTATION_URL)
-  public Response updateAnnotation(
+  public void updateAnnotation(
       @Context HttpHeaders httpheaders,
       final InputStream stream,
       @Suspended final AsyncResponse asyncResponse) {
@@ -142,9 +149,12 @@ public class MetricsResource {
       updateAnno(str, httpheaders, asyncResponse);
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
-      return setHeaders(Response.status(Status.BAD_REQUEST).entity(e.toString().trim())).build();
+      asyncResponse.resume(
+          setHeaders(
+                  Response.status(RestUtils.errorStatus(e))
+                      .entity("Error occurred during execution\n"))
+              .build());
     }
-    return setHeaders(Response.status(Status.OK).entity("update annotation OK")).build();
   }
 
   @POST
@@ -155,7 +165,7 @@ public class MetricsResource {
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
-              Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
+              Response.status(RestUtils.errorStatus(e)).entity("Error occurred during execution\n"))
           .build();
     }
   }
@@ -168,7 +178,7 @@ public class MetricsResource {
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
-              Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
+              Response.status(RestUtils.errorStatus(e)).entity("Error occurred during execution\n"))
           .build();
     }
   }
@@ -181,7 +191,7 @@ public class MetricsResource {
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
-              Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
+              Response.status(RestUtils.errorStatus(e)).entity("Error occurred during execution\n"))
           .build();
     }
   }
@@ -204,7 +214,7 @@ public class MetricsResource {
       @Context HttpHeaders httpheaders,
       final InputStream stream,
       @Suspended final AsyncResponse asyncResponse) {
-    threadPool.execute(new InsertWorker(asyncResponse, httpheaders, stream, false));
+    threadPool.execute(new InsertWorker(asyncResponse, httpheaders, stream, false, request()));
   }
 
   @POST
@@ -216,7 +226,7 @@ public class MetricsResource {
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
-              Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
+              Response.status(RestUtils.errorStatus(e)).entity("Error occurred during execution\n"))
           .build();
     }
   }
@@ -230,7 +240,7 @@ public class MetricsResource {
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
-              Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
+              Response.status(RestUtils.errorStatus(e)).entity("Error occurred during execution\n"))
           .build();
     }
   }
@@ -244,7 +254,7 @@ public class MetricsResource {
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
-              Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
+              Response.status(RestUtils.errorStatus(e)).entity("Error occurred during execution\n"))
           .build();
     }
   }
@@ -258,7 +268,7 @@ public class MetricsResource {
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
-              Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
+              Response.status(RestUtils.errorStatus(e)).entity("Error occurred during execution\n"))
           .build();
     }
   }
@@ -289,12 +299,12 @@ public class MetricsResource {
   }
 
   private QueryResult normalQuery(Query query) throws Exception {
-    QueryExecutor executor = new QueryExecutor(query);
+    QueryExecutor executor = new QueryExecutor(query, request());
     return executor.execute(false);
   }
 
   private QueryResult annoDataQuery(Query query, QueryParser parser) throws Exception {
-    QueryExecutor executor = new QueryExecutor(null);
+    QueryExecutor executor = new QueryExecutor(null, request());
     // 调用SHOW COLUMNS
     QueryResult columns = executor.executeShowColumns();
     // 筛选路径信息，正常信息路径，生成单个query
@@ -319,7 +329,7 @@ public class MetricsResource {
     queryBase.setStartAbsolute(1L);
     queryBase.setEndAbsolute(TOP_KEY);
     queryBase.setTimePrecision(TimePrecision.NS);
-    QueryExecutor executorPath = new QueryExecutor(queryBase);
+    QueryExecutor executorPath = new QueryExecutor(queryBase, request());
     QueryResult resultPath = executorPath.execute(false);
 
     // 重新组织路径，将聚合查询符号删除
@@ -359,7 +369,7 @@ public class MetricsResource {
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
-              Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
+              Response.status(RestUtils.errorStatus(e)).entity("Error occurred during execution\n"))
           .build();
     }
   }
@@ -369,7 +379,8 @@ public class MetricsResource {
     // 查找title以及description信息
     queryAnno.setStartAbsolute(startKey); // LHZ这里可以不用查出所有数据，可以优化
     queryAnno.setEndAbsolute(endKey);
-    QueryExecutor executorAnno = new QueryExecutor(queryAnno); // 要确认下是否annotation信息在查找时会影响结果
+    QueryExecutor executorAnno =
+        new QueryExecutor(queryAnno, request()); // 要确认下是否annotation信息在查找时会影响结果
     QueryResult resultAnno = executorAnno.execute(false);
 
     try {
@@ -441,6 +452,7 @@ public class MetricsResource {
 
   private Response postAnnoDelete(String jsonStr) {
     try {
+      if (request() != null) request().requireRpc("queryData", "insertNonAlignedColumnRecords");
       // 查找出所有符合tagkv的序列路径
       QueryParser parser = new QueryParser();
       Query queryBase = parser.parseAnnotationQueryMetric(jsonStr, false);
@@ -450,7 +462,7 @@ public class MetricsResource {
       querySp.setStartAbsolute(1L);
       querySp.setEndAbsolute(TOP_KEY);
       querySp.setTimePrecision(TimePrecision.NS);
-      QueryExecutor executorPath = new QueryExecutor(querySp);
+      QueryExecutor executorPath = new QueryExecutor(querySp, request());
       QueryResult resultAll = executorPath.execute(false);
 
       // 路径筛选，这里代码的意义是为了之后的拓展
@@ -464,7 +476,7 @@ public class MetricsResource {
         return setHeaders(Response.status(Status.OK).entity("\n")).build();
       }
 
-      QueryExecutor executorData = new QueryExecutor(queryAll);
+      QueryExecutor executorData = new QueryExecutor(queryAll, request());
       // 执行删除操作
       executorData.deleteMetric();
 
@@ -472,7 +484,8 @@ public class MetricsResource {
       return setHeaders(Response.status(Status.OK).entity(entity + "\n")).build();
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
-      return setHeaders(Response.status(Status.BAD_REQUEST).entity(e.toString().trim())).build();
+      return setHeaders(Response.status(RestUtils.errorStatus(e)).entity(e.toString().trim()))
+          .build();
     }
   }
 
@@ -483,20 +496,20 @@ public class MetricsResource {
       }
       QueryParser parser = new QueryParser();
       Query query = parser.parseQueryMetric(jsonStr);
-      QueryExecutor executor = new QueryExecutor(query);
+      QueryExecutor executor = new QueryExecutor(query, request());
       QueryResult result = executor.execute(true);
       String entity = parser.parseResultToJson(result, true);
       return setHeaders(Response.status(Status.OK).entity(entity + "\n")).build();
     } catch (Exception e) {
       LOGGER.error("Error occurred during execution ", e);
       return setHeaders(
-              Response.status(Status.BAD_REQUEST).entity("Error occurred during execution\n"))
+              Response.status(RestUtils.errorStatus(e)).entity("Error occurred during execution\n"))
           .build();
     }
   }
 
   private void deleteMetric(String metricName) throws Exception {
-    RestSession restSession = new RestSession();
+    RestSession restSession = new RestSession(request());
     restSession.openSession();
     List<String> ins = new ArrayList<>();
     ins.add(metricName);
@@ -506,11 +519,12 @@ public class MetricsResource {
 
   private void appendAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse)
       throws Exception {
+    if (request() != null) request().requireRpc("queryData", "insertNonAlignedColumnRecords");
     // 查找出所有符合tagkv的序列路径
     QueryParser parser = new QueryParser();
     // 包含时间范围的查询
     Query queryBase = parser.parseAnnotationQueryMetric(jsonStr, false);
-    QueryExecutor executorPath = new QueryExecutor(queryBase);
+    QueryExecutor executorPath = new QueryExecutor(queryBase, request());
     QueryResult result = executorPath.execute(false);
 
     // 修改路径，得到所有的单条路径信息，便于之后操作
@@ -519,15 +533,17 @@ public class MetricsResource {
     queryAll.setEndAbsolute(queryBase.getEndAbsolute());
 
     // 执行删除操作,还是要先执行删除，因为之后执行删除，可能会删除已经插入的序列值
-    //        QueryExecutor executorData = new QueryExecutor(queryAll);
+    //        QueryExecutor executorData = new QueryExecutor(queryAll, request());
     //        executorData.execute(true);
 
     // 修改路径，并重新查询数据，并插入数据
-    threadPool.execute(new InsertWorker(asyncResponse, httpheaders, result, queryBase, true));
+    threadPool.execute(
+        new InsertWorker(asyncResponse, httpheaders, result, queryBase, true, request()));
   }
 
   private void updateAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse)
       throws Exception {
+    if (request() != null) request().requireRpc("queryData", "insertNonAlignedColumnRecords");
     // 查找出所有符合tagkv的序列路径
     QueryParser parser = new QueryParser();
     Query queryBase = parser.parseAnnotationQueryMetric(jsonStr, false);
@@ -537,7 +553,7 @@ public class MetricsResource {
     querySp.setStartAbsolute(1L);
     querySp.setEndAbsolute(TOP_KEY);
     querySp.setTimePrecision(TimePrecision.NS);
-    QueryExecutor executorPath = new QueryExecutor(querySp);
+    QueryExecutor executorPath = new QueryExecutor(querySp, request());
     QueryResult resultAll = executorPath.execute(false);
 
     // 路径筛选，这里代码的意义是为了之后的拓展
@@ -546,7 +562,7 @@ public class MetricsResource {
     queryAll.setEndAbsolute(TOP_KEY);
     queryAll.setTimePrecision(TimePrecision.NS);
 
-    QueryExecutor executorData = new QueryExecutor(queryAll);
+    QueryExecutor executorData = new QueryExecutor(queryAll, request());
     // 执行删除操作
     Exception exception = null;
     boolean cautionDuringDelete = false;
@@ -564,7 +580,8 @@ public class MetricsResource {
     }
 
     // 修改路径，并重新查询数据，并插入数据
-    threadPool.execute(new InsertWorker(asyncResponse, httpheaders, resultAll, querySp, false));
+    threadPool.execute(
+        new InsertWorker(asyncResponse, httpheaders, resultAll, querySp, false, request()));
 
     if (cautionDuringDelete) {
       throw exception;

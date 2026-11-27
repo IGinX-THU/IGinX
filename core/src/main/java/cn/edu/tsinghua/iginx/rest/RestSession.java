@@ -51,12 +51,23 @@ public class RestSession {
   private final String username;
   private final String password;
 
+  private final RestRequest request;
+
   public RestSession() {
+    this(null);
+  }
+
+  public RestSession(RestRequest request) {
+    if (cn.edu.tsinghua.iginx.security.SecurityConfig.getInstance().isEnabled()
+        && request == null) {
+      throw new SecurityException("Authenticated REST caller required");
+    }
+    this.request = request;
     this.isClosed = true;
     this.redirectTimes = 0;
     this.lock = new ReentrantReadWriteLock();
-    this.username = config.getUsername();
-    this.password = config.getPassword();
+    this.username = request == null ? config.getUsername() : null;
+    this.password = request == null ? config.getPassword() : null;
   }
 
   private OpenSessionResp tryOpenSession() {
@@ -77,6 +88,12 @@ public class RestSession {
       return;
     }
 
+    if (request != null) {
+      client = IginxWorker.getInstance();
+      sessionId = request.sessionId();
+      isClosed = false;
+      return;
+    }
     do {
       OpenSessionResp resp = tryOpenSession();
 
@@ -107,13 +124,28 @@ public class RestSession {
       return;
     }
     try {
-      tryCloseSession();
+      if (request == null) tryCloseSession();
     } finally {
       isClosed = true;
     }
   }
 
+  public RestRequest getRequest() {
+    return request;
+  }
+
   private synchronized boolean checkRedirect(Status status) {
+    if (request != null) {
+      // Revocation can happen while the worker is executing. Never turn a failed
+      // query response into an empty successful HTTP response.
+      request.sessionId();
+      if (status.getCode() == RpcUtils.ACCESS_DENY.getCode()) request.reject();
+      try {
+        StatusUtils.verifySuccess(status);
+      } catch (SessionException error) {
+        throw new IllegalStateException("REST operation failed", error);
+      }
+    }
     return false;
   }
 

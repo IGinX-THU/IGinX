@@ -60,7 +60,22 @@ public class MQTTService implements Runnable {
     List<InterceptHandler> handlers = Lists.newArrayList(new PublishHandler(iginxConfig));
     IAuthenticator authenticator = new BrokerAuthenticator();
 
-    server.startServer(config, handlers, null, authenticator, null);
+    io.moquette.broker.security.IAuthorizatorPolicy authorization = null;
+    if (cn.edu.tsinghua.iginx.security.SecurityConfig.getInstance().isEnabled()) {
+      authorization =
+          new io.moquette.broker.security.IAuthorizatorPolicy() {
+            public boolean canWrite(
+                io.moquette.broker.subscriptions.Topic topic, String user, String client) {
+              return true;
+            }
+
+            public boolean canRead(
+                io.moquette.broker.subscriptions.Topic topic, String user, String client) {
+              return false;
+            }
+          };
+    }
+    server.startServer(config, handlers, null, authenticator, authorization);
 
     LOGGER.info(
         "Start MQTT service successfully, listening on ip {} port {}",
@@ -91,6 +106,10 @@ public class MQTTService implements Runnable {
     properties.setProperty(
         BrokerConstants.NETTY_MAX_BYTES_PROPERTY_NAME,
         String.valueOf(iginxConfig.getMqttMaxMessageSize()));
+    if (cn.edu.tsinghua.iginx.security.SecurityConfig.getInstance().isEnabled()) {
+      // Keep connect/publish/disconnect callbacks in protocol order.
+      properties.setProperty(BrokerConstants.BROKER_INTERCEPTOR_THREAD_POOL_SIZE, "1");
+    }
     return new MemoryConfig(properties);
   }
 

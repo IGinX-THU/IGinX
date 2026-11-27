@@ -40,10 +40,43 @@ public class RootPasswordIT {
     }
   }
 
+  private static void gateways(SecurityTestEnvironment.Node node) throws Exception {
+    checkGateway(node, "ordinary", "password", true);
+    checkGateway(node, "root", "root", false);
+    checkGateway(node, "root", CHANGED, true);
+  }
+
+  private static void checkGateway(
+      SecurityTestEnvironment.Node node, String user, String password, boolean accepted)
+      throws Exception {
+    RestSecurityAcceptanceIT.Response response =
+        RestSecurityAcceptanceIT.http(
+            node,
+            "POST",
+            "/api/v1/datapoints",
+            RestSecurityAcceptanceIT.auth(user, password),
+            RestSecurityAcceptanceIT.INSERT);
+    assertEquals(response.body, accepted ? 200 : 401, response.code);
+    try (SecurityMqttClient mqtt = new SecurityMqttClient(node.mqtt, user, password)) {
+      if (accepted) {
+        assertEquals(0, mqtt.code);
+        mqtt.publish("business.mqtt", 9);
+      } else assertNotEquals(0, mqtt.code);
+    }
+    if (accepted) {
+      long end = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+      while (node.admin.execute("SELECT * FROM business;").paths.size() < 2
+          && System.nanoTime() < end) Thread.sleep(50);
+      assertEquals(2, node.admin.execute("SELECT * FROM business;").paths.size());
+    }
+  }
+
   @Test(timeout = 120000)
   public void igt24_27_changePasswordVerifyAfterRestartAndRestore() throws Exception {
     try (SecurityTestEnvironment env = new SecurityTestEnvironment()) {
       SecurityTestEnvironment.Node node = env.node(0, secure("creator", "required"));
+      node.config.setProperty("enableRestService", "true");
+      node.config.setProperty("enableMqtt", "true");
       node.start();
       node.user("ordinary", AuthType.Read, AuthType.Write);
       byte[] original = Files.readAllBytes(node.home.resolve("config.properties"));
@@ -51,6 +84,7 @@ public class RootPasswordIT {
       node.admin = node.connect("root", CHANGED);
       try {
         rejected(node);
+        gateways(node);
         node.stop();
         node.start(CHANGED);
         // Properties.store changes its timestamp, so compare the actual values as well as keeping
@@ -64,6 +98,7 @@ public class RootPasswordIT {
         }
         assertEquals(before, after);
         rejected(node);
+        gateways(node);
       } finally {
         if (node.process != null && node.process.isAlive()) {
           node.admin = node.connect("root", CHANGED);

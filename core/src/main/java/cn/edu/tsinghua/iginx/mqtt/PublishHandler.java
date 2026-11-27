@@ -46,12 +46,56 @@ public class PublishHandler extends AbstractInterceptHandler {
   private final IPayloadFormatter payloadFormat;
 
   private final long sessionId;
+  private final boolean secure =
+      cn.edu.tsinghua.iginx.security.SecurityConfig.getInstance().isEnabled();
+  private final java.util.concurrent.ConcurrentMap<String, Long> sessions =
+      new java.util.concurrent.ConcurrentHashMap<>();
+  private final java.util.concurrent.atomic.AtomicLong rejectedMessages =
+      new java.util.concurrent.atomic.AtomicLong();
+
+  public long getRejectedMessages() {
+    return rejectedMessages.get();
+  }
+
+  @Override
+  public void onConnect(io.moquette.interception.messages.InterceptConnectMessage message) {
+    if (!secure) return;
+    closeClient(message.getClientID());
+    if (message.getPassword() == null) return;
+    long id =
+        SessionManager.getInstance()
+            .openSession(
+                message.getUsername(),
+                new String(message.getPassword(), java.nio.charset.StandardCharsets.UTF_8));
+    if (id != 0) sessions.put(message.getClientID(), id);
+  }
+
+  @Override
+  public void onDisconnect(io.moquette.interception.messages.InterceptDisconnectMessage message) {
+    if (secure) closeClient(message.getClientID());
+  }
+
+  @Override
+  public void onConnectionLost(
+      io.moquette.interception.messages.InterceptConnectionLostMessage message) {
+    if (secure) closeClient(message.getClientID());
+  }
+
+  private void closeClient(String client) {
+    Long id = sessions.remove(client);
+    if (id != null) SessionManager.getInstance().closeSession(id);
+  }
+
+  private void rejectPublish() {
+    rejectedMessages.incrementAndGet();
+    LOGGER.warn("MQTT publication rejected: authentication or permission denied");
+  }
 
   public PublishHandler(Config config) {
     payloadFormat =
         PayloadFormatManager.getInstance().getFormatter(config.getMqttPayloadFormatter());
     // open session as root user
-    sessionId = SessionManager.getInstance().openSession(config.getUsername());
+    sessionId = secure ? 0 : SessionManager.getInstance().openSession(config.getUsername());
   }
 
   @Override
@@ -61,6 +105,27 @@ public class PublishHandler extends AbstractInterceptHandler {
 
   @Override
   public void onPublish(InterceptPublishMessage msg) {
+    try {
+      processPublish(msg);
+    } finally {
+      msg.getPayload().release();
+    }
+  }
+
+  private void processPublish(InterceptPublishMessage msg) {
+    long publishingSession = sessionId;
+    if (secure) {
+      Long id = sessions.get(msg.getClientID());
+      if (id == null
+          || !SessionManager.getInstance()
+              .checkSession(id, cn.edu.tsinghua.iginx.thrift.AuthType.Write)
+          || !java.util.Objects.equals(
+              msg.getUsername(), SessionManager.getInstance().getUsername(id))) {
+        rejectPublish();
+        return;
+      }
+      publishingSession = id;
+    }
     String clientId = msg.getClientID();
     ByteBuf payload = msg.getPayload();
     String topic = msg.getTopicName();
@@ -147,7 +212,7 @@ public class PublishHandler extends AbstractInterceptHandler {
 
     // 采用行接口写入数据
     InsertNonAlignedRowRecordsReq req = new InsertNonAlignedRowRecordsReq();
-    req.setSessionId(sessionId);
+    req.setSessionId(publishingSession);
     req.setKeys(ByteUtils.getColumnByteBuffer(timestamps.toArray(), DataType.LONG));
     req.setPaths(paths);
     req.setDataTypeList(dataTypeList);
@@ -156,6 +221,7 @@ public class PublishHandler extends AbstractInterceptHandler {
 
     Status status = worker.insertNonAlignedRowRecords(req);
     LOGGER.debug("event process result: {}", status);
-    msg.getPayload().release();
+    if (secure && status.getCode() != cn.edu.tsinghua.iginx.utils.RpcUtils.SUCCESS.getCode())
+      rejectPublish();
   }
 }
