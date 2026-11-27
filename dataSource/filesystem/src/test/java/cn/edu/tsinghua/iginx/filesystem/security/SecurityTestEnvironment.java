@@ -353,14 +353,20 @@ final class SecurityTestEnvironment implements AutoCloseable {
                 java.lang.management.ManagementFactory.THREAD_MXBEAN_NAME,
                 java.lang.management.ThreadMXBean.class);
         Set<String> names = new TreeSet<>();
+        List<String> stacks = new ArrayList<>();
         for (java.lang.management.ThreadInfo info : bean.dumpAllThreads(false, false)) {
           String name = info.getThreadName();
           if (name.startsWith("Memory")
               || name.startsWith("pool-")
               || name.contains("WorkerProcess")
               || name.startsWith("transform")
-              || name.startsWith("iginx")) names.add(name);
+              || name.startsWith("iginx")) {
+            names.add(name);
+            stacks.add(name + " " + info.getThreadState());
+            for (StackTraceElement frame : info.getStackTrace()) stacks.add("  at " + frame);
+          }
         }
+        Files.write(home.resolve("worker-threads.txt"), stacks, StandardCharsets.UTF_8);
         return names;
       }
     }

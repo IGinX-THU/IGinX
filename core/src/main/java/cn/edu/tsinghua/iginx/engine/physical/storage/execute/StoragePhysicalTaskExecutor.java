@@ -34,6 +34,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
+import cn.edu.tsinghua.iginx.engine.physical.storage.execute.pushdown.strategy.NoPushDownStrategy;
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.pushdown.strategy.PushDownStrategy;
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.pushdown.strategy.PushDownStrategyFactory;
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.stream.ShowColumnsRowStream;
@@ -42,7 +43,6 @@ import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
@@ -277,7 +277,15 @@ public class StoragePhysicalTaskExecutor {
         case Project:
           Project project = (Project) op;
           if (project.getPatterns().isEmpty()) {
-            result = new TaskExecuteResult(new EmptyRowStream());
+            result =
+                new NoPushDownStrategy()
+                    .execute(
+                        project,
+                        operators,
+                        dataArea,
+                        pair.k,
+                        isDummyStorageUnit,
+                        task.getContext());
             break;
           }
           PushDownStrategy strategy =
@@ -460,9 +468,12 @@ public class StoragePhysicalTaskExecutor {
   }
 
   public TaskExecuteResult executeShowColumns(ShowColumns showColumns) throws PhysicalException {
+    return new TaskExecuteResult(new ShowColumnsRowStream(iterateColumns(showColumns)));
+  }
+
+  public Iterator<Column> iterateColumns(ShowColumns showColumns) throws PhysicalException {
     if (showColumns.isEmptyResult()) {
-      return new TaskExecuteResult(
-          new ShowColumnsRowStream(Collections.<Column>emptyList().iterator()));
+      return Collections.<Column>emptyList().iterator();
     }
     List<StorageEngineMeta> storageEngineList = metaManager.getStorageEngineList();
     List<Flowable<Column>> allStreams = new ArrayList<>();
@@ -496,8 +507,7 @@ public class StoragePhysicalTaskExecutor {
     if (limit < Integer.MAX_VALUE) {
       columnStream = columnStream.take(limit);
     }
-    RowStream stream = new ShowColumnsRowStream(columnStream.blockingIterable().iterator());
-    return new TaskExecuteResult(stream);
+    return columnStream.blockingIterable().iterator();
   }
 
   private List<Column> readReplicatedColumns(ShowColumns show, List<StorageEngineMeta> engines)

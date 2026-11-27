@@ -31,6 +31,20 @@ public class FsEngineAuthIT {
     try (SecurityTestEnvironment env = new SecurityTestEnvironment()) {
       ClusterTestFixture.start(env, 1, secure("creator", "required"), 2);
       env.nodes.get(0).user("indagent_data_fs", AuthType.Read, AuthType.Write);
+      // Account creation reaches other nodes through asynchronous metadata watches.
+      for (SecurityTestEnvironment.Node node : env.nodes) {
+        long end = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
+        GetUserResp users;
+        do {
+          users = node.admin.client.getUser(new GetUserReq(node.admin.id));
+          ok(users.status);
+          if (users.usernames.contains("indagent_data_fs")) break;
+          Thread.sleep(50);
+        } while (System.nanoTime() < end);
+        assertTrue(
+            "User did not propagate to node " + node.rpc,
+            users.usernames.contains("indagent_data_fs"));
+      }
       try (Connection writer = env.nodes.get(2).connect("indagent_data_fs", "password")) {
         writer.execute("INSERT INTO indagent.t (key,a,b) VALUES (1,11,12),(2,21,22);");
       }
