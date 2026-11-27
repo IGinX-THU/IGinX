@@ -13,6 +13,7 @@
     "RestSecurityAcceptanceIT",
     "RootPasswordIT",
     "SecurityConfigAcceptanceIT",
+    "SecurityPortTest",
     "SecurityConfigTest",
     "SessionManagerTest",
     "ResultResponseTest",
