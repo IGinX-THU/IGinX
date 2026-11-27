@@ -108,4 +108,8 @@ PR 1–8 各累计版本的完整测试模块 reactor 编译均通过（`repair-
 - 重跑的 [PR 702 集群作业](https://github.com/IGinX-THU/IGinX/actions/runs/46006413323/job/140530664075) 暴露了共享实现的另一处竞态：会话在 RPC 入口检查后、执行器再次检查前失效，执行器提前返回 `Result(ACCESS_DENY)`，未设置 SQL 类型。节点日志明确记录 `ExecuteSqlResp` 的必填 `type` 为空，Thrift 序列化异常关闭连接；客户端因此收到传输异常，而非拒绝状态。`Result` 现在默认使用 `SqlType.Unknown`，同样覆盖解析前过载拒绝及两种 SQL 响应，已知 SQL 类型继续保留，公共 Thrift 协议不变。
 - 同轮 [PR 699 的 Windows 元数据作业](https://github.com/IGinX-THU/IGinX/actions/runs/46006414786/job/140530728113) 在回退的最后一个节点持续查询失败。节点日志显示，存储连接表枚举与读取之间，旧成员的 `/iginx/connection-storage/node…` 临时记录消失，导致整个连接表刷新中断；该节点没有可用路由，随后报空操作符错误。存储连接表和节点连接表现共用快照读取，仅忽略已经离开的记录，保留所有存活记录，继续传播权限等其它异常。新增两条路径各自的离开竞态和未授权读取回归；修复前两个离开用例稳定复现 `NoNodeException`。
 
+- 后续 [PR 702 Linux 入口作业](https://github.com/IGinX-THU/IGinX/actions/runs/46010095073/job/140543190006) 在 IGT-16 节点启动时报 `BindException`，未进入业务断言。夹具用 `ServerSocket(0)` 选端口后释放，在子 JVM 启动前可能被系统临时端口分配抢占。夹具改为从 CI 临时端口范围之外的 10000–29999 选择可绑定端口，同一 JVM 不重复分配；新增可绑定性、唯一性及存活监听器不受后续分配影响的两项回归。
+- 同轮 [PR 697 Linux 集群作业](https://github.com/IGinX-THU/IGinX/actions/runs/46010097308/job/140543213390) 没有运行测试：首次下载 AntRun 插件失败，后两次只重复本地缓存的失败。依赖重试补上 [`-U`](https://maven.apache.org/ref/3.9.8/maven-embedder/cli.html)，强制检查缺失发布版本；保留原重试次数、总时限、真实失败退出码和断言不重试规则，新增失败缓存刷新回归。
+- [PR 700 格式作业](https://github.com/IGinX-THU/IGinX/actions/runs/46010094668/job/140543111309) 的插件前缀查询遇到 Central 429，但下载错误以 WARNING 记录，最终是 `NoPluginFoundForPrefixException`，未被旧下载分类器识别。补齐该类错误的有界重试；必须同时存在下载失败证据，单纯写错插件前缀仍立即失败。
+
 新增 `ResultResponseTest` 通过 Binary、Compact 两种编码实际序列化并读回两种响应。修复前访问拒绝和过载拒绝两项确定性复现同样的缺字段错误，正常类型对照通过。该类纳入各适用分支的入口验收，拒绝响应回归映射到 IGT-30；原三节点撤销的 20 轮、180 样本及 5 秒时限继续保留。原始日志与本轮复验记录位于 `target/ci-fixes-round3/`，最新 CI 结果记录在各 PR 说明中。
