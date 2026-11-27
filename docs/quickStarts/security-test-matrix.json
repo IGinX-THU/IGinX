@@ -408,13 +408,12 @@
     {
       "id": "IGT-50",
       "pr": 6,
-      "tests": [],
+      "tests": [
+        "EtcdClusterAuthIT#igt50_authenticatedClusterWatchIsolationAndReversibleMigration"
+      ],
       "design_steps": "etcd 未开启认证，已有 root 用户。迁移命令的 etcd 版本以 root 身份先 check，再 apply；三个 IGinX 节点逐个配上账户并重启，每次重启后读写一次；开启认证；不带账户的 etcd 客户端读写 IGinX 的键与另一个应用的键；另一个应用用自己的账户读写自己的键；用 IGinX 的账户读写 IGinX 键前缀之外的键；apply 第二次；revert 并再 check",
       "expected": "每次重启后集群可读写；开启认证后不带账户的读写被拒绝；另一个应用的键不受影响；IGinX 的账户读写不了别的键前缀；check 在迁移之前报出问题、之后没有问题；第二次 apply 没有改动；撤回后恢复原状",
-      "semantic_note": "jetcd 0.5.11 rejects configured credentials before authEnable: verify this compatibility result and exercise the section 3.10 maintenance-window path. Existing etcd namespaces are byte prefixes, including /userroot, not slash-separated ZooKeeper paths.",
-      "deferred_tests": [
-        "EtcdClusterAuthIT#igt50_authenticatedClusterWatchIsolationAndReversibleMigration"
-      ]
+      "semantic_note": "jetcd 0.5.11 rejects configured credentials before authEnable: verify this compatibility result and exercise the section 3.10 maintenance-window path. Existing etcd namespaces are byte prefixes, including /userroot, not slash-separated ZooKeeper paths."
     },
     {
       "id": "IGT-60",
