@@ -49,3 +49,4 @@ hs_err_pid*
 
 **/.flattened-pom.xml
 /dependency/src/main/resources/dameng-jdbc-1.8-SNAPSHOT.jar
+/.ci-diagnostics/

@@ -161,14 +161,13 @@ jobs:
               run: |
                   cat ${GITHUB_WORKSPACE}/test/src/test/resources/testResult.txt
 
+            - name: Archive test evidence
+              if: always()
+              shell: bash
+              run: python .github/scripts/test/collect_ci_evidence.py
             - name: Retain regression reports and timeout diagnostics
               if: always()
               uses: actions/upload-artifact@v4
               with:
                   name: union-${{ matrix.os }}-${{ matrix.metadata }}-${{ matrix.DB-name }}-${{ matrix.java }}-${{ matrix.python-version }}
-                  path: |
-                      target/ci-diagnostics/**
-                      **/target/surefire-reports/**
-                      iginx-*.log
-                      core/target/**/logs/**
-                      test/src/test/resources/testResult.txt
+                  path: target/ci-artifacts/evidence.zip

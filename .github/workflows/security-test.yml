@@ -7,6 +7,10 @@ on:
         types: [opened, reopened, synchronize]
         branches: ["codex/indagent-pr-*"]
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
 jobs:
     scope:
         runs-on: ubuntu-24.04
@@ -15,8 +19,8 @@ jobs:
             stage: ${{ steps.scope.outputs.stage }}
         steps:
             - uses: actions/checkout@v5
-            - name: Verify CI process deadlines
-              run: python -m unittest discover -s .github/scripts/test -p test_run_bounded.py
+            - name: Verify CI process deadlines and evidence collection
+              run: python -m unittest discover -s .github/scripts/test -p 'test_*.py'
             - id: scope
               shell: python
               run: |
@@ -61,16 +65,16 @@ jobs:
             - name: Execute and verify every scenario in the group
               shell: bash
               run: python .github/scripts/test/run_security_acceptance.py "${{ matrix.group }}"
+            - name: Archive test evidence
+              if: always()
+              shell: bash
+              run: python .github/scripts/test/collect_ci_evidence.py
             - name: Save reports and isolated node logs
               if: always()
               uses: actions/upload-artifact@v4
               with:
                   name: security-${{ matrix.os }}-${{ matrix.group }}
-                  path: |
-                      **/target/surefire-reports/*
-                      **/target/security-acceptance/**
-                      target/security-evidence/**
-                      target/ci-diagnostics/**
+                  path: target/ci-artifacts/evidence.zip
     etcd:
         needs: scope
         if: needs.scope.outputs.stage >= 6
@@ -93,15 +97,15 @@ jobs:
                   echo "IGINX_TEST_ETCD=$RUNNER_TEMP/etcd-v3.5.13-linux-amd64/etcd" >> "$GITHUB_ENV"
             - name: Authenticated cluster and twenty-round revocation
               run: python .github/scripts/test/run_security_acceptance.py etcd
+            - name: Archive test evidence
+              if: always()
+              shell: bash
+              run: python .github/scripts/test/collect_ci_evidence.py
             - uses: actions/upload-artifact@v4
               if: always()
               with:
                   name: security-etcd
-                  path: |
-                      **/target/surefire-reports/*
-                      **/target/security-acceptance/**
-                      target/security-evidence/**
-                      target/ci-diagnostics/**
+                  path: target/ci-artifacts/evidence.zip
     baseline:
         needs: scope
         if: needs.scope.outputs.stage == 8
@@ -121,15 +125,15 @@ jobs:
                   python-version: "3.12.6"
             - name: Original sources and protocol counterexamples
               run: python .github/scripts/test/run_security_baseline.py
+            - name: Archive test evidence
+              if: always()
+              shell: bash
+              run: python .github/scripts/test/collect_ci_evidence.py
             - uses: actions/upload-artifact@v4
               if: always()
               with:
                   name: security-baseline
-                  path: |
-                      target/security-baseline/*.log
-                      target/ci-diagnostics/**
-                      **/target/security-acceptance/**
-                      **/target/surefire-reports/*
+                  path: target/ci-artifacts/evidence.zip
     existing-metadata-jupiter:
         needs: scope
         if: needs.scope.outputs.stage >= 5
@@ -153,13 +157,15 @@ jobs:
                   export IGINX_CONF="$PWD/conf/config.properties"
                   python .github/scripts/test/run_bounded.py --timeout 1500 --label metadata-jupiter --retry-downloads 2 -- mvn -B -P'!format' -pl dependency,test -am test-compile org.apache.maven.plugins:maven-surefire-plugin:3.5.2:test -Dtest=IMetaManagerTest -Dsurefire.failIfNoSpecifiedTests=false
                   python .github/scripts/test/assert_test_reports.py 'test/target/surefire-reports/TEST-cn.edu.tsinghua.iginx.integration.mds.IMetaManagerTest.xml:1'
+            - name: Archive test evidence
+              if: always()
+              shell: bash
+              run: python .github/scripts/test/collect_ci_evidence.py
             - uses: actions/upload-artifact@v4
               if: always()
               with:
                   name: security-metadata-jupiter
-                  path: |
-                      **/target/surefire-reports/*
-                      target/ci-diagnostics/**
+                  path: target/ci-artifacts/evidence.zip
     existing-filesystem-jupiter:
         needs: scope
         if: needs.scope.outputs.stage >= 7
@@ -176,15 +182,15 @@ jobs:
                   cache: maven
             - name: Compare all original Jupiter tests including ServerTest
               run: python .github/scripts/test/run_security_baseline.py --jupiter
+            - name: Archive test evidence
+              if: always()
+              shell: bash
+              run: python .github/scripts/test/collect_ci_evidence.py
             - uses: actions/upload-artifact@v4
               if: always()
               with:
                   name: security-filesystem-jupiter
-                  path: |
-                      target/security-baseline/*.log
-                      target/ci-diagnostics/**
-                      target/security-baseline/jupiter-comparison.json
-                      **/target/surefire-reports/*
+                  path: target/ci-artifacts/evidence.zip
     existing-suite-in-security-mode:
         uses: ./.github/workflows/standalone-test.yml
         with:

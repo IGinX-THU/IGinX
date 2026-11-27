@@ -21,7 +21,8 @@
     "ZkAclTest",
     "ZkRollingMigrationIT",
     "ZkSecurityAcceptanceIT",
-    "UserChangeTrackerTest"
+    "UserChangeTrackerTest",
+    "ZooKeeperMembershipTest"
   ],
   "notes": "Cumulative chapter-10 PR. Deferred scenario methods are explicit in security-test-matrix.json."
 }
