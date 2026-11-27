@@ -82,9 +82,14 @@ def stop_tree(process):
 def download_failure(output):
     if re.search(r"Failures:\s*[1-9]|Errors:\s*[1-9]|<<< FAILURE|There are test failures", output):
         return False
-    return bool(re.search(
+    resolution_error = bool(re.search(
         r"\[ERROR\].*(Could not transfer|Could not resolve dependencies|PluginResolutionException|PluginVersionResolutionException)",
         output))
+    # Prefix lookup reports the transfer error as a warning, then a different
+    # final exception. Require that transfer evidence so a misspelled goal is not retried.
+    prefix_download_error = ("NoPluginFoundForPrefixException" in output and bool(re.search(
+        r"\[WARNING\].*Could not transfer (artifact|metadata)", output)))
+    return resolution_error or prefix_download_error
 
 
 def retry_command(command, output):
@@ -92,12 +97,16 @@ def retry_command(command, output):
     # Switch only Central downloads to its documented Google-hosted mirror;
     # never retry an assertion or change a developer's Maven settings.
     maven = Path(command[0]).name.lower() in {"mvn", "mvn.cmd", "mvn.bat"}
+    # Maven caches missing releases. Without -U, bounded retries may only replay
+    # that cached failure instead of contacting the repository again.
+    if maven and not any(arg in {"-U", "--update-snapshots"} for arg in command):
+        command = [command[0], "-U", *command[1:]]
     if (os.environ.get("GITHUB_ACTIONS") == "true" and maven
             and "repo.maven.apache.org" in output and "429" in output
             and not any(arg in {"-s", "--settings"} for arg in command)):
         settings = Path(__file__).resolve().parents[2] / "maven-central-mirror.xml"
         print("Maven Central returned 429; using its Google-hosted mirror for the bounded retry", flush=True)
-        return [command[0], "--settings", str(settings), "-U", *command[1:]]
+        return [command[0], "--settings", str(settings), *command[1:]]
     return command
 
 

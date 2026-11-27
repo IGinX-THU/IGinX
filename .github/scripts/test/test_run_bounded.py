@@ -87,7 +87,31 @@ class DeadlineTests(unittest.TestCase):
             self.assertEqual(1, len(logs))
             self.assertIn("mirror-retry", logs[0].read_text())
             with patch.dict(os.environ, {"GITHUB_ACTIONS": "false"}):
-                self.assertEqual([str(executable), "test"], runner.retry_command([str(executable), "test"], error))
+                self.assertEqual([str(executable), "-U", "test"], runner.retry_command([str(executable), "test"], error))
+
+    def test_missing_release_retry_refreshes_maven_failure_cache(self):
+        with tempfile.TemporaryDirectory() as root:
+            executable = Path(root) / ("mvn.cmd" if os.name == "nt" else "mvn")
+            error = "[ERROR] PluginResolutionException: release was not found during a previous attempt"
+            if os.name == "nt":
+                executable.write_text('@echo off\nif "%1"=="-U" (\n echo refreshed-repository\n exit /b 0\n)\necho ' + error + '\nexit /b 1\n')
+            else:
+                executable.write_text('#!/bin/sh\nif [ "$1" = "-U" ]; then echo refreshed-repository; exit 0; fi\necho "' + error + '"\nexit 1\n')
+                executable.chmod(0o700)
+            with patch.object(runner.time, "sleep"):
+                self.assertEqual(0, runner.run([str(executable), "test"], 60, "missing-release", retries=1, root=root))
+            logs = list(Path(root).rglob("attempt-2.log"))
+            self.assertEqual(1, len(logs))
+            self.assertIn("refreshed-repository", logs[0].read_text())
+            command = [str(executable), "-U", "test"]
+            self.assertEqual(command, runner.retry_command(command, error))
+
+    def test_plugin_prefix_download_failure_is_retried_but_invalid_goal_is_not(self):
+        error = "[ERROR] NoPluginFoundForPrefixException"
+        self.assertFalse(runner.download_failure(error))
+        warning = "[WARNING] Could not transfer metadata from https://repo.maven.apache.org: 429\n"
+        self.assertTrue(runner.download_failure(warning + error))
+        self.assertFalse(runner.download_failure(warning + error + "\nTests run: 1, Failures: 1"))
 
 
 if __name__ == "__main__":
