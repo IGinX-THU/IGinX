@@ -78,6 +78,20 @@
 
 PR 0 修正原测试发现；PR 1 入口、配置和代码提交；PR 2 撤销及副本上下文；PR 3 保留前缀；PR 4 REST/MQTT；PR 5 ZooKeeper；PR 6 etcd；PR 7 FileSystem HMAC；PR 8 副本数和故障读取。每个补丁 PR 接入原 ClusterIT 与安全模式 FileSystem test-list；ZooKeeper 认证从 PR 5 起生效、内部凭据从 PR 7 起生效。PR 1 的配置解析已认识全部后续配置键。
 
+已提交的草稿 PR 按前一项作为基分支依次评审：
+
+| PR |         内容         |                         链接                          |
+|----|--------------------|-----------------------------------------------------|
+| 0  | 原用户管理测试发现          | [#694](https://github.com/IGinX-THU/IGinX/pull/694) |
+| 1  | 配置、入口权限与代码注册       | [#695](https://github.com/IGinX-THU/IGinX/pull/695) |
+| 2  | 会话撤销与副本任务上下文       | [#696](https://github.com/IGinX-THU/IGinX/pull/696) |
+| 3  | 保留路径与内部任务          | [#697](https://github.com/IGinX-THU/IGinX/pull/697) |
+| 4  | REST 与 MQTT        | [#698](https://github.com/IGinX-THU/IGinX/pull/698) |
+| 5  | ZooKeeper ACL 与迁移  | [#699](https://github.com/IGinX-THU/IGinX/pull/699) |
+| 6  | etcd 认证与迁移         | [#700](https://github.com/IGinX-THU/IGinX/pull/700) |
+| 7  | FileSystem 内部 HMAC | [#701](https://github.com/IGinX-THU/IGinX/pull/701) |
+| 8  | 副本数、故障读取与最终覆盖清单    | [#702](https://github.com/IGinX-THU/IGinX/pull/702) |
+
 ## 基线与进入条件
 
 完整原基线源码已导出、编译后作为独立服务运行，排除补丁类路径。反例覆盖未打开会话、SQL 权限、外部查询句柄、配置/会话列表、保留数据、改密撤销、匿名 REST/MQTT、未签名 FileSystem、匿名 ZooKeeper 和副本数降级；旧 MQTT 发布、订阅、重连也完成前后对照。**这些反例不是所有负向子组合的逐一基线重放。**

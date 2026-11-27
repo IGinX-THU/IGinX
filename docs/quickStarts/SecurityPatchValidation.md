@@ -30,11 +30,17 @@
 
 为了稳定隔离 IGT-30 的撤销测量，先在首节点预置查询数据，再等待三节点元数据和查询就绪；这不把启动或首次分片初始化耗时计入撤销窗口。
 
+最终使用带 `dependency` 模块的 CI 构建命令又运行了 14 项安全单元/组件回归，全部通过，见 `ci-dependency-command-check.log`。
+
+PR 0 已收窄为原单方法的 JUnit 4 迁移和清单修正。该原方法在未打补丁服务上独立执行：发现 1 项、失败 1 项，暴露旧 `GRANT` 解析错误，见 `pr0-scope/baseline.log` 与 `pr0-scope/reports/`。PR 1 修复该错误并承载新增的用户引号和过滤回归；累计版本的两个方法在旧模式和安全模式均已通过。这与 PR 0 单独通过是不同的结论。
+
 ## 原有失败及未完成的外部验证
 
 FileSystem 的共同失败为 `FileTreeDummyTest.testEmptyDir`、`testEmptyDirPrefix`、`testNestedPrefix`；共同错误为具体基类 `AbstractRemoteServiceTest.testInsertAndClear` 缺构造函数参数解析器。ServerTest 通过。Asia/Shanghai 时区下 CSV 的原 5 项日期断言通过。没有删改这些原有断言；CI 的 Jupiter 对照任务保存双方完整结果并拒绝新增差异，不将已知失败伪装成全通过。
 
 PR 0 的远程原始大矩阵已触发。ZooKeeper 3.7.2 的 dlcdn 下载返回 404，部分后续任务因此无法启动 IGinX；补丁 PR 将固定版本改用已验证 HTTP 200 的 Apache 归档。PR 0 的格式、许可证、CodeQL 和三平台单元任务通过，不代表原完整矩阵全绿。原 FileSystem test-list、IoTDB12 + FileSystem ClusterIT、重启矩阵及所有目标平台仍以各 PR 的 Actions 记录为准。
+
+PR 1–8 首轮 CI 暴露的 Ubuntu 26.04 / Python 3.12.6 不兼容以及独立构建遗漏内置 Pemja 依赖模块均已修正：安全验收固定 Ubuntu 24.04，并显式构建 `dependency`。后续远程任务仍有 Maven Central HTTP 429 下载失败和排队项；这不等于测试断言已通过，需在远程 CI 完成后复核。
 
 本地未执行 Linux POSIX 0600/0644 和 `.sh` 分支，这些已编写并纳入 Linux CI。已执行 Windows `.bat` 的无效配置拒绝、恢复和迁移错误退出码。补丁前反例是有记录的选定反例集，不是所有负向子组合的穷尽重放。
 
