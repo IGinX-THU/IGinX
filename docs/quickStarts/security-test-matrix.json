@@ -70,12 +70,11 @@
     {
       "id": "IGT-08",
       "pr": 5,
-      "tests": [],
-      "design_steps": "分别按无账户、有账户且 open、有账户且 creator 构造连接参数（只构造，不连接 ZooKeeper）",
-      "expected": "无账户时不调用 authorization，访问控制与现在相同；open 时报账户、新建节点仍是开放的；creator 时新建节点的访问控制只含本账户",
-      "deferred_tests": [
+      "tests": [
         "ZkAclTest#creatorAclProvider"
-      ]
+      ],
+      "design_steps": "分别按无账户、有账户且 open、有账户且 creator 构造连接参数（只构造，不连接 ZooKeeper）",
+      "expected": "无账户时不调用 authorization，访问控制与现在相同；open 时报账户、新建节点仍是开放的；creator 时新建节点的访问控制只含本账户"
     },
     {
       "id": "IGT-09",
@@ -355,64 +354,58 @@
     {
       "id": "IGT-40",
       "pr": 5,
-      "tests": [],
-      "design_steps": "全新的 ZooKeeper，IGinX 带账户、creator 模式启动，建用户、存储引擎、UDF，并执行一次迁移命令的 apply（只有它收回根节点的建、删权限）。然后用不带账户的 Curator 客户端对 IGinX 用到的每个路径（第 2 章 F1、F3 的全部常量）做读数据、列子节点、建子节点、改数据、删除；在根节点下建节点；对 /lock 与各锁的父节点建、删子节点",
-      "expected": "除根节点与 /zookeeper 的读之外一律 NoAuth；带账户的客户端全部成功；/lock、各锁的父节点与它们之间的中间节点都是持久节点（ephemeralOwner 为 0）",
-      "deferred_tests": [
+      "tests": [
         "ZkSecurityAcceptanceIT#igt40_41_42_allMetadataPathsAndPersistentLockParents"
-      ]
+      ],
+      "design_steps": "全新的 ZooKeeper，IGinX 带账户、creator 模式启动，建用户、存储引擎、UDF，并执行一次迁移命令的 apply（只有它收回根节点的建、删权限）。然后用不带账户的 Curator 客户端对 IGinX 用到的每个路径（第 2 章 F1、F3 的全部常量）做读数据、列子节点、建子节点、改数据、删除；在根节点下建节点；对 /lock 与各锁的父节点建、删子节点",
+      "expected": "除根节点与 /zookeeper 的读之外一律 NoAuth；带账户的客户端全部成功；/lock、各锁的父节点与它们之间的中间节点都是持久节点（ephemeralOwner 为 0）"
     },
     {
       "id": "IGT-41",
       "pr": 5,
-      "tests": [],
-      "design_steps": "建用户 u，口令为一个 24 位的随机串；不带账户的客户端遍历它能列出的全部节点并读出能读的数据；再对根节点与 IGinX 用到的每个路径调用 getACL",
-      "expected": "任何读到的数据里都找不到 u 的口令；除根节点外 getACL 一律 NoAuth；根节点返回的访问控制里没有 IGinX 的 ZooKeeper 账户口令的摘要（测试按 digest 的算法算出摘要再去找）",
-      "deferred_tests": [
+      "tests": [
         "ZkSecurityAcceptanceIT#igt40_41_42_allMetadataPathsAndPersistentLockParents"
-      ]
+      ],
+      "design_steps": "建用户 u，口令为一个 24 位的随机串；不带账户的客户端遍历它能列出的全部节点并读出能读的数据；再对根节点与 IGinX 用到的每个路径调用 getACL",
+      "expected": "任何读到的数据里都找不到 u 的口令；除根节点外 getACL 一律 NoAuth；根节点返回的访问控制里没有 IGinX 的 ZooKeeper 账户口令的摘要（测试按 digest 的算法算出摘要再去找）"
     },
     {
       "id": "IGT-42",
       "pr": 5,
-      "tests": [],
+      "tests": [
+        "ZkSecurityAcceptanceIT#igt40_41_42_allMetadataPathsAndPersistentLockParents"
+      ],
       "design_steps": "ZooKeeper 的容器清理周期设为 1 秒（服务端的 JVM 参数 znode.container.checkIntervalMs）。先让 IGinX 用过其中几个锁（建用户、加存储引擎、注册函数、提交作业，使 /lock/user、/lock/storage、/lock/pyFunction、/lock/transformJob 曾经有过子节点；ZooKeeper 只回收曾经有过子节点的容器节点），然后空闲 10 秒；然后不带账户的客户端尝试在锁的父节点下建节点；IGinX 执行要加锁的操作（建用户、加存储引擎）",
       "expected": "17 个锁的父节点与 7 个中间节点都还在，ephemeralOwner 为 0、不是容器节点；不带账户的建节点被拒绝；IGinX 的操作正常",
-      "semantic_note": "Recovered scheduled jobs receive new execution IDs; check the retained schedule YAML and active recovered job, not the expired execution ID.",
-      "deferred_tests": [
-        "ZkSecurityAcceptanceIT#igt40_41_42_allMetadataPathsAndPersistentLockParents"
-      ]
+      "semantic_note": "Recovered scheduled jobs receive new execution IDs; check the retained schedule YAML and active recovered job, not the expired execution ID."
     },
     {
       "id": "IGT-43",
       "pr": 5,
-      "tests": [],
+      "tests": [
+        "ZkRollingMigrationIT#igt43_migrateAndRollbackWithoutLosingDataOrMetadata"
+      ],
       "design_steps": "三个 IGinX 节点，从没有安全配置文件的状态开始（行为与不打补丁相同），已有数据、用户、UDF、Transform 作业，/lock 下有容器节点。第一步：逐个放入安全配置文件（zookeeper.acl=open、internal.auth=optional）并重启，每次重启后读写一次。第二步：执行迁移命令 check、apply、check；其间由 Admin 新建一个用户；把 zookeeper.acl 改为 creator、internal.auth 改为 required，逐个重启，每次后读写一次。全部重启完之后再执行一次 apply 与 check，然后执行第三次 apply。最后做回退：把 zookeeper.acl 改回 open、internal.auth 改回 optional 并逐个重启，执行 revert 与 check；逐个节点删掉安全配置文件并重启，每次重启后读写一次，其间在还带安全配置文件的节点上由 Admin 新建一个用户，再从已删掉安全配置文件的节点读出这个用户",
       "expected": "每次重启后集群可读写，第一步中途新旧节点之间的用户与元数据同步正常；迁移之前 check 分别报出三种问题（节点开放、根节点可建删、锁父节点是容器节点）；apply 之后 check 无问题、退出码为 0；第二次 apply 只改动两次重启之间新建的节点，随后 check 无问题，第三次 apply 报告没有改动；空的容器锁父节点被改建为持久节点；revert 之后不带账户的客户端又能读，check 列出问题、退出码非 0；已删掉安全配置文件的节点读得到回退期间新建的用户；回退之后三个节点都回到不启用的行为（会话号 0 可以执行），集群可读写；全过程数据、用户、UDF、作业不丢",
-      "semantic_note": "Recovered scheduled jobs receive new execution IDs; check the retained schedule YAML and active recovered job, not the expired execution ID.",
-      "deferred_tests": [
-        "ZkRollingMigrationIT#igt43_migrateAndRollbackWithoutLosingDataOrMetadata"
-      ]
+      "semantic_note": "Recovered scheduled jobs receive new execution IDs; check the retained schedule YAML and active recovered job, not the expired execution ID."
     },
     {
       "id": "IGT-44",
       "pr": 5,
-      "tests": [],
-      "design_steps": "根节点下预先有另一个应用的 /other 与 /indagent（另一个账户、自己的访问控制）。执行 apply 与 revert",
-      "expected": "/other、/indagent 与 /zookeeper 的访问控制与内容不变，/indagent 的账户仍可读写；apply 之后、revert 之前，另一个应用在自己的 /other 之下照常建、删子节点，在根节点下新建节点被拒绝",
-      "deferred_tests": [
+      "tests": [
         "ZkSecurityAcceptanceIT#igt44_otherApplicationsKeepTheirAclAndData"
-      ]
+      ],
+      "design_steps": "根节点下预先有另一个应用的 /other 与 /indagent（另一个账户、自己的访问控制）。执行 apply 与 revert",
+      "expected": "/other、/indagent 与 /zookeeper 的访问控制与内容不变，/indagent 的账户仍可读写；apply 之后、revert 之前，另一个应用在自己的 /other 之下照常建、删子节点，在根节点下新建节点被拒绝"
     },
     {
       "id": "IGT-45",
       "pr": 5,
-      "tests": [],
-      "design_steps": "单节点，open 模式，/lock 下已有容器节点。测试用 ProcessBuilder 调用迁移脚本（Windows 上是 .bat）。依次：用错误的口令执行 check；把连接串指向没有监听的端口执行 check；测试用带账户的 Curator 客户端持有 /lock/user 下的一个锁，这时执行 apply，释放之后再执行 apply；执行 revert 两次",
-      "expected": "前两次退出码非 0，输出里分别写明“账户或口令不对”“连不上”，不含口令；持锁时的 apply 报告 /lock/user 被跳过、退出码按“未完成”约定为非 0，其余节点已改好；释放后的 apply 把 /lock/user 改建为持久节点，随后 check 退出码为 0；第二次 revert 报告没有改动。Windows 上 .bat 的退出码与输出与 .sh 相同",
-      "deferred_tests": [
+      "tests": [
         "ZkSecurityAcceptanceIT#igt45_realScriptsFailureExitCodesAndHeldLockRetry"
-      ]
+      ],
+      "design_steps": "单节点，open 模式，/lock 下已有容器节点。测试用 ProcessBuilder 调用迁移脚本（Windows 上是 .bat）。依次：用错误的口令执行 check；把连接串指向没有监听的端口执行 check；测试用带账户的 Curator 客户端持有 /lock/user 下的一个锁，这时执行 apply，释放之后再执行 apply；执行 revert 两次",
+      "expected": "前两次退出码非 0，输出里分别写明“账户或口令不对”“连不上”，不含口令；持锁时的 apply 报告 /lock/user 被跳过、退出码按“未完成”约定为非 0，其余节点已改好；释放后的 apply 把 /lock/user 改建为持久节点，随后 check 退出码为 0；第二次 revert 报告没有改动。Windows 上 .bat 的退出码与输出与 .sh 相同"
     },
     {
       "id": "IGT-50",

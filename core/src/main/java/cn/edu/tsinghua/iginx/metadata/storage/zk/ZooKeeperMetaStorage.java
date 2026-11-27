@@ -136,13 +136,18 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
   public ZooKeeperMetaStorage() {
     client =
-        CuratorFrameworkFactory.builder()
+        ZooKeeperSecurity.configure(
+                CuratorFrameworkFactory.builder(),
+                cn.edu.tsinghua.iginx.security.SecurityConfig.getInstance())
             .connectString(
                 ConfigDescriptor.getInstance().getConfig().getZookeeperConnectionString())
             .connectionTimeoutMs(15000)
             .retryPolicy(new RetryForever(1000))
             .build();
     client.start();
+    if (cn.edu.tsinghua.iginx.security.SecurityConfig.getInstance().get("zookeeper.user") != null) {
+      ZooKeeperSecurity.ensurePersistentLocks(client);
+    }
 
     fragmentMutex = new InterProcessMutex(client, FRAGMENT_LOCK_NODE);
     storageUnitMutex = new InterProcessMutex(client, STORAGE_UNIT_LOCK_NODE);
@@ -181,15 +186,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             .forPath(IGINX_INFO_NODE_PREFIX);
       } else {
         List<String> children = client.getChildren().forPath(IGINX_INFO_NODE_PREFIX);
-        for (String childName : children) {
-          byte[] data = client.getData().forPath(IGINX_INFO_NODE_PREFIX + "/" + childName);
-          IginxMeta iginxMeta = JsonUtils.fromJson(data, IginxMeta.class);
-          if (iginxMeta == null) {
-            LOGGER.error("resolve data from {}/{} error", IGINX_INFO_NODE_PREFIX, childName);
-            continue;
-          }
-          iginxMetaMap.putIfAbsent(iginxMeta.getId(), iginxMeta);
-        }
+        iginxMetaMap.putAll(readIginxMembers(client, children));
       }
       registerIginxListener();
       return iginxMetaMap;
@@ -203,6 +200,28 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             "get error when release interprocess lock for " + IGINX_LOCK_NODE, e);
       }
     }
+  }
+
+  static Map<Long, IginxMeta> readIginxMembers(CuratorFramework client, List<String> children)
+      throws Exception {
+    Map<Long, IginxMeta> members = new HashMap<>();
+    for (String childName : children) {
+      byte[] data;
+      try {
+        data = client.getData().forPath(IGINX_INFO_NODE_PREFIX + "/" + childName);
+      } catch (KeeperException.NoNodeException departed) {
+        // Session expiry deletes ephemeral membership without acquiring our mutex.
+        // A departed member is absent from this snapshot, not a startup failure.
+        continue;
+      }
+      IginxMeta member = JsonUtils.fromJson(data, IginxMeta.class);
+      if (member == null) {
+        LOGGER.error("resolve data from {}/{} error", IGINX_INFO_NODE_PREFIX, childName);
+        continue;
+      }
+      members.putIfAbsent(member.getId(), member);
+    }
+    return members;
   }
 
   @Override
@@ -541,13 +560,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       multiLock.acquire();
       List<Long> achievableIds = new ArrayList<>();
       List<String> children = client.getChildren().forPath(IGINX_INFO_NODE_PREFIX);
-      for (String childName : children) {
-        byte[] data = client.getData().forPath(IGINX_INFO_NODE_PREFIX + "/" + childName);
-        IginxMeta iginxMeta = JsonUtils.fromJson(data, IginxMeta.class);
-        if (iginxMeta == null) {
-          LOGGER.error("resolve data from {}/{} error", IGINX_INFO_NODE_PREFIX, childName);
-          continue;
-        }
+      for (IginxMeta iginxMeta : readIginxMembers(client, children).values()) {
         if (iginx.getIp().equals(iginxMeta.getIp()) && iginx.getPort() == iginxMeta.getPort()) {
           continue;
         }
@@ -605,18 +618,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         client.create().withMode(CreateMode.EPHEMERAL).forPath(IGINX_CONNECTION_NODE_PREFIX);
       } else {
         List<String> children = client.getChildren().forPath(IGINX_CONNECTION_NODE_PREFIX);
-        for (String childName : children) {
-          byte[] data = client.getData().forPath(IGINX_CONNECTION_NODE_PREFIX + "/" + childName);
-          long[] toIds = JsonUtils.fromJson(data, long[].class);
-          if (toIds == null) {
-            LOGGER.error("resolve data from {}/{} error", IGINX_CONNECTION_NODE_PREFIX, childName);
-            continue;
-          }
-          long fromId = Long.parseLong(childName.substring(NODE_PREFIX.length()));
-          for (long toId : toIds) {
-            connectionMap.computeIfAbsent(fromId, k -> new HashSet<>()).add(toId);
-          }
-        }
+        connectionMap.putAll(readConnections(client, IGINX_CONNECTION_NODE_PREFIX, children));
       }
       return connectionMap;
     } catch (Exception e) {
@@ -699,19 +701,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         client.create().withMode(CreateMode.EPHEMERAL).forPath(STORAGE_CONNECTION_NODE_PREFIX);
       } else {
         List<String> children = client.getChildren().forPath(STORAGE_CONNECTION_NODE_PREFIX);
-        for (String childName : children) {
-          byte[] data = client.getData().forPath(STORAGE_CONNECTION_NODE_PREFIX + "/" + childName);
-          long[] storageIds = JsonUtils.fromJson(data, long[].class);
-          if (storageIds == null) {
-            LOGGER.error(
-                "resolve data from {}/{} error", STORAGE_CONNECTION_NODE_PREFIX, childName);
-            continue;
-          }
-          long iginxId = Long.parseLong(childName.substring(NODE_PREFIX.length()));
-          for (long storageId : storageIds) {
-            connectionMap.computeIfAbsent(iginxId, k -> new HashSet<>()).add(storageId);
-          }
-        }
+        connectionMap.putAll(readConnections(client, STORAGE_CONNECTION_NODE_PREFIX, children));
       }
       return connectionMap;
     } catch (Exception e) {
@@ -724,6 +714,30 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             "get error when release interprocess lock for " + STORAGE_CONNECTION_LOCK_NODE, e);
       }
     }
+  }
+
+  static Map<Long, Set<Long>> readConnections(
+      CuratorFramework client, String parent, List<String> children) throws Exception {
+    Map<Long, Set<Long>> connections = new HashMap<>();
+    for (String childName : children) {
+      byte[] data;
+      try {
+        data = client.getData().forPath(parent + "/" + childName);
+      } catch (KeeperException.NoNodeException departed) {
+        // Session expiry removes ephemeral connections without taking our application lock.
+        continue;
+      }
+      long[] targets = JsonUtils.fromJson(data, long[].class);
+      if (targets == null) {
+        LOGGER.error("resolve data from {}/{} error", parent, childName);
+        continue;
+      }
+      long fromId = Long.parseLong(childName.substring(NODE_PREFIX.length()));
+      for (long target : targets) {
+        connections.computeIfAbsent(fromId, k -> new HashSet<>()).add(target);
+      }
+    }
+    return connections;
   }
 
   @Override

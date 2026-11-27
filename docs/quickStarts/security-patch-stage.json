@@ -1,5 +1,5 @@
 {
-  "stage": 4,
+  "stage": 5,
   "classes": [
     "ClusterRegressionAcceptanceIT",
     "CodeRegistrationIT",
@@ -20,7 +20,11 @@
     "StartupScriptIT",
     "StatementAuthTableTest",
     "UploadRegistryTest",
+    "ZkAclTest",
+    "ZkRollingMigrationIT",
+    "ZkSecurityAcceptanceIT",
     "UserChangeTrackerTest",
+    "ZooKeeperMembershipTest",
     "MemTableQueueNotificationTest"
   ],
   "notes": "Cumulative chapter-10 PR. Deferred scenario methods are explicit in security-test-matrix.json."
