@@ -274,7 +274,8 @@
       "id": "IGT-30",
       "pr": 2,
       "tests": [
-        "SessionRevokeAcceptanceIT#igt30_twentyRoundsAllChangesAllNodes"
+        "SessionRevokeAcceptanceIT#igt30_twentyRoundsAllChangesAllNodes",
+        "ResultResponseTest#earlyAccessDenialSurvivesThriftRoundTrip"
       ],
       "design_steps": "三个 IGinX 节点。用户 u 在每个节点开 2 个会话，用户 v 各开 1 个。在节点 1 依次执行：GRANT 把 u 从 Read、Write 改为 Read；ALTER USER 改 u 的口令；DROP USER u。每次之后各节点每 100 毫秒用 u 的旧会话执行一条语句。其中一次在 u 的一个分页查询取到一半时变更。整组重复 20 次，ZooKeeper 与 etcd 两种元数据存储各做一遍",
       "expected": "每次变更后 5 秒内 u 在三个节点上的旧会话全部被拒绝，记下每个节点的实际时延与 20 次中的最大值；取到一半的查询此后取不到下一页；被取消的语句在 5 秒内返回，全部做完之后 IGinX 的工作线程数没有增长；v 始终不受影响；用新口令、新权限重新登录后行为符合新权限"
