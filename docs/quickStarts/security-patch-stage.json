@@ -1,10 +1,12 @@
 {
-  "stage": 6,
+  "stage": 7,
   "classes": [
     "ClusterRegressionAcceptanceIT",
     "CodeRegistrationIT",
     "EtcdAuthIT",
     "EtcdClusterAuthIT",
+    "FsEngineAuthIT",
+    "InternalAuthTest",
     "InternalRequestIT",
     "MqttLegacyIT",
     "MqttSecurityAcceptanceIT",

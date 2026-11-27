@@ -312,22 +312,20 @@
     {
       "id": "IGT-34",
       "pr": 7,
-      "tests": [],
-      "design_steps": "三个 IGinX 节点，安全模式，internal.auth=required，replicaNum 取 1，两个 FileSystem 存储引擎分在两个节点上，indagent 下有数据。用原始的 FileSystemRpc 客户端不带凭据连接存储引擎的端口，调用 getUnits、query、insert、delete；带错误的凭据再做一遍；然后经会话接口跨节点读写一次",
-      "expected": "两遍的调用一律被拒绝，存储中的数据逐列不变；带正确凭据的 IGinX 节点之间读写正常",
-      "deferred_tests": [
+      "tests": [
         "FsEngineAuthIT#igt34_fourMethodsTwoInvalidCredentialsPreserveBothReplicas"
-      ]
+      ],
+      "design_steps": "三个 IGinX 节点，安全模式，internal.auth=required，replicaNum 取 1，两个 FileSystem 存储引擎分在两个节点上，indagent 下有数据。用原始的 FileSystemRpc 客户端不带凭据连接存储引擎的端口，调用 getUnits、query、insert、delete；带错误的凭据再做一遍；然后经会话接口跨节点读写一次",
+      "expected": "两遍的调用一律被拒绝，存储中的数据逐列不变；带正确凭据的 IGinX 节点之间读写正常"
     },
     {
       "id": "IGT-35",
       "pr": 7,
-      "tests": [],
-      "design_steps": "三个节点，replicaNum 取 1，两个 FileSystem 存储引擎分在两个节点上，从没有安全配置文件的状态开始。逐个放入安全配置文件（internal.auth=optional）并重启，再逐个改为 required 并重启，每次重启后跨节点读写一次；全部改为 required 之后，用不带凭据的 FileSystemRpc 客户端调用一次",
-      "expected": "每次重启后都可读写：不带凭据的节点与 optional 的节点可以并存，optional 与 required 的节点可以并存；全部为 required 之后不带凭据的调用被拒绝",
-      "deferred_tests": [
+      "tests": [
         "FsEngineAuthIT#igt35_optionalThenRequiredRollingRestart"
-      ]
+      ],
+      "design_steps": "三个节点，replicaNum 取 1，两个 FileSystem 存储引擎分在两个节点上，从没有安全配置文件的状态开始。逐个放入安全配置文件（internal.auth=optional）并重启，再逐个改为 required 并重启，每次重启后跨节点读写一次；全部改为 required 之后，用不带凭据的 FileSystemRpc 客户端调用一次",
+      "expected": "每次重启后都可读写：不带凭据的节点与 optional 的节点可以并存，optional 与 required 的节点可以并存；全部为 required 之后不带凭据的调用被拒绝"
     },
     {
       "id": "IGT-36",

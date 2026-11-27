@@ -45,6 +45,7 @@ struct DataBoundary {
 }
 
 struct RawDataTarget {
+    127: optional string credential
     1: optional list<string> patterns
     2: optional core.RawTagFilter tagFilter
     3: optional core.RawFilter filter
@@ -56,6 +57,7 @@ struct RawDataSet {
 }
 
 struct RawPrefix {
+    127: optional string credential
     1: optional string prefix
 }
 
@@ -64,6 +66,7 @@ struct RawAggregate {
 }
 
 struct RawInserted {
+    127: optional string credential
     1: required list<string> patterns
     2: required list<map<string, string>> tagsList
     3: required binary keys
