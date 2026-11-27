@@ -33,25 +33,6 @@ import org.apache.thrift.transport.TSocket;
 final class ClusterTestFixture {
   static void start(SecurityTestEnvironment env, int replicas, String security, int engines)
       throws Exception {
-    // Migration fixtures preserve existing replica metadata; first-start behavior is tested by PR
-    // 8.
-    if (replicas > 0) {
-      org.apache.curator.framework.CuratorFramework client =
-          org.apache.curator.framework.CuratorFrameworkFactory.newClient(
-              "127.0.0.1:" + env.factory.getLocalPort(),
-              new org.apache.curator.retry.RetryOneTime(100));
-      client.start();
-      try {
-        client.blockUntilConnected(10, TimeUnit.SECONDS);
-        client
-            .create()
-            .forPath(
-                "/replicaNum",
-                Integer.toString(replicas).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-      } finally {
-        client.close();
-      }
-    }
     for (int i = 0; i < 3; i++) {
       SecurityTestEnvironment.Node n = env.node(replicas, security);
       if (i >= engines)

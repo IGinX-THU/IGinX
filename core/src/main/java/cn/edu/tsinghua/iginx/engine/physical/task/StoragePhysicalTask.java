@@ -35,6 +35,15 @@ public class StoragePhysicalTask extends AbstractPhysicalTask {
   private String storageUnit;
   private long storage;
   private boolean dummyStorageUnit;
+  private final java.util.Set<String> failedReadUnits = new java.util.HashSet<>();
+
+  public void recordReadFailure(String unit) {
+    failedReadUnits.add(unit);
+  }
+
+  public boolean hasReadFailure(String unit) {
+    return failedReadUnits.contains(unit);
+  }
 
   public StoragePhysicalTask(List<Operator> operators, RequestContext context) {
     this(

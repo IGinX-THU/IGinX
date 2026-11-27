@@ -44,6 +44,7 @@ import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
@@ -166,8 +167,9 @@ public class StoragePhysicalTaskExecutor {
             // 重连失败，尝试更换为副本中的数据
             if (!hasInitialized) {
               boolean foundAvailableStorage = false;
+              task.recordReadFailure(storageUnit);
               for (StorageUnitMeta replica : replicas) {
-                if (replica.getId().equals(storageUnit)) {
+                if (task.hasReadFailure(replica.getId())) {
                   continue;
                 }
                 long replicaId = replica.getStorageEngineId();
@@ -305,6 +307,12 @@ public class StoragePhysicalTaskExecutor {
           result = new TaskExecuteResult(new UnsupportedPhysicalTaskException());
       }
     } catch (Exception e) {
+      // A connected engine can fail after initialization. Retry read-only tasks on each
+      // remaining replica once; never replay a write or bypass an authorization failure.
+      if (op.getType() == OperatorType.Project
+          && !task.isDummyStorageUnit()
+          && isConnectionFailure(e)
+          && retryReadReplica(task, storageUnit)) return;
       LOGGER.error("execute task error: ", e);
       result = new TaskExecuteResult(new PhysicalException(e));
     }
@@ -388,6 +396,31 @@ public class StoragePhysicalTaskExecutor {
     return null;
   }
 
+  private boolean retryReadReplica(StoragePhysicalTask task, String failedUnit) {
+    task.recordReadFailure(failedUnit);
+    StorageUnitMeta master = task.getTargetFragment().getMasterStorageUnit();
+    List<StorageUnitMeta> replicas = new ArrayList<>(master.getReplicas());
+    replicas.add(master);
+    for (StorageUnitMeta replica : replicas) {
+      StoragePhysicalTaskQueue queue = storageTaskQueues.get(replica.getId());
+      if (queue != null && !task.hasReadFailure(replica.getId())) {
+        queue.addTask(task);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean isConnectionFailure(Throwable error) {
+    for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+      if (cause instanceof org.apache.thrift.transport.TTransportException
+          || cause instanceof java.net.SocketException
+          || cause instanceof java.net.SocketTimeoutException
+          || cause instanceof UnconnectedStorageException) return true;
+    }
+    return false;
+  }
+
   private boolean isCancelled(long sessionId) {
     if (sessionId == 0) { // empty ctx
       return false;
@@ -445,19 +478,23 @@ public class StoragePhysicalTaskExecutor {
     List<StorageEngineMeta> storageEngineList = metaManager.getStorageEngineList();
     List<Flowable<Column>> allStreams = new ArrayList<>();
 
-    for (StorageEngineMeta meta : storageEngineList) {
-      Pair<IStorage, ThreadPoolExecutor> pair = storageManager.getStorage(meta.getId());
-      if (pair == null || pair.k == null) {
-        continue;
+    if (ConfigDescriptor.getInstance().getConfig().getReplicaNum() > 0) {
+      allStreams.add(Flowable.fromIterable(readReplicatedColumns(showColumns, storageEngineList)));
+    } else
+      for (StorageEngineMeta meta : storageEngineList) {
+        Pair<IStorage, ThreadPoolExecutor> pair = storageManager.getStorage(meta.getId());
+        if (pair == null || pair.k == null) {
+          continue;
+        }
+        IStorage storage = pair.k;
+        ThreadPoolExecutor executor = pair.v;
+
+        Flowable<Column> stream =
+            getColumnsFromStorage(showColumns, meta, storage)
+                .subscribeOn(Schedulers.from(executor));
+
+        allStreams.add(stream);
       }
-      IStorage storage = pair.k;
-      ThreadPoolExecutor executor = pair.v;
-
-      Flowable<Column> stream =
-          getColumnsFromStorage(showColumns, meta, storage).subscribeOn(Schedulers.from(executor));
-
-      allStreams.add(stream);
-    }
 
     Flowable<Column> columnStream =
         Flowable.merge(allStreams, 20).distinct(Column::getPhysicalPath);
@@ -471,6 +508,58 @@ public class StoragePhysicalTaskExecutor {
       columnStream = columnStream.take(limit);
     }
     return columnStream.blockingIterable().iterator();
+  }
+
+  private List<Column> readReplicatedColumns(ShowColumns show, List<StorageEngineMeta> engines)
+      throws PhysicalException {
+    Map<StorageEngineMeta, Throwable> failures = new ConcurrentHashMap<>();
+    Set<Long> completed = ConcurrentHashMap.newKeySet();
+    List<Flowable<Column>> streams = new ArrayList<>();
+    for (StorageEngineMeta engine : engines) {
+      Pair<IStorage, ThreadPoolExecutor> storage = storageManager.getStorage(engine.getId());
+      if (storage == null || storage.k == null) {
+        failures.put(engine, new IllegalStateException("Storage is unavailable"));
+        continue;
+      }
+      streams.add(
+          Flowable.<Column>defer(() -> getColumnsFromStorage(show, engine, storage.k))
+              .doOnComplete(() -> completed.add(engine.getId()))
+              .onErrorResumeNext(
+                  error -> {
+                    if (!isConnectionFailure(error)) return Flowable.error(error);
+                    failures.put(engine, error);
+                    return Flowable.empty();
+                  })
+              .subscribeOn(Schedulers.from(storage.v)));
+    }
+    List<Column> columns;
+    try {
+      columns = Flowable.merge(streams, 20).toList().blockingGet();
+    } catch (RuntimeException error) {
+      throw new PhysicalException(error);
+    }
+    // Validate coverage before pagination. Never return a partial schema when a failed engine
+    // holds unreplicated history or when every copy of any storage unit is unavailable.
+    for (Map.Entry<StorageEngineMeta, Throwable> failure : failures.entrySet()) {
+      if (!hasReadableColumnReplica(failure.getKey(), completed))
+        throw new PhysicalException(failure.getValue());
+    }
+    return columns;
+  }
+
+  private boolean hasReadableColumnReplica(StorageEngineMeta failed, Set<Long> completed) {
+    if (failed.isHasData()) return false;
+    for (StorageUnitMeta unit : metaManager.getStorageUnits()) {
+      if (unit.getStorageEngineId() != failed.getId()) continue;
+      if (unit.isDummy()) return false;
+      StorageUnitMeta master =
+          unit.isMaster() ? unit : metaManager.getStorageUnit(unit.getMasterId());
+      if (master == null) return false;
+      if (!completed.contains(master.getStorageEngineId())
+          && master.getReplicas().stream()
+              .noneMatch(replica -> completed.contains(replica.getStorageEngineId()))) return false;
+    }
+    return true;
   }
 
   private Flowable<Column> getColumnsFromStorage(

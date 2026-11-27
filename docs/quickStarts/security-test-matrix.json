@@ -60,12 +60,11 @@
     {
       "id": "IGT-07",
       "pr": 8,
-      "tests": [],
-      "design_steps": "用手写的桩元数据（返回给定的可写引擎列表）构造 NaivePolicy。一、replicaNum=1、只有一个可写引擎，先置“需要重新分片”，再对一条插入语句调用 generateFragmentsAndStorageUnits；二、同样的条件配置 clients 与 instancesNumPerClient，调用 generateInitialFragmentsAndStorageUnits；三、replicaNum=0、只有一个可写引擎，重复一与二；四、replicaNum=1、两个可写引擎，重复一与二",
-      "expected": "一、二都抛出存储引擎不足的异常（与 AbstractPolicy.generateStorageEngineIdList 相同的异常与消息），不返回分片，也不是下标越界；三照常生成分片，每个存储单元没有副本，与补丁之前相同；四照常生成分片，每个存储单元带一个副本。补丁之前先跑一遍：一返回不带副本的分片，二下标越界",
-      "deferred_tests": [
+      "tests": [
         "NaivePolicyReplicaTest#notEnoughEngines"
-      ]
+      ],
+      "design_steps": "用手写的桩元数据（返回给定的可写引擎列表）构造 NaivePolicy。一、replicaNum=1、只有一个可写引擎，先置“需要重新分片”，再对一条插入语句调用 generateFragmentsAndStorageUnits；二、同样的条件配置 clients 与 instancesNumPerClient，调用 generateInitialFragmentsAndStorageUnits；三、replicaNum=0、只有一个可写引擎，重复一与二；四、replicaNum=1、两个可写引擎，重复一与二",
+      "expected": "一、二都抛出存储引擎不足的异常（与 AbstractPolicy.generateStorageEngineIdList 相同的异常与消息），不返回分片，也不是下标越界；三照常生成分片，每个存储单元没有副本，与补丁之前相同；四照常生成分片，每个存储单元带一个副本。补丁之前先跑一遍：一返回不带副本的分片，二下标越界"
     },
     {
       "id": "IGT-08",
@@ -301,13 +300,11 @@
       "id": "IGT-33",
       "pr": 1,
       "tests": [
-        "ClusterRegressionAcceptanceIT#igt33_storageChangesRestartsAndFourthNode"
+        "ClusterRegressionAcceptanceIT#igt33_storageChangesRestartsAndFourthNode",
+        "ClusterRegressionAcceptanceIT#igt33_thousandRowsCloseRevokeRestAndPrimaryFailure"
       ],
       "design_steps": "安全模式下的三节点集群，布局照 cluster-test.yml（IoTDB12 与三个本地 filesystem 引擎）：以 root 运行现有的 ClusterIT；增加、删除存储引擎；逐个重启节点；再扩容一个节点（重启与扩容是工作流里的步骤，扩容与增删存储引擎都放在 ClusterIT 之后）。另一遍 replicaNum 取 1：一个账户连续写入 1 000 行后立即关闭会话，另一次在写入途中由 Admin 改它的口令；经 REST 写入 1 000 行；然后停掉主单元所在的存储引擎，从副本读回",
-      "expected": "ClusterIT 全部通过；增删存储引擎、重启、扩容都正常；新节点同样在安全模式下（会话号 0 被拒绝）；停掉主单元所在的存储引擎之后，从副本读回的行数与已返回成功的写入相同",
-      "deferred_tests": [
-        "ClusterRegressionAcceptanceIT#igt33_thousandRowsCloseRevokeRestAndPrimaryFailure"
-      ]
+      "expected": "ClusterIT 全部通过；增删存储引擎、重启、扩容都正常；新节点同样在安全模式下（会话号 0 被拒绝）；停掉主单元所在的存储引擎之后，从副本读回的行数与已返回成功的写入相同"
     },
     {
       "id": "IGT-34",
@@ -330,24 +327,22 @@
     {
       "id": "IGT-36",
       "pr": 8,
-      "tests": [],
-      "design_steps": "清空 ZooKeeper；三个 IGinX 节点的 storageEngineList 各只列自己的本地 FileSystem 引擎，replicaNum 都取 1。先只启动 6888：执行 SHOW REPLICA NUMBER，读 ZooKeeper 的 /replicaNum，查启动日志，再写一行。然后启动 6889、6890，在三个节点上各执行一次 SHOW REPLICA NUMBER，写入一批数据并读回；停掉其中一个分片的主存储单元所在的节点，再读这批数据。补丁之前先跑一遍，记下 SHOW REPLICA NUMBER 的返回值",
-      "expected": "只有 6888 时 SHOW REPLICA NUMBER 返回 2，/replicaNum 为 1，日志里有一条可写引擎不足的警告；这时写入返回错误，消息写明存储引擎不足，元数据里没有生成分片。三个节点都启动之后三处都返回 2，写入成功、读回一致；停掉主存储单元所在的节点之后仍读得到（读的是副本）。补丁之前返回 1（F21 的运行验证）",
-      "deferred_tests": [
+      "tests": [
         "ReplicaNumIT#igt36_firstStartPreservesConfiguredReplicasAndSurvivesPrimaryLoss",
         "ReplicaNumIT#igt36_wildcardUsesReplicaAndFailsWhenEveryCopyIsOffline"
-      ]
+      ],
+      "design_steps": "清空 ZooKeeper；三个 IGinX 节点的 storageEngineList 各只列自己的本地 FileSystem 引擎，replicaNum 都取 1。先只启动 6888：执行 SHOW REPLICA NUMBER，读 ZooKeeper 的 /replicaNum，查启动日志，再写一行。然后启动 6889、6890，在三个节点上各执行一次 SHOW REPLICA NUMBER，写入一批数据并读回；停掉其中一个分片的主存储单元所在的节点，再读这批数据。补丁之前先跑一遍，记下 SHOW REPLICA NUMBER 的返回值",
+      "expected": "只有 6888 时 SHOW REPLICA NUMBER 返回 2，/replicaNum 为 1，日志里有一条可写引擎不足的警告；这时写入返回错误，消息写明存储引擎不足，元数据里没有生成分片。三个节点都启动之后三处都返回 2，写入成功、读回一致；停掉主存储单元所在的节点之后仍读得到（读的是副本）。补丁之前返回 1（F21 的运行验证）"
     },
     {
       "id": "IGT-37",
       "pr": 8,
-      "tests": [],
-      "design_steps": "一、清空 ZooKeeper 后预先写入 /replicaNum 为 0（模拟补丁之前已经建好的集群），配置 replicaNum=1，启动三个节点，执行 SHOW REPLICA NUMBER 并写入一批数据。二、清空 ZooKeeper，配置 replicaNum=2，只启动两个节点，写入；再启动第三个节点，写入。三、同二的前一半，但配置 clients 与 instancesNumPerClient，让 NaivePolicy 走按客户端生成初始分片的分支",
-      "expected": "一、返回 1（沿用已记下的 0），写入成功，与补丁之前相同。二、两个节点时写入返回错误、没有生成分片；第三个节点启动之后写入成功，SHOW REPLICA NUMBER 返回 3。三、同二，返回的是存储引擎不足的错误，不是下标越界",
-      "deferred_tests": [
+      "tests": [
         "ReplicaNumIT#igt37_existingMetadataWinsOverConfiguration",
         "ReplicaNumIT#igt37_twoReplicasNeedThreeEnginesIncludingClientPartitioning"
-      ]
+      ],
+      "design_steps": "一、清空 ZooKeeper 后预先写入 /replicaNum 为 0（模拟补丁之前已经建好的集群），配置 replicaNum=1，启动三个节点，执行 SHOW REPLICA NUMBER 并写入一批数据。二、清空 ZooKeeper，配置 replicaNum=2，只启动两个节点，写入；再启动第三个节点，写入。三、同二的前一半，但配置 clients 与 instancesNumPerClient，让 NaivePolicy 走按客户端生成初始分片的分支",
+      "expected": "一、返回 1（沿用已记下的 0），写入成功，与补丁之前相同。二、两个节点时写入返回错误、没有生成分片；第三个节点启动之后写入成功，SHOW REPLICA NUMBER 返回 3。三、同二，返回的是存储引擎不足的错误，不是下标越界"
     },
     {
       "id": "IGT-40",

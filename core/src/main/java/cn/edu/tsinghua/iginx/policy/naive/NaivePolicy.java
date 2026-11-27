@@ -188,6 +188,9 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
     String[] clients = config.getClients().split(",");
     int instancesNumPerClient = config.getInstancesNumPerClient();
     int totalReplicaNum = config.getReplicaNum() + 1;
+    if (storageEngineNum < totalReplicaNum) {
+      throw new IllegalArgumentException("not enough storage engines for replication");
+    }
     String[] prefixes = new String[clients.length * instancesNumPerClient];
     for (int i = 0; i < clients.length; i++) {
       for (int j = 0; j < instancesNumPerClient; j++) {
@@ -218,7 +221,7 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
     fragmentMap.put(new ColumnsInterval(null, prefixes[1]), fragmentMetaList);
 
     for (int i = 1; i < clients.length * instancesNumPerClient - 1; i++) {
-      int masterIndex = i / instancesNumPerClient;
+      int masterIndex = (i / instancesNumPerClient) % storageEngineNum;
       fragmentMetaList = new ArrayList<>();
       masterId = RandomStringUtils.randomAlphanumeric(16);
       // TODO 全链路同机
@@ -360,6 +363,9 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
       // 系统中无可写存储引擎
       throw new IllegalArgumentException("there are no writable storage engines!");
     } else if (storageEngineNum == 1) {
+      if (replicaNum > storageEngineNum) {
+        throw new IllegalArgumentException("not enough storage engines for replication");
+      }
       // 系统中只有一个可写存储引擎
       // [startKey, +∞) & (null, null)
       storageEngineIdList =

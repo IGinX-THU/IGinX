@@ -140,12 +140,15 @@ public class IginxWorker implements IService.Iface {
   private void loadReplicaNum() {
     int replicaNumConf = config.getReplicaNum();
     int writableStorageNum = metaManager.getWritableStorageEngineList().size();
-    // 取配置文件里的replicaNum和集群中可写的存储节点的数量减一作为集群的写入副本数，之后再和元数据中的配置比较
-    int replicaNumToBeSet = Math.min(replicaNumConf, writableStorageNum - 1);
-    // 保证副本数大于等于0
-    replicaNumToBeSet = Math.max(0, replicaNumToBeSet);
+    int replicaNumToBeSet = Math.max(0, replicaNumConf);
     int replicaNumInMeta = metaManager.setReplicaNum(replicaNumToBeSet);
     config.setReplicaNum(replicaNumInMeta);
+    if (writableStorageNum < (long) replicaNumInMeta + 1) {
+      LOGGER.warn(
+          "Only {} writable storage engines are available; {} are required for replication.",
+          writableStorageNum,
+          (long) replicaNumInMeta + 1);
+    }
     LOGGER.info("Replica number has been set to {}.", replicaNumInMeta);
   }
 
