@@ -51,6 +51,7 @@ import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 import org.apache.curator.retry.RetryForever;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1173,7 +1174,9 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               }
               userMeta = JsonUtils.fromJson(event.getData().getData(), UserMeta.class);
               if (userMeta != null) {
-                userChangeHook.onChange(userMeta.getUsername(), userMeta);
+                userMeta.setRevision(event.getData().getStat().getMzxid());
+                userMeta.setIncarnation(event.getData().getStat().getCzxid());
+                userChangeHook.onChange(userMeta.getUsername(), userMeta, userMeta.getRevision());
               } else {
                 LOGGER.error("resolve user from zookeeper error");
               }
@@ -1182,7 +1185,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               String path = event.getData().getPath();
               String[] pathParts = path.split("/");
               String username = pathParts[pathParts.length - 1];
-              userChangeHook.onChange(username, null);
+              userChangeHook.onChange(username, null, event.getData().getStat().getMzxid());
               break;
             default:
               break;
@@ -1207,12 +1210,16 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       List<UserMeta> users = new ArrayList<>();
       List<String> usernames = this.client.getChildren().forPath(USER_NODE_PREFIX);
       for (String username : usernames) {
-        byte[] data = this.client.getData().forPath(USER_NODE_PREFIX + "/" + username);
+        Stat stat = new Stat();
+        byte[] data =
+            this.client.getData().storingStatIn(stat).forPath(USER_NODE_PREFIX + "/" + username);
         UserMeta user = JsonUtils.fromJson(data, UserMeta.class);
         if (user == null) {
           LOGGER.error("resolve data from {}/{} error", USER_NODE_PREFIX, username);
           continue;
         }
+        user.setRevision(stat.getMzxid());
+        user.setIncarnation(stat.getCzxid());
         users.add(user);
       }
       registerUserListener();
@@ -1244,6 +1251,9 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
           .creatingParentsIfNeeded()
           .withMode(CreateMode.PERSISTENT)
           .forPath(USER_NODE_PREFIX + "/" + userMeta.getUsername(), JsonUtils.toJson(userMeta));
+      Stat stat = client.checkExists().forPath(USER_NODE_PREFIX + "/" + userMeta.getUsername());
+      userMeta.setRevision(stat.getMzxid());
+      userMeta.setIncarnation(stat.getCzxid());
     } catch (Exception e) {
       throw new MetaStorageException("get error when add user", e);
     } finally {
@@ -1261,9 +1271,12 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     InterProcessMutex mutex = new InterProcessMutex(this.client, USER_LOCK_NODE);
     try {
       mutex.acquire();
-      this.client
-          .setData()
-          .forPath(USER_NODE_PREFIX + "/" + userMeta.getUsername(), JsonUtils.toJson(userMeta));
+      Stat stat =
+          this.client
+              .setData()
+              .forPath(USER_NODE_PREFIX + "/" + userMeta.getUsername(), JsonUtils.toJson(userMeta));
+      userMeta.setRevision(stat.getMzxid());
+      userMeta.setIncarnation(stat.getCzxid());
     } catch (Exception e) {
       throw new MetaStorageException("get error when update user", e);
     } finally {
@@ -1277,11 +1290,17 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void removeUser(String username) throws MetaStorageException {
+  public long removeUser(String username) throws MetaStorageException {
     InterProcessMutex mutex = new InterProcessMutex(this.client, USER_LOCK_NODE);
     try {
       mutex.acquire();
-      this.client.delete().forPath(USER_NODE_PREFIX + "/" + username);
+      Stat stat = client.checkExists().forPath(USER_NODE_PREFIX + "/" + username);
+      if (stat == null) throw new org.apache.zookeeper.KeeperException.NoNodeException();
+      this.client
+          .delete()
+          .withVersion(stat.getVersion())
+          .forPath(USER_NODE_PREFIX + "/" + username);
+      return stat.getMzxid();
     } catch (Exception e) {
       throw new MetaStorageException("get error when remove user", e);
     } finally {

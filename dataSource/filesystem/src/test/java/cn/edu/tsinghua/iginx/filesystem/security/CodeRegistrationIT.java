@@ -29,6 +29,46 @@ import org.junit.Test;
 
 public class CodeRegistrationIT {
   @Test(timeout = 90000)
+  public void igt16_backgroundRegistrationSurvivesSubmitterDisconnect() throws Exception {
+    try (SecurityTestEnvironment env = new SecurityTestEnvironment()) {
+      SecurityTestEnvironment.Node node = env.node(0, secure("creator", "required"));
+      node.start();
+      node.user("submitter", AuthType.Admin);
+      node.user("ordinary", AuthType.Read, AuthType.Write);
+      node.admin.execute("INSERT INTO registration_input (key,a) VALUES (1,42);");
+      CodeTestFixture fixture = new CodeTestFixture(node);
+      List<TaskInfo> tasks =
+          Arrays.asList(
+              new TaskInfo(TaskType.SQL, DataFlowType.STREAM)
+                  .setSqlList(
+                      Arrays.asList(fixture.create("in_job"), "SELECT * FROM registration_input;")),
+              new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM).setPyTaskName("in_job"));
+      java.nio.file.Path output = node.home.resolve("background-registration.txt");
+      CommitTransformJobReq request =
+          new CommitTransformJobReq(0, tasks, ExportType.FILE)
+              .setFileName(output.toString())
+              .setSchedule("after 2 second");
+      try (Connection ordinary = node.connect("ordinary", "password");
+          Connection raw = node.raw()) {
+        request.sessionId = ordinary.id;
+        denied(ordinary.client.commitTransformJob(request).status);
+        denied(raw.client.registerTask(fixture.register(0, "forged_internal", false)));
+        denied(raw.client.dropTask(new DropTaskReq(0, "forged_internal")));
+      }
+      long job;
+      try (Connection submitter = node.connect("submitter", "password")) {
+        job = CodeTestFixture.submit(submitter, request);
+      }
+      CodeTestFixture.await(node.admin, job, JobState.JOB_FINISHED);
+      assertTrue(
+          new String(
+                  java.nio.file.Files.readAllBytes(output), java.nio.charset.StandardCharsets.UTF_8)
+              .contains("42"));
+      node.admin.execute("DROP FUNCTION \"in_job\";");
+    }
+  }
+
+  @Test(timeout = 90000)
   public void igt16_deniedDirectoryRegistrationDoesNotInvokePip() throws Exception {
     try (SecurityTestEnvironment env = new SecurityTestEnvironment()) {
       SecurityTestEnvironment.Node node = env.node(0, secure("creator", "required"));
