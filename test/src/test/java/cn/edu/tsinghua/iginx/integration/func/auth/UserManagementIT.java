@@ -19,14 +19,14 @@
  */
 package cn.edu.tsinghua.iginx.integration.func.auth;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.Assert.assertEquals;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,13 +36,13 @@ public class UserManagementIT {
 
   private Session rootSession;
 
-  @BeforeEach
+  @Before
   public void setUp() throws SessionException {
     rootSession = new Session("127.0.0.1", 6888, "root", "root");
     rootSession.openSession();
   }
 
-  @AfterEach
+  @After
   public void tearDown() throws SessionException {
     rootSession.closeSession();
     rootSession = null;
