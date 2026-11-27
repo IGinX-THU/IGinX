@@ -186,15 +186,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             .forPath(IGINX_INFO_NODE_PREFIX);
       } else {
         List<String> children = client.getChildren().forPath(IGINX_INFO_NODE_PREFIX);
-        for (String childName : children) {
-          byte[] data = client.getData().forPath(IGINX_INFO_NODE_PREFIX + "/" + childName);
-          IginxMeta iginxMeta = JsonUtils.fromJson(data, IginxMeta.class);
-          if (iginxMeta == null) {
-            LOGGER.error("resolve data from {}/{} error", IGINX_INFO_NODE_PREFIX, childName);
-            continue;
-          }
-          iginxMetaMap.putIfAbsent(iginxMeta.getId(), iginxMeta);
-        }
+        iginxMetaMap.putAll(readIginxMembers(client, children));
       }
       registerIginxListener();
       return iginxMetaMap;
@@ -208,6 +200,28 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             "get error when release interprocess lock for " + IGINX_LOCK_NODE, e);
       }
     }
+  }
+
+  static Map<Long, IginxMeta> readIginxMembers(CuratorFramework client, List<String> children)
+      throws Exception {
+    Map<Long, IginxMeta> members = new HashMap<>();
+    for (String childName : children) {
+      byte[] data;
+      try {
+        data = client.getData().forPath(IGINX_INFO_NODE_PREFIX + "/" + childName);
+      } catch (KeeperException.NoNodeException departed) {
+        // Session expiry deletes ephemeral membership without acquiring our mutex.
+        // A departed member is absent from this snapshot, not a startup failure.
+        continue;
+      }
+      IginxMeta member = JsonUtils.fromJson(data, IginxMeta.class);
+      if (member == null) {
+        LOGGER.error("resolve data from {}/{} error", IGINX_INFO_NODE_PREFIX, childName);
+        continue;
+      }
+      members.putIfAbsent(member.getId(), member);
+    }
+    return members;
   }
 
   @Override
@@ -546,13 +560,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       multiLock.acquire();
       List<Long> achievableIds = new ArrayList<>();
       List<String> children = client.getChildren().forPath(IGINX_INFO_NODE_PREFIX);
-      for (String childName : children) {
-        byte[] data = client.getData().forPath(IGINX_INFO_NODE_PREFIX + "/" + childName);
-        IginxMeta iginxMeta = JsonUtils.fromJson(data, IginxMeta.class);
-        if (iginxMeta == null) {
-          LOGGER.error("resolve data from {}/{} error", IGINX_INFO_NODE_PREFIX, childName);
-          continue;
-        }
+      for (IginxMeta iginxMeta : readIginxMembers(client, children).values()) {
         if (iginx.getIp().equals(iginxMeta.getIp()) && iginx.getPort() == iginxMeta.getPort()) {
           continue;
         }

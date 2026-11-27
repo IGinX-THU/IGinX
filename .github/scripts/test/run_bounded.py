@@ -87,10 +87,25 @@ def download_failure(output):
         output))
 
 
+def retry_command(command, output):
+    # A shared hosted-runner address can remain rate limited for every retry.
+    # Switch only Central downloads to its documented Google-hosted mirror;
+    # never retry an assertion or change a developer's Maven settings.
+    maven = Path(command[0]).name.lower() in {"mvn", "mvn.cmd", "mvn.bat"}
+    if (os.environ.get("GITHUB_ACTIONS") == "true" and maven
+            and "repo.maven.apache.org" in output and "429" in output
+            and not any(arg in {"-s", "--settings"} for arg in command)):
+        settings = Path(__file__).resolve().parents[2] / "maven-central-mirror.xml"
+        print("Maven Central returned 429; using its Google-hosted mirror for the bounded retry", flush=True)
+        return [command[0], "--settings", str(settings), "-U", *command[1:]]
+    return command
+
+
 def run(command, timeout, label, retries=0, root=None):
     root = Path(root) if root else Path(__file__).resolve().parents[3]
     label = re.sub(r"[^A-Za-z0-9_.-]", "_", label)[:80]
-    directory = root / "target/ci-diagnostics" / (label + "-" + str(time.time_ns()))
+    # Maven clean removes every module's target directory, including the root one.
+    directory = root / ".ci-diagnostics" / (label + "-" + str(time.time_ns()))
     directory.mkdir(parents=True, exist_ok=True)
     executable = shutil.which(command[0])
     if not executable:
@@ -129,6 +144,7 @@ def run(command, timeout, label, retries=0, root=None):
         delay = 15 * (attempt + 1)
         if not download_failure(output) or time.monotonic() + delay >= deadline:
             return code
+        command = retry_command(command, output)
         print(f"[{label}] dependency resolution failed; retrying in {delay}s within the original deadline", flush=True)
         time.sleep(delay)
     return code
