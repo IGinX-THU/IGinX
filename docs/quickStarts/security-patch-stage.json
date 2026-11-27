@@ -8,6 +8,7 @@
     "ReservedPrefixAcceptanceIT",
     "RootPasswordIT",
     "SecurityConfigAcceptanceIT",
+    "SecurityPortTest",
     "SecurityConfigTest",
     "SessionManagerTest",
     "ResultResponseTest",

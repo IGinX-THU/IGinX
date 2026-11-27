@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[3]
 GROUPS = {
-    "entry": "SecurityConfigTest,SessionManagerTest,ResultResponseTest,UserChangeTrackerTest,StatementAuthTableTest,UploadRegistryTest,SecurityConfigAcceptanceIT,SqlSecurityAcceptanceIT,PermissionMatrixIT,CodeRegistrationIT,ReservedPrefixAcceptanceIT,InternalRequestIT",
+    "entry": "SecurityPortTest,SecurityConfigTest,SessionManagerTest,ResultResponseTest,UserChangeTrackerTest,StatementAuthTableTest,UploadRegistryTest,SecurityConfigAcceptanceIT,SqlSecurityAcceptanceIT,PermissionMatrixIT,CodeRegistrationIT,ReservedPrefixAcceptanceIT,InternalRequestIT",
     "gateways": "RestSecurityAcceptanceIT,RootPasswordIT,MqttSecurityAcceptanceIT,MqttLegacyIT",
     "metadata": "ZkAclTest,ZkSecurityAcceptanceIT,ZkRollingMigrationIT,StartupScriptIT",
     "cluster": "NaivePolicyReplicaTest,InternalAuthTest,SessionRevokeAcceptanceIT,ClusterRegressionAcceptanceIT,ReplicaNumIT,FsEngineAuthIT",

@@ -38,6 +38,7 @@ import org.apache.zookeeper.server.*;
 /** Independent JVMs, real public protocols, retained logs, no changes to a developer deployment. */
 final class SecurityTestEnvironment implements AutoCloseable {
   static final String SECRET = "acceptance-test-only-01234567890123456789";
+  private static final Set<Integer> allocatedPorts = new HashSet<>();
   final Path directory;
   final ZooKeeperServer zk;
   final ServerCnxnFactory factory;
@@ -61,10 +62,22 @@ final class SecurityTestEnvironment implements AutoCloseable {
     return node;
   }
 
-  static int port() throws IOException {
-    try (ServerSocket socket = new ServerSocket(0)) {
-      return socket.getLocalPort();
+  static synchronized int port() throws IOException {
+    // CI's Linux and Windows ephemeral ranges start above 30000. A port selected with
+    // bind(0) can be reused by an outgoing connection or JMX before the child JVM binds it.
+    // Keep fixture listeners below that range and never reuse a selection in this JVM.
+    int first = java.util.concurrent.ThreadLocalRandom.current().nextInt(20000);
+    for (int i = 0; i < 20000; i++) {
+      int candidate = 10000 + (first + i) % 20000;
+      if (allocatedPorts.contains(candidate)) continue;
+      try (ServerSocket socket = new ServerSocket(candidate)) {
+        allocatedPorts.add(candidate);
+        return socket.getLocalPort();
+      } catch (BindException occupied) {
+        // An independently started listener may already own this port.
+      }
     }
+    throw new IOException("No free acceptance listener ports in 10000..29999");
   }
 
   static boolean windows() {
