@@ -100,3 +100,11 @@ PR 1–8 各累计版本的完整测试模块 reactor 编译均通过（`repair-
 - PR 702 的一次 UDFIT 在 `SELECT no_mod(1.98)` 后达到 15 分钟限制；同提交另一次及其它 PR 的该类通过。该次线程栈因归档失败未留存，不能据此断言是业务死锁或已定位其原因。继续保留原 UDF 回归和超时失败，并在本轮完整重跑中核对；归档修复确保再次发生时可取得诊断。
 
 本轮本地复验：真实 ZooKeeper 成员读取回归 2/2；ZooKeeper 滚动迁移与撤销 4/4；etcd 撤销 3/3；CI 进程控制、Central 429 回退、clean 后证据保存及归档测试 7/7。撤销时限与原验收断言未放宽。记录见 `membership-test.log`、`zk-regression.log`、`etcd-regression.log`、`python-tests.log`。最新远程矩阵的结果需按本轮新提交另行核对。
+
+## PR 697 / 699 的归档与取消状态复核（2026-11-27）
+
+- [PR 697 的失败作业](https://github.com/IGinX-THU/IGinX/actions/runs/45977059148/job/140488604328) 中，22 个原回归类均返回 0，最后上传产物时出现栈溢出。本分支尚未包含后继 PR 的归档修复；本轮补齐限定目录的 ZIP 归档、clean 后保留诊断及对应脚本回归。
+- [PR 699 的红色汇总检查](https://github.com/IGinX-THU/IGinX/actions/runs/45997093386/job/140499106888) 来自被替代的重复运行，四个前置任务均为 `cancelled`。同提交的有效测试和 lint 运行已经通过。汇总的 `always()` 改为 `!cancelled()`，取消时不再启动汇总，真实失败仍由原检查阻断。本轮首次推送后，重复运行的汇总已正确归为取消，未产生失败。
+- 重跑的 [PR 702 集群作业](https://github.com/IGinX-THU/IGinX/actions/runs/46006413323/job/140530664075) 暴露了共享实现的另一处竞态：会话在 RPC 入口检查后、执行器再次检查前失效，执行器提前返回 `Result(ACCESS_DENY)`，未设置 SQL 类型。节点日志明确记录 `ExecuteSqlResp` 的必填 `type` 为空，Thrift 序列化异常关闭连接；客户端因此收到传输异常，而非拒绝状态。`Result` 现在默认使用 `SqlType.Unknown`，同样覆盖解析前过载拒绝及两种 SQL 响应，已知 SQL 类型继续保留，公共 Thrift 协议不变。
+
+新增 `ResultResponseTest` 通过 Binary、Compact 两种编码实际序列化并读回两种响应。修复前访问拒绝和过载拒绝两项确定性复现同样的缺字段错误，正常类型对照通过。该类纳入各适用分支的入口验收，拒绝响应回归映射到 IGT-30；原三节点撤销的 20 轮、180 样本及 5 秒时限继续保留。原始日志与本轮复验记录位于 `target/ci-fixes-round3/`，最新 CI 结果记录在各 PR 说明中。
