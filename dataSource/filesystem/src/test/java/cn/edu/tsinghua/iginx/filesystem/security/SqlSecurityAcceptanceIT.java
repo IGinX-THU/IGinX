@@ -170,6 +170,16 @@ public class SqlSecurityAcceptanceIT {
   @Test
   public void igt12_compositeAndUploadOwnership() throws Exception {
     String before = snapshot(root);
+    String cte = "WITH allowed(a) AS (SELECT a FROM business) SELECT a FROM allowed;";
+    ExecuteSqlResp cteResult = read.execute(cte);
+    assertEquals(3, cteResult.queryDataSet.valuesList.size());
+    assertEquals(
+        Arrays.asList(Arrays.asList(11L), Arrays.asList(22L), Arrays.asList(33L)),
+        cn.edu.tsinghua.iginx.utils.ByteUtils.getValuesFromBufferAndBitmaps(
+            cteResult.dataTypeList,
+            cteResult.queryDataSet.valuesList,
+            cteResult.queryDataSet.bitmapList));
+    denied(write.sql(cte).status);
     denied(write.sql("INSERT INTO output (key,a) VALUES (SELECT a FROM business);").status);
     read.execute("EXPLAIN SELECT * FROM business;");
     Path export = node.home.resolve("read-export.csv");
