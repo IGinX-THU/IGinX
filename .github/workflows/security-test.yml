@@ -1,0 +1,202 @@
+name: Security Test
+
+on:
+    workflow_call:
+    workflow_dispatch:
+    pull_request:
+        types: [opened, reopened, synchronize]
+        branches: ["codex/indagent-pr-*"]
+
+jobs:
+    scope:
+        runs-on: ubuntu-24.04
+        outputs:
+            groups: ${{ steps.scope.outputs.groups }}
+            stage: ${{ steps.scope.outputs.stage }}
+        steps:
+            - uses: actions/checkout@v5
+            - name: Verify CI process deadlines
+              run: python -m unittest discover -s .github/scripts/test -p test_run_bounded.py
+            - id: scope
+              shell: python
+              run: |
+                  import json, os, runpy
+                  scope = runpy.run_path('.github/scripts/test/run_security_acceptance.py')
+                  scope['matrix']()
+                  groups = [g for g in scope['GROUPS'] if g != 'etcd']
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+                      out.write('groups=' + json.dumps(groups) + '\n')
+                      out.write('stage=' + str(scope['STAGE']['stage']) + '\n')
+    acceptance:
+        needs: scope
+        strategy:
+            fail-fast: false
+            max-parallel: 2
+            matrix:
+                os: [ubuntu-24.04, windows-latest]
+                group: ${{ fromJSON(needs.scope.outputs.groups) }}
+        runs-on: ${{ matrix.os }}
+        timeout-minutes: 35
+        env:
+            TZ: Asia/Shanghai
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-java@v5
+              with:
+                  java-version: 8
+                  distribution: temurin
+                  cache: maven
+            - uses: actions/setup-python@v6
+              with:
+                  python-version: "3.12.6"
+            - name: Prepare Python for real Transform tasks
+              shell: python
+              run: |
+                  import os, subprocess, sys
+                  from pathlib import Path
+                  bridge = next(line for line in Path('.github/python/requirements.txt').read_text().splitlines() if line.startswith('pemjax=='))
+                  subprocess.run([sys.executable, '-m', 'pip', 'install', bridge, 'pandas==2.3.1', 'numpy==2.3.2', 'python-dateutil==2.9.0.post0'], check=True)
+                  with open(os.environ['GITHUB_ENV'], 'a') as out:
+                      out.write('IGINX_TEST_PYTHON=' + sys.executable + '\n')
+            - name: Execute and verify every scenario in the group
+              shell: bash
+              run: python .github/scripts/test/run_security_acceptance.py "${{ matrix.group }}"
+            - name: Save reports and isolated node logs
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: security-${{ matrix.os }}-${{ matrix.group }}
+                  path: |
+                      **/target/surefire-reports/*
+                      **/target/security-acceptance/**
+                      target/security-evidence/**
+                      target/ci-diagnostics/**
+    etcd:
+        needs: scope
+        if: needs.scope.outputs.stage >= 6
+        runs-on: ubuntu-24.04
+        timeout-minutes: 30
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-java@v5
+              with:
+                  java-version: 8
+                  distribution: temurin
+                  cache: maven
+            - uses: actions/setup-python@v6
+              with:
+                  python-version: "3.12.6"
+            - name: Install pinned etcd
+              run: |
+                  curl --fail --location --retry 3 https://github.com/etcd-io/etcd/releases/download/v3.5.13/etcd-v3.5.13-linux-amd64.tar.gz -o "$RUNNER_TEMP/etcd.tar.gz"
+                  tar -xzf "$RUNNER_TEMP/etcd.tar.gz" -C "$RUNNER_TEMP"
+                  echo "IGINX_TEST_ETCD=$RUNNER_TEMP/etcd-v3.5.13-linux-amd64/etcd" >> "$GITHUB_ENV"
+            - name: Authenticated cluster and twenty-round revocation
+              run: python .github/scripts/test/run_security_acceptance.py etcd
+            - uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: security-etcd
+                  path: |
+                      **/target/surefire-reports/*
+                      **/target/security-acceptance/**
+                      target/security-evidence/**
+                      target/ci-diagnostics/**
+    baseline:
+        needs: scope
+        if: needs.scope.outputs.stage == 8
+        runs-on: ubuntu-24.04
+        timeout-minutes: 30
+        steps:
+            - uses: actions/checkout@v5
+              with:
+                  fetch-depth: 0
+            - uses: actions/setup-java@v5
+              with:
+                  java-version: 8
+                  distribution: temurin
+                  cache: maven
+            - uses: actions/setup-python@v6
+              with:
+                  python-version: "3.12.6"
+            - name: Original sources and protocol counterexamples
+              run: python .github/scripts/test/run_security_baseline.py
+            - uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: security-baseline
+                  path: |
+                      target/security-baseline/*.log
+                      target/ci-diagnostics/**
+                      **/target/security-acceptance/**
+                      **/target/surefire-reports/*
+    existing-metadata-jupiter:
+        needs: scope
+        if: needs.scope.outputs.stage >= 5
+        runs-on: ubuntu-24.04
+        timeout-minutes: 35
+        env:
+            STORAGE: zookeeper
+            ZOOKEEPER_CONNECTION_STRING: 127.0.0.1:2181
+        steps:
+            - uses: actions/checkout@v5
+            - uses: ./.github/actions/dependence
+              with:
+                  java: "8"
+                  scope: base
+            - uses: ./.github/actions/zookeeperRunner
+            - name: Run unchanged metadata tests with temporary Surefire version
+              shell: bash
+              run: |
+                  printf 'zookeeper.user=meta\nzookeeper.password=ci-metadata-only-012345678901\nzookeeper.acl=creator\n' > conf/security.properties
+                  chmod 600 conf/security.properties
+                  export IGINX_CONF="$PWD/conf/config.properties"
+                  python .github/scripts/test/run_bounded.py --timeout 1500 --label metadata-jupiter --retry-downloads 2 -- mvn -B -P'!format' -pl dependency,test -am test-compile org.apache.maven.plugins:maven-surefire-plugin:3.5.2:test -Dtest=IMetaManagerTest -Dsurefire.failIfNoSpecifiedTests=false
+                  python .github/scripts/test/assert_test_reports.py 'test/target/surefire-reports/TEST-cn.edu.tsinghua.iginx.integration.mds.IMetaManagerTest.xml:1'
+            - uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: security-metadata-jupiter
+                  path: |
+                      **/target/surefire-reports/*
+                      target/ci-diagnostics/**
+    existing-filesystem-jupiter:
+        needs: scope
+        if: needs.scope.outputs.stage >= 7
+        runs-on: ubuntu-24.04
+        timeout-minutes: 35
+        steps:
+            - uses: actions/checkout@v5
+              with:
+                  fetch-depth: 0
+            - uses: actions/setup-java@v5
+              with:
+                  java-version: 8
+                  distribution: temurin
+                  cache: maven
+            - name: Compare all original Jupiter tests including ServerTest
+              run: python .github/scripts/test/run_security_baseline.py --jupiter
+            - uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: security-filesystem-jupiter
+                  path: |
+                      target/security-baseline/*.log
+                      target/ci-diagnostics/**
+                      target/security-baseline/jupiter-comparison.json
+                      **/target/surefire-reports/*
+    existing-suite-in-security-mode:
+        uses: ./.github/workflows/standalone-test.yml
+        with:
+            security-mode: true
+            os-matrix: '["ubuntu-24.04"]'
+            metadata-matrix: '["zookeeper"]'
+            db-matrix: '["FileSystem"]'
+            timeout-minutes: 100
+    existing-cluster-in-security-mode:
+        uses: ./.github/workflows/cluster-test.yml
+        with:
+            security-mode: true
+            os-matrix: '["ubuntu-24.04"]'
+            metadata-matrix: '["zookeeper"]'
+            timeout-minutes: 60

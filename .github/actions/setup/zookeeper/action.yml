@@ -32,7 +32,7 @@ runs:
           with:
               name: zookeeper
               version: ${{ inputs.version }}
-              url: "https://dlcdn.apache.org/zookeeper/zookeeper-{version}/apache-zookeeper-{version}-bin.{ext}"
+              url: "https://archive.apache.org/dist/zookeeper/zookeeper-{version}/apache-zookeeper-{version}-bin.{ext}"
               subdir: "apache-zookeeper-{version}-bin"
               ext: "tar.gz"
 

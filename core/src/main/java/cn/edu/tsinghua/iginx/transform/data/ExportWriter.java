@@ -30,10 +30,12 @@ public abstract class ExportWriter implements Writer, Exporter {
 
   @Override
   public void writeBatch(BatchData batchData) {
-    write(batchData);
-
-    // call the JobRunner to send next batch of data.
-    mutex.unlock();
+    try {
+      write(batchData);
+    } finally {
+      // Release the stage even when a write is denied, including scheduled retries.
+      mutex.unlock();
+    }
   }
 
   public abstract void write(BatchData batchData);

@@ -57,7 +57,13 @@ public class IginXWriter extends ExportWriter {
   public void write(BatchData batchData) {
     InsertRowRecordsReq rowRecordsReq = buildInsertRowReq(batchData);
     RequestContext ctx = contextBuilder.build(rowRecordsReq);
+    ctx.setInternal(true);
     executor.execute(ctx);
+    if (cn.edu.tsinghua.iginx.security.SecurityConfig.getInstance().isEnabled()
+        && ctx.getResult().getStatus().getCode()
+            != cn.edu.tsinghua.iginx.utils.RpcUtils.SUCCESS.getCode()) {
+      throw new IllegalStateException("Transform write failed: " + ctx.getResult().getStatus());
+    }
   }
 
   private InsertRowRecordsReq buildInsertRowReq(BatchData batchData) {

@@ -40,7 +40,15 @@ public class AbstractTaskThreadPoolExecutor extends ThreadPoolExecutor {
 
     @Override
     public Thread newThread(@NotNull Runnable r) {
-      Thread thread = defaultFactory.newThread(r);
+      Thread thread =
+          defaultFactory.newThread(
+              () -> {
+                try {
+                  r.run();
+                } finally {
+                  ThreadInterpreterManager.closeInterpreter();
+                }
+              });
       thread.setUncaughtExceptionHandler(
           (t, e) -> {
             LOGGER.error("Uncaught exception in thread: {}", t.getName(), e);
@@ -94,14 +102,5 @@ public class AbstractTaskThreadPoolExecutor extends ThreadPoolExecutor {
   @Override
   protected void afterExecute(Runnable r, Throwable t) {
     super.afterExecute(r, t);
-  }
-
-  /** 所有线程已被关闭，线程池退出前关闭所有interpreter资源 */
-  @Override
-  protected void terminated() {
-    super.terminated();
-    if (ThreadInterpreterManager.isInterpreterSet()) {
-      ThreadInterpreterManager.getInterpreter().close();
-    }
   }
 }

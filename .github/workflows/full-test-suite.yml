@@ -10,6 +10,8 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    security-test:
+        uses: ./.github/workflows/security-test.yml
     unit-test:
         uses: ./.github/workflows/unit-test.yml
     unit-mds:

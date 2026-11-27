@@ -1,0 +1,39 @@
+#
+# IGinX - the polystore system with high performance
+# Copyright (C) Tsinghua University
+# TSIGinX@gmail.com
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 3 of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program; if not, write to the Free Software Foundation,
+# Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+
+# Copy beside config.properties as security.properties to enable security mode.
+# Without that file, legacy behavior is preserved. An empty file enables RPC,
+# SQL, REST and MQTT authentication without metadata ACLs or reserved prefixes.
+# Restrict file access to the service account (chmod 600 on Unix).
+# Uncomment each complete group you use. Replace placeholders with independent
+# randomly generated secrets of at least 20 characters; do not commit secrets.
+
+# zookeeper.user=iginx_meta
+# zookeeper.password=REPLACE_WITH_A_RANDOM_SECRET
+# zookeeper.acl=creator
+
+# etcd.user=iginx_meta
+# etcd.password=REPLACE_WITH_ANOTHER_RANDOM_SECRET
+
+# internal.secret=REPLACE_WITH_A_SHARED_CLUSTER_SECRET
+# internal.auth=required
+
+# reserved.prefixes=indagent,bigfile,sys.blob
+# reserved.accounts=indagent_data_*

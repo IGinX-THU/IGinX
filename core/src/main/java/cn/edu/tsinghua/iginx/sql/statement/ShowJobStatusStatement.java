@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.thrift.QueryTransformJobStatusReq;
 import cn.edu.tsinghua.iginx.thrift.QueryTransformJobStatusResp;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
 
 public class ShowJobStatusStatement extends SystemStatement {
 
@@ -45,7 +44,7 @@ public class ShowJobStatusStatement extends SystemStatement {
     QueryTransformJobStatusResp resp = worker.queryTransformJobStatus(req);
     JobState jobState = resp.getJobState();
 
-    Result result = new Result(RpcUtils.SUCCESS);
+    Result result = new Result(resp.getStatus());
     result.setJobState(jobState);
     ctx.setResult(result);
   }

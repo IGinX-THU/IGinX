@@ -60,6 +60,14 @@ public class ThreadInterpreterManager {
     return interpreterThreadLocal.get() != null;
   }
 
+  /** Called by the owning worker when that thread exits, never by the pool's shutdown caller. */
+  public static void closeInterpreter() {
+    PythonInterpreter interpreter = interpreterThreadLocal.get();
+    interpreterThreadLocal.remove();
+    configThreadLocal.remove();
+    if (interpreter != null) interpreter.close();
+  }
+
   public static void setConfig(@NotNull PythonInterpreterConfig config) {
     configThreadLocal.set(config);
   }

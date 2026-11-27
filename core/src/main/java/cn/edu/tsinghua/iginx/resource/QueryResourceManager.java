@@ -43,8 +43,34 @@ public class QueryResourceManager {
     return queries.get(queryId);
   }
 
+  public boolean ownsQuery(long sessionId, long queryId) {
+    RequestContext query = queries.get(queryId);
+    return query != null && query.getSessionId() == sessionId;
+  }
+
   public void releaseQuery(long queryId) {
-    queries.remove(queryId);
+    RequestContext context = queries.remove(queryId);
+    close(context);
+  }
+
+  public void releaseSession(long sessionId) {
+    queries.forEach(
+        (id, context) -> {
+          if (context.getSessionId() == sessionId && queries.remove(id, context)) close(context);
+        });
+  }
+
+  private void close(RequestContext context) {
+    if (context != null
+        && context.getResult() != null
+        && context.getResult().getResultStream() != null) {
+      try {
+        context.getResult().getResultStream().close();
+      } catch (cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException e) {
+        org.slf4j.LoggerFactory.getLogger(QueryResourceManager.class)
+            .warn("Could not close query result", e);
+      }
+    }
   }
 
   private static class QueryManagerHolder {

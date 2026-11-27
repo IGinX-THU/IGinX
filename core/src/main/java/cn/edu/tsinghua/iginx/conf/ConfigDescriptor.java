@@ -32,6 +32,7 @@ public class ConfigDescriptor {
   private final Config config;
 
   private ConfigDescriptor() {
+    cn.edu.tsinghua.iginx.security.SecurityConfig.getInstance();
     config = new Config();
     loadPropsFromFile();
     if (config.isEnableEnvParameter()) {

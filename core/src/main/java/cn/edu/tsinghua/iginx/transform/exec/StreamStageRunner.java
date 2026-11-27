@@ -110,9 +110,11 @@ public class StreamStageRunner implements Runner {
       ExecuteStatementReq req =
           new ExecuteStatementReq(sessionId, replaceTableNameIgnoreCase(sqlList.get(i)));
       RequestContext context = contextBuilder.build(req);
+      context.setInternal(true);
       executor.execute(context);
       if (context.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
-        if (!context.getWarningMsg().contains("overlapped keys")) {
+        if (context.getWarningMsg() == null
+            || !context.getWarningMsg().contains("overlapped keys")) {
           throw new TransformException(
               "Unexpected error occurred during SQL task stage: "
                   + context.getResult().getStatus().getMessage());
@@ -129,9 +131,10 @@ public class StreamStageRunner implements Runner {
         new ExecuteStatementReq(
             sessionId, replaceTableNameIgnoreCase(sqlList.get(sqlList.size() - 1)));
     RequestContext context = contextBuilder.build(req);
+    context.setInternal(true);
     executor.execute(context);
     if (context.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
-      if (!context.getWarningMsg().contains("overlapped keys")) {
+      if (context.getWarningMsg() == null || !context.getWarningMsg().contains("overlapped keys")) {
         throw new TransformException(
             "Unexpected error occurred during SQL task stage: "
                 + context.getResult().getStatus().getMessage());

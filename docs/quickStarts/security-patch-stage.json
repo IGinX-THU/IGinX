@@ -1,0 +1,17 @@
+{
+  "stage": 1,
+  "classes": [
+    "CodeRegistrationIT",
+    "PermissionMatrixIT",
+    "RootPasswordIT",
+    "SecurityConfigAcceptanceIT",
+    "SecurityConfigTest",
+    "SessionManagerTest",
+    "SessionRevokeAcceptanceIT",
+    "SqlSecurityAcceptanceIT",
+    "StartupScriptIT",
+    "StatementAuthTableTest",
+    "UploadRegistryTest"
+  ],
+  "notes": "Cumulative chapter-10 PR. Deferred scenario methods are explicit in security-test-matrix.json."
+}

@@ -17,39 +17,30 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
  
+set -u
 python -VV
-pwd
-
-cd ..
-
-cat ./test/src/test/resources/testTask.txt
-
-i=0
-
-while read line
-do
-  LISTS[$i]=$line
-  let i+=1
-done <  ./test/src/test/resources/testTask.txt
-
-echo "test IT name list : "${LISTS[*]}
-
-echo "test IT name list : "${LISTS[*]} > ./test/src/test/resources/testResult.txt
-
-for line in ${LISTS[@]}
-do
-   echo "test IT name : "$line
-   echo "test IT name : "$line >> ./test/src/test/resources/testResult.txt
-   mvn test -q -Dtest=$line -DfailIfNoTests=false  -P-format
-
-   if [ $? -ne 0 ];then
-     echo " test  -- Faile  : "$?
-     echo " test  -- Faile  : "$? >> ./test/src/test/resources/testResult.txt
-     exit 1
-   else
-     echo " test  -- Success !"
-     echo " test  -- Success !" >> ./test/src/test/resources/testResult.txt
-   fi
+cd .. || exit 1
+tests=()
+while IFS= read -r line || [ -n "$line" ]; do tests+=("$line"); done < ./test/src/test/resources/testTask.txt
+result=./test/src/test/resources/testResult.txt
+printf 'Tests: %s\n' "${tests[*]}" > "$result"
+failed=0
+for test in "${tests[@]}"; do
+  test=${test%$'\r'}
+  [ -z "$test" ] && continue
+  printf 'Starting %s\n' "$test" | tee -a "$result"
+  # Each class and the surrounding Controller have independent deadlines.
+  python .github/scripts/test/run_bounded.py --timeout "${IGINX_TEST_CLASS_TIMEOUT:-900}" --label "$test" --retry-downloads 2 -- \
+    mvn test -q "-Dtest=$test" -DfailIfNoTests=false -P-format
+  code=$?
+  if [ "$code" -eq 0 ] && { [ "$test" != "LegacyBehaviorIT" ] || [ "${IGINX_TEST_SECURITY:-false}" != "true" ]; }; then
+    for report in test/target/surefire-reports/TEST-*."$test".xml; do
+      python .github/scripts/test/assert_test_reports.py "$report:1" || code=1
+    done
+  fi
+  printf '%s exit=%s\n' "$test" "$code" | tee -a "$result"
+  # Retain all failures and run the remaining classes, rather than hiding them
+  # behind the first assertion failure. The outer deadline still bounds the suite.
+  [ "$code" -ne 0 ] && failed=1
 done
-
-cd test
+exit "$failed"

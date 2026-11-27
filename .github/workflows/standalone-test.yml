@@ -3,6 +3,11 @@ name: "Union Database Test"
 on:
     workflow_call:
         inputs:
+            security-mode:
+                description: "Enable security.properties for the existing regression suite"
+                type: boolean
+                required: false
+                default: false
             java-matrix:
                 description: "The java version to run the test on"
                 type: string
@@ -51,6 +56,10 @@ jobs:
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
                 DB-name: ${{ fromJSON(inputs.db-matrix) }}
         runs-on: ${{ matrix.os }}
+        env:
+            IGINX_TEST_SECURITY: ${{ inputs.security-mode }}
+            IGINX_TEST_REST_USER: ${{ inputs.security-mode && 'root' || '' }}
+            IGINX_TEST_REST_PASSWORD: ${{ inputs.security-mode && 'root' || '' }}
         steps:
             - uses: actions/checkout@v5
             - name: Environment dependence
@@ -82,6 +91,7 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Metadata: ${{ matrix.metadata }}
                   Support-Create-Database: ${{ inputs.db-support-create-database }}
+                  Security-Mode: ${{ inputs.security-mode }}
 
             # start udf path test first to avoid being effected
             - name: Start IGinX

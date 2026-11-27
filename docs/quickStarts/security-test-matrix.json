@@ -1,0 +1,481 @@
+{
+  "design_sha256": "51fbe9c7b1fe8ca0db56b755bd3fb1c5214173c32c5e0b9668cc53d8e098ad7e",
+  "cases": [
+    {
+      "id": "IGT-01",
+      "pr": 1,
+      "tests": [
+        "SecurityConfigAcceptanceIT#igt01_absentEmptyAndZookeeperOnlyModes"
+      ],
+      "design_steps": "不放 conf/security.properties 启动内核的安全组件；另放一个只有 ZooKeeper 账户（zookeeper.user、zookeeper.password 与 zookeeper.acl）、没有 reserved.prefixes 与 internal.secret 的文件再启动一次",
+      "expected": "安全模式为关；已经合入的各项检查（入口检查，以及合入之后的保留前缀、会话核对）都是空操作；会话号的生成方式与现在相同；第二种情况下安全模式为开，保留前缀的判定对任何路径、任何模式都返回“不在”“不可能匹配”，通配不展开，IG8 不生效（内部调用不带凭据，服务端不检查凭据）"
+    },
+    {
+      "id": "IGT-02",
+      "pr": 1,
+      "tests": [
+        "SecurityConfigTest#parseAndValidate",
+        "SecurityConfigTest#permissionsAndEnvironment",
+        "SecurityConfigAcceptanceIT#igt02_environmentCannotOverrideSecretsOrLeakThem"
+      ],
+      "design_steps": "分别用下面几种文件启动：合法的文件；口令不足 20 位（zookeeper.password、internal.secret 各试一次）；有账户而没有口令；文件对同组或其他用户可读（Unix）；zookeeper.acl 取值非法；internal.auth 取值非法；有 zookeeper.user 而没有 zookeeper.acl；internal.auth=required 而没有 internal.secret；有 internal.secret 而没有 internal.auth；有保留前缀而允许名单为空；出现不认识的键（把 reserved.prefixes 拼错）；空文件。文件在测试里现建并设权限。另用 System.setProperty 给一个与文件里同名的键（IGinX 的 EnvUtils 先读系统属性、再读环境变量，两种来源都不得覆盖安全配置文件）；分别只设 IGINX_HOME、另设 IGINX_CONF 指向别处的 config.properties",
+      "expected": "合法的文件解析出各键；空文件进入安全模式而不设 ZooKeeper 账户与保留前缀，IG8 不生效；其余几种拒绝启动，日志写明哪一项不合格且不含口令本身；Windows 上对权限过宽的文件只警告、照常启动；同名的系统属性覆盖不了文件里的值；安全配置文件取自 config.properties 所在的目录；文件里的口令不出现在 Config 的任何字段里"
+    },
+    {
+      "id": "IGT-03",
+      "pr": 1,
+      "tests": [
+        "StatementAuthTableTest#everyTypeMapped"
+      ],
+      "design_steps": "遍历 StatementType 的全部取值与 Thrift 接口 IService.Iface 的全部方法（41 个），逐个查附录 A 的对照表。对照表放在一个独立的类里，测试不加载 IginxWorker 与 StatementExecutor（它们的静态初始化会连接元数据存储）",
+      "expected": "每个取值、每个方法都在表里，与附录 A 逐行一致；NULL 与表里没有的取值一律拒绝；语句与它转调的接口方法要求相同（例如作业状态的查询）。以后新增语句或接口而不补表，这条测试失败"
+    },
+    {
+      "id": "IGT-04",
+      "pr": 1,
+      "tests": [
+        "SessionManagerTest#ids"
+      ],
+      "design_steps": "用注入了用户表的 SessionManager（不连元数据存储），安全模式下连续开 10 万个会话；另对 0、随机的 64 位数、已关闭的会话号调用 checkSession",
+      "expected": "会话号不重复、不为 0；去掉低 4 位后每一位为 1 的比例在 0.49 到 0.51 之间，相邻会话号之差没有规律（不随时间单调）；低 4 位等于该用户的权限位；后三种一律返回 false"
+    },
+    {
+      "id": "IGT-05",
+      "pr": 2,
+      "tests": [],
+      "design_steps": "用户 u 开 3 个会话，用户 v 开 1 个；按用户关闭 u；对 v 做一次口令与权限都不变的更新；另在不发通知的情况下改 v 的口令，再检查 v 的会话",
+      "expected": "u 的 3 个会话失效，v 的会话在关闭 u 时不受影响；口令与权限都没有变化的更新不关闭 v 的会话；v 的口令改了之后，即使没有收到通知，检查会话时核对版本不符，v 的会话也失效",
+      "deferred_tests": [
+        "SessionManagerTest#closeByUserAndVersion"
+      ]
+    },
+    {
+      "id": "IGT-06",
+      "pr": 3,
+      "tests": [],
+      "design_steps": "对一组路径判断是否在保留前缀下，对一组模式判断是否可能匹配保留前缀（保留前缀取 indagent、bigfile 与 sys.blob）；另对一组账户名判断是否符合允许名单",
+      "expected": "indagent、indagent.ctl.a、反引号写法的 indagent.a 在；indagentx.a、a.indagent.b 不在；模式 *、*.ctl、in*、indagent*、ind*.ctl.* 可能匹配，按通配处理；indagent.*、indagent.t.* 的固定部分已在保留前缀之内，按显式路径处理；a.*、x*.y 不可能匹配。大小写按 IGinX 路径本身的规则：IGinX 认为相同的写法结论相同。sys.blob、sys.blob.x 在，sys、sys.blobx、sys.other.x 不在；模式 sys.*、sys.*.x 可能匹配，按通配处理；sys.blob.* 按显式路径处理。账户名对允许名单模式 indagent_data_* 的匹配：indagent_data_t1、indagent_data_ 符合；x_indagent_data_1、indagent_dat、INDAGENT_DATA_1、root 不符合；允许名单写两个模式时，符合其一即放行",
+      "deferred_tests": [
+        "StatementAuthTableTest#reservedBoundaries"
+      ]
+    },
+    {
+      "id": "IGT-07",
+      "pr": 8,
+      "tests": [],
+      "design_steps": "用手写的桩元数据（返回给定的可写引擎列表）构造 NaivePolicy。一、replicaNum=1、只有一个可写引擎，先置“需要重新分片”，再对一条插入语句调用 generateFragmentsAndStorageUnits；二、同样的条件配置 clients 与 instancesNumPerClient，调用 generateInitialFragmentsAndStorageUnits；三、replicaNum=0、只有一个可写引擎，重复一与二；四、replicaNum=1、两个可写引擎，重复一与二",
+      "expected": "一、二都抛出存储引擎不足的异常（与 AbstractPolicy.generateStorageEngineIdList 相同的异常与消息），不返回分片，也不是下标越界；三照常生成分片，每个存储单元没有副本，与补丁之前相同；四照常生成分片，每个存储单元带一个副本。补丁之前先跑一遍：一返回不带副本的分片，二下标越界",
+      "deferred_tests": [
+        "NaivePolicyReplicaTest#notEnoughEngines"
+      ]
+    },
+    {
+      "id": "IGT-08",
+      "pr": 5,
+      "tests": [],
+      "design_steps": "分别按无账户、有账户且 open、有账户且 creator 构造连接参数（只构造，不连接 ZooKeeper）",
+      "expected": "无账户时不调用 authorization，访问控制与现在相同；open 时报账户、新建节点仍是开放的；creator 时新建节点的访问控制只含本账户",
+      "deferred_tests": [
+        "ZkAclTest#creatorAclProvider"
+      ]
+    },
+    {
+      "id": "IGT-09",
+      "pr": 2,
+      "tests": [],
+      "design_steps": "用注入了用户表的 SessionManager。8 个线程不停地为用户 u 开会话、检查会话、关会话，另一个线程在其间 200 次交替地改 u 的口令并按用户关闭 u；最后停下全部线程，改一次口令",
+      "expected": "全程没有异常；最后一次改口令之后，此前开出的 u 的会话检查时一律返回 false，会话到用户的对应表里没有 u 的残留；别的用户的会话不受影响",
+      "deferred_tests": [
+        "SessionManagerTest#concurrentOpenAndRevoke"
+      ]
+    },
+    {
+      "id": "IGT-10",
+      "pr": 1,
+      "tests": [
+        "SqlSecurityAcceptanceIT#igt10_unopenedSessionsEveryRpc"
+      ],
+      "design_steps": "用会话号 0、随机 64 位数、已关闭的会话号，对 Thrift 接口除 openSession 以外的全部 40 个方法各发一次请求（用反射遍历 IService.Iface，按方法名配一份最小的请求；四个带 SQL 的入口各带一条 SELECT 与一条 INSERT）",
+      "expected": "全部 40 个方法一律返回未授权（状态码 ACCESS_DENY），包括 closeSession；存储中的数据、用户、存储引擎、已注册的函数与请求之前相同；debugInfo 被拒绝。接口新增方法而没有配请求时这条测试失败"
+    },
+    {
+      "id": "IGT-11",
+      "pr": 1,
+      "tests": [
+        "PermissionMatrixIT#igt11_fiveRolesEverySqlStatement",
+        "PermissionMatrixIT#igt11_fiveRolesEveryRpc"
+      ],
+      "design_steps": "建五个账户：只有 Read、只有 Write、Read 与 Write、Admin、Cluster。每个账户对附录 A 第一张表的每一种语句类型（NULL 除外，共 34 种）各执行一条语句，对第二张表的每一个接口方法（openSession 与 debugInfo 除外，共 39 个）各调用一次；Java 客户端没有封装的方法用原始的 Thrift 客户端调用",
+      "expected": "结果与附录 A 一致：有权限的成功；没有的返回未授权且没有副作用（写入读不到、配置值不变、用户与存储引擎不变）。用户管理与存储引擎管理这几格在补丁之前就通过（F4）"
+    },
+    {
+      "id": "IGT-12",
+      "pr": 1,
+      "tests": [
+        "SqlSecurityAcceptanceIT#igt12_compositeAndUploadOwnership"
+      ],
+      "design_steps": "只有 Write 的账户执行 INSERT INTO … SELECT；只有 Read 的执行 EXPLAIN SELECT、导出；只有 Read 的执行 LOAD DATA … AS CSV 与 uploadFileChunk；只有 Write 的账户经 loadCSV 的入口发一条 SELECT；只有 Read 的账户经 loadUDF 的入口发一条 INSERT；有 Write 的账户在会话 B 里对会话 A 已上传的文件名调用 uploadFileChunk 续写；有 Write 的账户调用 loadCSV，csvFileName 分别取含“..”与路径分隔符的名字、指向 conf/security.properties 的名字，以及另一个会话上传的文件名",
+      "expected": "第一条被拒绝（要 Read 与 Write）；第二条成功；第三条被拒绝（要 Write）；第四条按语句本身的类型检查，被拒绝；经 loadUDF 的 INSERT 同样按语句类型被拒绝；会话 B 的续写被拒绝，A 上传的文件内容不变；loadCSV 的三种文件名都被拒绝，目标文件还在、内容不变，返回的错误里不含文件内容"
+    },
+    {
+      "id": "IGT-13",
+      "pr": 1,
+      "tests": [
+        "SqlSecurityAcceptanceIT#igt13_queryOwnershipAndClose"
+      ],
+      "design_steps": "账户 A 执行带 fetchSize 的查询，得到 queryId；账户 B 的会话用这个 queryId 取结果，再用 B 的会话号加这个 queryId 调用 closeStatement；另用会话号 0 与一个随机的 64 位数调用 closeSession；A 取完；A 关闭会话后再取",
+      "expected": "B 的两次调用都被拒绝，A 的查询不受影响；用没有打开的会话号调用 closeSession 被拒绝，A 的会话不受影响；A 能取完全部结果；关闭之后被拒绝"
+    },
+    {
+      "id": "IGT-14",
+      "pr": 1,
+      "tests": [
+        "SqlSecurityAcceptanceIT#igt14_sessionListingRequiresAdmin"
+      ],
+      "design_steps": "非 Admin 的账户执行 SHOW SESSIONID 并调用 showSessionID；Admin 同样操作",
+      "expected": "非 Admin 被拒绝；Admin 可以"
+    },
+    {
+      "id": "IGT-15",
+      "pr": 1,
+      "tests": [
+        "SqlSecurityAcceptanceIT#igt15_configAndSecrets"
+      ],
+      "design_steps": "非 Admin 执行 SHOW CONFIG、SHOW CONFIG \"password\"、SET CONFIG；Admin 执行 SHOW CONFIG 与 SET CONFIG；Admin 执行 SET CONFIG \"reserved.prefixes\" \"x\" 与 SET CONFIG \"zookeeper.password\" \"x\"；最后读 IGinX 的日志文件",
+      "expected": "非 Admin 一律被拒绝，配置值不变；Admin 成功，输出与不打补丁时相同；安全配置文件里的口令（zookeeper.password、etcd.password、internal.secret）在 SHOW CONFIG 的输出里都搜不到，Config 里没有与安全配置文件同名的字段；两条 SET CONFIG 都失败（Config 里没有这些项），保留前缀照旧生效；日志文件里搜不到安全配置文件里的任何口令"
+    },
+    {
+      "id": "IGT-16",
+      "pr": 1,
+      "tests": [
+        "CodeRegistrationIT#igt16_registrationAndJobPermissionsThroughSqlAndRpc",
+        "CodeRegistrationIT#igt16_deniedDirectoryRegistrationDoesNotInvokePip",
+        "CodeRegistrationIT#igt16_backgroundRegistrationSurvivesSubmitterDisconnect"
+      ],
+      "design_steps": "只有 Read 的账户执行 SHOW FUNCTIONS、查询作业状态与可选的作业；Read 与 Write 的普通账户执行 CREATE FUNCTION（本地路径与远程上传两种）、loadUDF、DROP FUNCTION、COMMIT TRANSFORM JOB、取消作业，SQL 与原始的 Thrift 方法各一遍；只有 Admin 的账户做同样的注册、删除、提交与取消；root 做全部操作",
+      "expected": "只读的三种查询成功；普通账户的注册、删除、提交与取消一律被拒绝，经 SQL 返回的也是拒绝而不是空结果，SHOW FUNCTIONS 前后相同，UDF 目录没有新文件，没有执行 pip；只有 Admin 的账户这五种操作全部成功，它执行三种查询被拒绝（要 Read）；root 全部成功"
+    },
+    {
+      "id": "IGT-17",
+      "pr": 3,
+      "tests": [],
+      "design_steps": "保留前缀取 indagent、bigfile 与 sys.blob，允许名单取 indagent_data_*。不在允许名单的账户（Read 与 Write 的普通账户，以及 Admin 的 root）经 SQL 与有对应方法的会话接口：写、读、删 indagent.t.a，DELETE COLUMNS indagent.t.a，SHOW COLUMNS indagent.*，LOAD CSV 到 indagent.x，LOAD CSV 到 sys（只给路径，CSV 的表头里有一列 blob.c），INSERT INTO indagent.x SELECT …，INSERT INTO a.x SELECT … FROM indagent.t，带 indagent.t 的子查询，VALUE2META 三种写法（普通账户先在 a.paths 里写入字符串：SELECT VALUE2META(SELECT p FROM a.paths) FROM a.x, a.y，值为 indagent.t.a；… FROM *，值为 t.a；值为 *），同一条写入里一个普通路径加一个 indagent 下的路径，SELECT * FROM indagent.*，从 indagent.t 导出；bigfile 下同样一遍；再用允许名单账户做一遍",
+      "expected": "前两轮除 VALUE2META 的第二、三种之外一律被拒绝且没有副作用，混合写入里的普通路径也没有写进去；表头里带保留前缀下列名的 LOAD CSV 整条被拒绝，其中的普通列也没有写入；VALUE2META 的第二种（FROM *，值为 t.a）与第三种（值为 *）不被拒绝，结果里没有保留前缀下的列；允许名单账户全部成功",
+      "deferred_tests": [
+        "ReservedPrefixAcceptanceIT#igt17_explicitSqlAndRpcPaths"
+      ]
+    },
+    {
+      "id": "IGT-18",
+      "pr": 3,
+      "tests": [],
+      "design_steps": "indagent 下 50 列、bigfile 下 5 列、sys.blob 下 3 列、sys.other 下 2 列、a 下 30 列；a、indagent、bigfile 下各有一列名为 c0。普通账户执行 SELECT * FROM *、SELECT count(*) FROM *、COUNT POINTS、SHOW COLUMNS、SHOW COLUMNS LIMIT 10 OFFSET 25、SHOW COLUMNS LIMIT 10 OFFSET 32、把 SHOW COLUMNS 写在 FROM 里、SELECT * FROM *.c0、SELECT * FROM sys.*，以及会话接口的 queryData、aggregateQuery、downsampleQuery、lastQuery、showColumns，路径分别取 [\"*\"] 与 [\"in*\"]（部分通配只能经会话接口发出，SQL 的语法里 * 只能独占一级）",
+      "expected": "结果只含 a 下的 30 列与 sys.other 下的 2 列，共 32 列；计数只算这 32 列；SHOW COLUMNS LIMIT 10 OFFSET 25 正好返回 7 列，都不在保留前缀下，OFFSET 32 返回空（executeShowColumns 合并各引擎的结果时不排序，不断言是哪 7 列）；SELECT * FROM *.c0 只返回 a.c0；SELECT * FROM sys.* 只返回 sys.other 下的 2 列；路径取 [\"in*\"] 的各次调用返回空。允许名单账户看到 90 列，SHOW COLUMNS LIMIT 10 OFFSET 25 返回 10 列",
+      "semantic_note": "FROM denotes a table prefix. Keep original SELECT * FROM *.c0 -> empty regression, and verify SELECT c0 FROM * plus queryData([\"*.c0\"]) -> a.c0. ShowColumnsReq has no path parameter; use SQL SHOW COLUMNS for pattern-specific coverage.",
+      "deferred_tests": [
+        "ReservedPrefixAcceptanceIT#igt18_wildcardReadCountAndPagination"
+      ]
+    },
+    {
+      "id": "IGT-19",
+      "pr": 3,
+      "tests": [],
+      "design_steps": "同样的数据。普通账户与 root 依次执行 DELETE FROM * WHERE key < 某值、DELETE COLUMNS *.c0、DELETE COLUMNS *、CLEAR DATA，以及会话接口的 deleteColumns([\"in*\"])、deleteColumns([\"*\"])、deleteDataInColumns([\"*\"], 起止键)",
+      "expected": "a 与 sys.other 下的数据按各语句的语义被删除；indagent、bigfile 与 sys.blob 下的数据全部还在，允许名单账户读回逐列相同",
+      "deferred_tests": [
+        "ReservedPrefixAcceptanceIT#igt19_everyWildcardDeletePreservesData"
+      ]
+    },
+    {
+      "id": "IGT-20",
+      "pr": 3,
+      "tests": [],
+      "design_steps": "读写 indagentx.a、a.indagent.b、带标签的 indagent.t.a{k=v}、反引号写法的 indagent.t.a、大小写不同的 INDAGENT.t.a、反引号里带 * 的写法（`in*`.t.a）",
+      "expected": "前两者是普通路径，普通账户可以读写；带标签与反引号的两种按保留前缀处理，被拒绝；大小写不同的写法读不到 indagent.t.a 的数据；反引号里带 * 的写法要么按字面当作普通列名，要么按通配处理并去掉保留前缀下的列，读不到 indagent.t.a 的数据，实际是哪一种记在 PR 的说明里",
+      "deferred_tests": [
+        "ReservedPrefixAcceptanceIT#igt20_boundariesQuotesTagsAndCase"
+      ]
+    },
+    {
+      "id": "IGT-21",
+      "pr": 3,
+      "tests": [],
+      "design_steps": "Admin 新建 indagent_data_v1（名字符合允许名单）并授予 Read、Write，v1 开一个会话并读写一次 indagent.t.a；Admin 再新建 indagent_data_v2 并授予 Read、Write，不改配置、不重启；删除 indagent_data_v1；建 other_admin 并授予全部权限",
+      "expected": "v2 立即可以访问保留前缀；v1 已打开的会话 5 秒内失效；other_admin 访问保留前缀被拒绝",
+      "deferred_tests": [
+        "ReservedPrefixAcceptanceIT#igt21_allowlistRotationWithoutRestart"
+      ]
+    },
+    {
+      "id": "IGT-22",
+      "pr": 3,
+      "tests": [],
+      "design_steps": "安全模式下 root 提交 Transform 作业（SQL 段与 Python 段）、定时作业，等它们清理临时表；另提交一个读写 indagent 下路径的作业；外部客户端用会话号 0 发请求；indagent 与 bigfile 下有数据时，由 root 打开即时压缩并执行 COMPACT",
+      "expected": "前两种照常完成，临时表被清理；第三个作业在访问保留前缀时失败并写明原因；会话号 0 被拒绝，客户端设置不了内部标记；压缩之后，允许名单账户读回保留前缀下的数据逐列相同",
+      "deferred_tests": [
+        "InternalRequestIT#igt22_realPythonTasksCleanupAndCompaction"
+      ]
+    },
+    {
+      "id": "IGT-23",
+      "pr": 4,
+      "tests": [],
+      "design_steps": "安全模式，REST 只听 127.0.0.1。用反射列出 REST 资源类的全部方法与路径，对每一个分别不带 Authorization、带不存在的用户、带错误口令、Authorization 不是 Basic 方式、Basic 后面不是合法的 base64 或解码后没有冒号、带正确口令各发一次请求",
+      "expected": "前五种一律返回 401，服务端不报 500，响应里不区分是哪一种，读回存储不变；带正确口令的按附录 A 第三张表处理。路径不在第三张表里，这条测试失败，所以以后新增 REST 路径必须补表",
+      "deferred_tests": [
+        "RestSecurityAcceptanceIT#igt23_allDeclaredRoutesRejectMalformedCredentials"
+      ]
+    },
+    {
+      "id": "IGT-24",
+      "pr": 1,
+      "tests": [
+        "RootPasswordIT#igt24_27_changePasswordVerifyAfterRestartAndRestore"
+      ],
+      "design_steps": "放在单独的任务里，拆成 RootPasswordIT#changePassword、#verifyAfterRestart、#restorePassword 三步，由工作流按 类#方法 调用，前两步之间由工作流用 iginxRunner 重启 IGinX。首次初始化后用 ALTER USER 改 root 的口令，重启；之后用 root/root 与新口令各登录一次；结束时把口令改回",
+      "expected": "root/root 登录失败：返回的会话号为 0，随后的调用被拒绝（Java 客户端的 openSession 本身不抛异常，F19）；新口令成功；重启后仍是新口令；配置文件里的 password 不再起作用"
+    },
+    {
+      "id": "IGT-25",
+      "pr": 4,
+      "tests": [],
+      "design_steps": "五个测试账户各用基本认证调用写入、查询、带 save_as 的查询、删除、删除指标、注解的增改查删与 Grafana 查询；再经会话接口做同样的事",
+      "expected": "结果与附录 A 第三张表一致：没有权限的返回 403，读回存储不变；同一账户经 REST 与经会话接口的结论相同",
+      "deferred_tests": [
+        "RestSecurityAcceptanceIT#igt25_fiveRolesEveryRestOperation"
+      ]
+    },
+    {
+      "id": "IGT-26",
+      "pr": 4,
+      "tests": [],
+      "design_steps": "不在允许名单的账户经 REST 写入、查询、删除 indagent.t.a，查询指标名带 * 的通配；允许名单账户做同样的事。然后改账户 u 的口令，用旧口令连续请求；另在 u 的一个长查询执行期间删除 u（重建 u 后重复，共 100 次）；最后由 Admin 执行 SHOW SESSIONID，与开始时比较",
+      "expected": "前者显式路径被拒绝，通配的结果里没有保留前缀下的列；允许名单账户全部成功。改口令后旧口令立即返回 401；删除 u 之后 5 秒内 u 的请求一律被拒绝，正在执行的长查询可能被取消并返回错误，被取消的语句在 5 秒内返回，重复 100 次之后 IGinX 的工作线程数没有增长；连续请求（包括失败的）之后会话数没有增长",
+      "deferred_tests": [
+        "RestSecurityAcceptanceIT#igt26_reservedPathsAndHundredRevocations"
+      ]
+    },
+    {
+      "id": "IGT-27",
+      "pr": 4,
+      "tests": [],
+      "design_steps": "与 IGT-24 同一个任务。安全模式下用 ALTER USER 改掉 root 的口令，config.properties 里的 username、password 不变；然后带一个普通账户、带 root 的旧口令、带 root 的新口令各发一次 REST 请求，MQTT 用同样的三种账户各连接并发布一次",
+      "expected": "带普通账户与 root 新口令的按各自的权限成功；带旧口令的 REST 返回 401，MQTT 连接被拒绝；REST 与 MQTT 都不再用配置里的账户",
+      "deferred_tests": [
+        "RootPasswordIT#igt24_27_changePasswordVerifyAfterRestartAndRestore"
+      ]
+    },
+    {
+      "id": "IGT-28",
+      "pr": 4,
+      "tests": [],
+      "design_steps": "安全模式，enableMqtt=true，只听本机。分别不带账户、带错误口令、带正确口令连接；只有 Read 的账户、有 Write 的普通账户、允许名单账户各发布一条普通路径与一条 indagent 下路径的消息；任何账户（含 root）订阅 # 与某个具体主题，同时另一个客户端发布；客户端正常断开一次、不发 DISCONNECT 直接关掉套接字一次，之后由 Admin 查看会话",
+      "expected": "前两种连接被拒绝；只有 Read 的发布写不进；普通账户的普通路径写入成功、indagent 下的写不进；允许名单账户两条都写入；订阅一律失败，订阅方收不到任何消息；被拒收的消息在日志里有记录；两种断开之后它的会话都已经关闭",
+      "deferred_tests": [
+        "MqttSecurityAcceptanceIT#igt28_authPublishSubscribeAndDisconnect"
+      ]
+    },
+    {
+      "id": "IGT-29",
+      "pr": 4,
+      "tests": [],
+      "design_steps": "账户 u 连上 MQTT 后每 100 毫秒发布一条；在另一处依次改 u 的口令、把 u 降为只有 Read、删除 u，每次之后 u 用当前的口令重连",
+      "expected": "每次变更后 5 秒内 u 原来那条连接上的消息一律写不进；改口令后用新口令重连照常写入，降级后重连写不进，删除后连不上",
+      "deferred_tests": [
+        "MqttSecurityAcceptanceIT#igt29_continuousPublishPasswordGrantAndDrop"
+      ]
+    },
+    {
+      "id": "IGT-30",
+      "pr": 2,
+      "tests": [],
+      "design_steps": "三个 IGinX 节点。用户 u 在每个节点开 2 个会话，用户 v 各开 1 个。在节点 1 依次执行：GRANT 把 u 从 Read、Write 改为 Read；ALTER USER 改 u 的口令；DROP USER u。每次之后各节点每 100 毫秒用 u 的旧会话执行一条语句。其中一次在 u 的一个分页查询取到一半时变更。整组重复 20 次，ZooKeeper 与 etcd 两种元数据存储各做一遍",
+      "expected": "每次变更后 5 秒内 u 在三个节点上的旧会话全部被拒绝，记下每个节点的实际时延与 20 次中的最大值；取到一半的查询此后取不到下一页；被取消的语句在 5 秒内返回，全部做完之后 IGinX 的工作线程数没有增长；v 始终不受影响；用新口令、新权限重新登录后行为符合新权限",
+      "deferred_tests": [
+        "SessionRevokeAcceptanceIT#igt30_twentyRoundsAllChangesAllNodes"
+      ]
+    },
+    {
+      "id": "IGT-31",
+      "pr": 2,
+      "tests": [],
+      "design_steps": "工作流在启动节点 3 之前，用一个步骤在后台启动一个 TCP 转发（.github/scripts 下新增的小脚本，监听 2182 转发到 2181，另开一个控制端口接受“暂停”“恢复”两个命令），并把节点 3 的 zookeeperConnectionString 改为 127.0.0.1:2182。测试方法经控制端口让转发暂停 20 秒（暂停时断开已有连接、拒绝新连接），期间在节点 1 改 u 的口令；然后恢复",
+      "expected": "恢复后 5 秒内节点 3 上 u 的旧会话失效。断开期间节点 3 沿用旧的用户缓存，这一段的实际行为记录在测试报告里。20 秒短于 Curator 默认的 60 秒会话超时，节点 3 不会因此丢失自己的临时节点",
+      "deferred_tests": [
+        "SessionRevokeAcceptanceIT#igt31_revokeAfterTwentySecondDisconnect"
+      ]
+    },
+    {
+      "id": "IGT-32",
+      "pr": 1,
+      "tests": [
+        "SessionRevokeAcceptanceIT#igt32_foreignNodeSessionRejected"
+      ],
+      "design_steps": "把节点 1 上开的会话号拿到节点 2 使用",
+      "expected": "被拒绝"
+    },
+    {
+      "id": "IGT-33",
+      "pr": 1,
+      "tests": [],
+      "design_steps": "安全模式下的三节点集群，布局照 cluster-test.yml（IoTDB12 与三个本地 filesystem 引擎）：以 root 运行现有的 ClusterIT；增加、删除存储引擎；逐个重启节点；再扩容一个节点（重启与扩容是工作流里的步骤，扩容与增删存储引擎都放在 ClusterIT 之后）。另一遍 replicaNum 取 1：一个账户连续写入 1 000 行后立即关闭会话，另一次在写入途中由 Admin 改它的口令；经 REST 写入 1 000 行；然后停掉主单元所在的存储引擎，从副本读回",
+      "expected": "ClusterIT 全部通过；增删存储引擎、重启、扩容都正常；新节点同样在安全模式下（会话号 0 被拒绝）；停掉主单元所在的存储引擎之后，从副本读回的行数与已返回成功的写入相同",
+      "deferred_tests": [
+        "ClusterRegressionAcceptanceIT#igt33_storageChangesRestartsAndFourthNode",
+        "ClusterRegressionAcceptanceIT#igt33_thousandRowsCloseRevokeRestAndPrimaryFailure"
+      ]
+    },
+    {
+      "id": "IGT-34",
+      "pr": 7,
+      "tests": [],
+      "design_steps": "三个 IGinX 节点，安全模式，internal.auth=required，replicaNum 取 1，两个 FileSystem 存储引擎分在两个节点上，indagent 下有数据。用原始的 FileSystemRpc 客户端不带凭据连接存储引擎的端口，调用 getUnits、query、insert、delete；带错误的凭据再做一遍；然后经会话接口跨节点读写一次",
+      "expected": "两遍的调用一律被拒绝，存储中的数据逐列不变；带正确凭据的 IGinX 节点之间读写正常",
+      "deferred_tests": [
+        "FsEngineAuthIT#igt34_fourMethodsTwoInvalidCredentialsPreserveBothReplicas"
+      ]
+    },
+    {
+      "id": "IGT-35",
+      "pr": 7,
+      "tests": [],
+      "design_steps": "三个节点，replicaNum 取 1，两个 FileSystem 存储引擎分在两个节点上，从没有安全配置文件的状态开始。逐个放入安全配置文件（internal.auth=optional）并重启，再逐个改为 required 并重启，每次重启后跨节点读写一次；全部改为 required 之后，用不带凭据的 FileSystemRpc 客户端调用一次",
+      "expected": "每次重启后都可读写：不带凭据的节点与 optional 的节点可以并存，optional 与 required 的节点可以并存；全部为 required 之后不带凭据的调用被拒绝",
+      "deferred_tests": [
+        "FsEngineAuthIT#igt35_optionalThenRequiredRollingRestart"
+      ]
+    },
+    {
+      "id": "IGT-36",
+      "pr": 8,
+      "tests": [],
+      "design_steps": "清空 ZooKeeper；三个 IGinX 节点的 storageEngineList 各只列自己的本地 FileSystem 引擎，replicaNum 都取 1。先只启动 6888：执行 SHOW REPLICA NUMBER，读 ZooKeeper 的 /replicaNum，查启动日志，再写一行。然后启动 6889、6890，在三个节点上各执行一次 SHOW REPLICA NUMBER，写入一批数据并读回；停掉其中一个分片的主存储单元所在的节点，再读这批数据。补丁之前先跑一遍，记下 SHOW REPLICA NUMBER 的返回值",
+      "expected": "只有 6888 时 SHOW REPLICA NUMBER 返回 2，/replicaNum 为 1，日志里有一条可写引擎不足的警告；这时写入返回错误，消息写明存储引擎不足，元数据里没有生成分片。三个节点都启动之后三处都返回 2，写入成功、读回一致；停掉主存储单元所在的节点之后仍读得到（读的是副本）。补丁之前返回 1（F21 的运行验证）",
+      "deferred_tests": [
+        "ReplicaNumIT#igt36_firstStartPreservesConfiguredReplicasAndSurvivesPrimaryLoss",
+        "ReplicaNumIT#igt36_wildcardUsesReplicaAndFailsWhenEveryCopyIsOffline"
+      ]
+    },
+    {
+      "id": "IGT-37",
+      "pr": 8,
+      "tests": [],
+      "design_steps": "一、清空 ZooKeeper 后预先写入 /replicaNum 为 0（模拟补丁之前已经建好的集群），配置 replicaNum=1，启动三个节点，执行 SHOW REPLICA NUMBER 并写入一批数据。二、清空 ZooKeeper，配置 replicaNum=2，只启动两个节点，写入；再启动第三个节点，写入。三、同二的前一半，但配置 clients 与 instancesNumPerClient，让 NaivePolicy 走按客户端生成初始分片的分支",
+      "expected": "一、返回 1（沿用已记下的 0），写入成功，与补丁之前相同。二、两个节点时写入返回错误、没有生成分片；第三个节点启动之后写入成功，SHOW REPLICA NUMBER 返回 3。三、同二，返回的是存储引擎不足的错误，不是下标越界",
+      "deferred_tests": [
+        "ReplicaNumIT#igt37_existingMetadataWinsOverConfiguration",
+        "ReplicaNumIT#igt37_twoReplicasNeedThreeEnginesIncludingClientPartitioning"
+      ]
+    },
+    {
+      "id": "IGT-40",
+      "pr": 5,
+      "tests": [],
+      "design_steps": "全新的 ZooKeeper，IGinX 带账户、creator 模式启动，建用户、存储引擎、UDF，并执行一次迁移命令的 apply（只有它收回根节点的建、删权限）。然后用不带账户的 Curator 客户端对 IGinX 用到的每个路径（第 2 章 F1、F3 的全部常量）做读数据、列子节点、建子节点、改数据、删除；在根节点下建节点；对 /lock 与各锁的父节点建、删子节点",
+      "expected": "除根节点与 /zookeeper 的读之外一律 NoAuth；带账户的客户端全部成功；/lock、各锁的父节点与它们之间的中间节点都是持久节点（ephemeralOwner 为 0）",
+      "deferred_tests": [
+        "ZkSecurityAcceptanceIT#igt40_41_42_allMetadataPathsAndPersistentLockParents"
+      ]
+    },
+    {
+      "id": "IGT-41",
+      "pr": 5,
+      "tests": [],
+      "design_steps": "建用户 u，口令为一个 24 位的随机串；不带账户的客户端遍历它能列出的全部节点并读出能读的数据；再对根节点与 IGinX 用到的每个路径调用 getACL",
+      "expected": "任何读到的数据里都找不到 u 的口令；除根节点外 getACL 一律 NoAuth；根节点返回的访问控制里没有 IGinX 的 ZooKeeper 账户口令的摘要（测试按 digest 的算法算出摘要再去找）",
+      "deferred_tests": [
+        "ZkSecurityAcceptanceIT#igt40_41_42_allMetadataPathsAndPersistentLockParents"
+      ]
+    },
+    {
+      "id": "IGT-42",
+      "pr": 5,
+      "tests": [],
+      "design_steps": "ZooKeeper 的容器清理周期设为 1 秒（服务端的 JVM 参数 znode.container.checkIntervalMs）。先让 IGinX 用过其中几个锁（建用户、加存储引擎、注册函数、提交作业，使 /lock/user、/lock/storage、/lock/pyFunction、/lock/transformJob 曾经有过子节点；ZooKeeper 只回收曾经有过子节点的容器节点），然后空闲 10 秒；然后不带账户的客户端尝试在锁的父节点下建节点；IGinX 执行要加锁的操作（建用户、加存储引擎）",
+      "expected": "17 个锁的父节点与 7 个中间节点都还在，ephemeralOwner 为 0、不是容器节点；不带账户的建节点被拒绝；IGinX 的操作正常",
+      "semantic_note": "Recovered scheduled jobs receive new execution IDs; check the retained schedule YAML and active recovered job, not the expired execution ID.",
+      "deferred_tests": [
+        "ZkSecurityAcceptanceIT#igt40_41_42_allMetadataPathsAndPersistentLockParents"
+      ]
+    },
+    {
+      "id": "IGT-43",
+      "pr": 5,
+      "tests": [],
+      "design_steps": "三个 IGinX 节点，从没有安全配置文件的状态开始（行为与不打补丁相同），已有数据、用户、UDF、Transform 作业，/lock 下有容器节点。第一步：逐个放入安全配置文件（zookeeper.acl=open、internal.auth=optional）并重启，每次重启后读写一次。第二步：执行迁移命令 check、apply、check；其间由 Admin 新建一个用户；把 zookeeper.acl 改为 creator、internal.auth 改为 required，逐个重启，每次后读写一次。全部重启完之后再执行一次 apply 与 check，然后执行第三次 apply。最后做回退：把 zookeeper.acl 改回 open、internal.auth 改回 optional 并逐个重启，执行 revert 与 check；逐个节点删掉安全配置文件并重启，每次重启后读写一次，其间在还带安全配置文件的节点上由 Admin 新建一个用户，再从已删掉安全配置文件的节点读出这个用户",
+      "expected": "每次重启后集群可读写，第一步中途新旧节点之间的用户与元数据同步正常；迁移之前 check 分别报出三种问题（节点开放、根节点可建删、锁父节点是容器节点）；apply 之后 check 无问题、退出码为 0；第二次 apply 只改动两次重启之间新建的节点，随后 check 无问题，第三次 apply 报告没有改动；空的容器锁父节点被改建为持久节点；revert 之后不带账户的客户端又能读，check 列出问题、退出码非 0；已删掉安全配置文件的节点读得到回退期间新建的用户；回退之后三个节点都回到不启用的行为（会话号 0 可以执行），集群可读写；全过程数据、用户、UDF、作业不丢",
+      "semantic_note": "Recovered scheduled jobs receive new execution IDs; check the retained schedule YAML and active recovered job, not the expired execution ID.",
+      "deferred_tests": [
+        "ZkRollingMigrationIT#igt43_migrateAndRollbackWithoutLosingDataOrMetadata"
+      ]
+    },
+    {
+      "id": "IGT-44",
+      "pr": 5,
+      "tests": [],
+      "design_steps": "根节点下预先有另一个应用的 /other 与 /indagent（另一个账户、自己的访问控制）。执行 apply 与 revert",
+      "expected": "/other、/indagent 与 /zookeeper 的访问控制与内容不变，/indagent 的账户仍可读写；apply 之后、revert 之前，另一个应用在自己的 /other 之下照常建、删子节点，在根节点下新建节点被拒绝",
+      "deferred_tests": [
+        "ZkSecurityAcceptanceIT#igt44_otherApplicationsKeepTheirAclAndData"
+      ]
+    },
+    {
+      "id": "IGT-45",
+      "pr": 5,
+      "tests": [],
+      "design_steps": "单节点，open 模式，/lock 下已有容器节点。测试用 ProcessBuilder 调用迁移脚本（Windows 上是 .bat）。依次：用错误的口令执行 check；把连接串指向没有监听的端口执行 check；测试用带账户的 Curator 客户端持有 /lock/user 下的一个锁，这时执行 apply，释放之后再执行 apply；执行 revert 两次",
+      "expected": "前两次退出码非 0，输出里分别写明“账户或口令不对”“连不上”，不含口令；持锁时的 apply 报告 /lock/user 被跳过、退出码按“未完成”约定为非 0，其余节点已改好；释放后的 apply 把 /lock/user 改建为持久节点，随后 check 退出码为 0；第二次 revert 报告没有改动。Windows 上 .bat 的退出码与输出与 .sh 相同",
+      "deferred_tests": [
+        "ZkSecurityAcceptanceIT#igt45_realScriptsFailureExitCodesAndHeldLockRetry"
+      ]
+    },
+    {
+      "id": "IGT-50",
+      "pr": 6,
+      "tests": [],
+      "design_steps": "etcd 未开启认证，已有 root 用户。迁移命令的 etcd 版本以 root 身份先 check，再 apply；三个 IGinX 节点逐个配上账户并重启，每次重启后读写一次；开启认证；不带账户的 etcd 客户端读写 IGinX 的键与另一个应用的键；另一个应用用自己的账户读写自己的键；用 IGinX 的账户读写 IGinX 键前缀之外的键；apply 第二次；revert 并再 check",
+      "expected": "每次重启后集群可读写；开启认证后不带账户的读写被拒绝；另一个应用的键不受影响；IGinX 的账户读写不了别的键前缀；check 在迁移之前报出问题、之后没有问题；第二次 apply 没有改动；撤回后恢复原状",
+      "semantic_note": "jetcd 0.5.11 rejects configured credentials before authEnable: verify this compatibility result and exercise the section 3.10 maintenance-window path. Existing etcd namespaces are byte prefixes, including /userroot, not slash-separated ZooKeeper paths.",
+      "deferred_tests": [
+        "EtcdClusterAuthIT#igt50_authenticatedClusterWatchIsolationAndReversibleMigration"
+      ]
+    },
+    {
+      "id": "IGT-60",
+      "pr": 1,
+      "tests": [
+        "LegacyBehaviorIT"
+      ],
+      "design_steps": "不放安全配置文件，运行现有 CI 的全部测试，不改任何现有断言。另在 func/auth 下新增 LegacyBehaviorIT，登记进 testConfig.properties 的 test-list 与 vectordb-test-list，用原始的 Thrift 客户端与一个只有 Read 的账户验证现状不变：会话号 0 执行 SELECT 与 INSERT；只有 Read 的账户经 executeSql 执行 INSERT、SHOW CONFIG、SHOW SESSIONID；普通账户读写 indagent.t.a；ALTER USER 之后旧会话继续可用；账户 B 用 A 的 queryId 调用 fetchResults。LegacyBehaviorIT 在 IGINX_TEST_SECURITY=true 时整类跳过",
+      "expected": "全部通过；LegacyBehaviorIT 的每一步都与不打补丁时相同（都成功）。这些步骤在安全模式下的结果由 IGT-10 到 IGT-21、IGT-30 给出，两边对照；带上 IG9 之后现有 CI（含 restart-test）同样全部通过"
+    },
+    {
+      "id": "IGT-61",
+      "pr": 1,
+      "tests": [
+        "test-list"
+      ],
+      "design_steps": "安全模式下以 root 运行测试清单（test-list）里的现有测试：沿用 Controller 与 test_union.sh，存储引擎取 FileSystem，整份 test-list 都跑（LegacyBehaviorIT 在环境变量 IGINX_TEST_SECURITY=true 时用 Assume 整类跳过，它在安全模式下的对应结果由 IGT-10 到 IGT-21、IGT-30 给出），其中至少有 SQLSessionIT、UDFIT、TransformIT、CompactionIT、UserManagementIT（PR 0 合入之后才真正运行）、DataSourceIT、SessionIT、OptimizerIT（它用到 SHOW RULES、SET RULES）；RestIT、RestAnnotationIT 从环境变量 IGINX_TEST_REST_USER、IGINX_TEST_REST_PASSWORD 取账户，有值时给 curl 加上基本认证（F18）；PySessionIT#testDebugInfo 在环境变量 IGINX_TEST_SECURITY=true 时用 Assume 跳过，其余用例验证 Python 客户端能处理随机的会话号",
+      "expected": "全部通过。若有测试用到保留前缀或口令的明文，逐条列出并改为不依赖它们"
+    },
+    {
+      "id": "IGT-62",
+      "pr": 1,
+      "tests": [
+        "StartupScriptIT#igt62_invalidThenCorrectedConfigurationThroughRealScript"
+      ],
+      "design_steps": "security-test 工作流里的一个任务。依次放入三种不合格的安全配置文件：把 reserved.prefixes 拼错成 reserved.prefixs；有保留前缀而允许名单为空；Unix 上文件权限为 644。每次用启动脚本启动 IGinX，然后运行 SecurityStartupIT#notInService；最后换成合格的文件再启动",
+      "expected": "三次启动脚本都以非 0 退出；6888 端口没有监听，用 root/root 连接失败；IGinX 的日志里写明不合格的是哪一项，日志里搜不到文件里的口令；换成合格的文件后正常启动，会话号 0 被拒绝。Windows 上只跑前两种"
+    },
+    {
+      "id": "IGT-63",
+      "pr": 4,
+      "tests": [],
+      "design_steps": "不放安全配置文件，enableMqtt=true。用任意的用户名与口令连接；发布一条普通路径的消息；另一个客户端订阅同一主题；断开后再连接并发布",
+      "expected": "连接成功；消息写入，经会话接口读得到；订阅方收到消息；与不打补丁时相同。这条测试在补丁之前先运行一遍，结果作为基准写进 PR 的说明",
+      "deferred_tests": [
+        "MqttLegacyIT#igt63_arbitraryCredentialsPublishSubscribeAndReconnect"
+      ]
+    }
+  ]
+}
