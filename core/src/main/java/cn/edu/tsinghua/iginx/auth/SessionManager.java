@@ -171,6 +171,8 @@ public class SessionManager {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
       digest.update(user.getPassword().getBytes(StandardCharsets.UTF_8));
       digest.update((byte) permissions(user));
+      digest.update(
+          java.nio.ByteBuffer.allocate(Long.BYTES).putLong(user.getIncarnation()).array());
       return digest.digest();
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException(e);
