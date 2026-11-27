@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.transform.api.Reader;
 import cn.edu.tsinghua.iginx.transform.exception.ReadBatchException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
@@ -36,13 +35,11 @@ import java.util.regex.Matcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PemjaReader implements Reader {
+public class PemjaReader extends AbstractBatchReader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PemjaReader.class);
 
   private final List<Object> data;
-
-  private final int batchSize;
 
   private final Header header;
 
@@ -50,30 +47,39 @@ public class PemjaReader implements Reader {
 
   private int offset = 0;
 
-  public PemjaReader(List<Object> data, int batchSize) throws ReadBatchException {
-    this.data = data;
-    this.batchSize = batchSize;
+  public PemjaReader(Object data, int batchSize) throws ReadBatchException {
+    super(batchSize);
+    if (!isList(data) || ((List<Object>) data).isEmpty()) {
+      throw new ReadBatchException(
+          "Python transformer must return a non-empty list starting with header, got: " + data);
+    }
+    this.data = (List<Object>) data;
 
     this.header = getHeaderFromData();
     this.rowList = getRowListFromData();
   }
 
   private Header getHeaderFromData() throws ReadBatchException {
-    List<Object> firstRow;
-    List<DataType> typeList = new ArrayList<>();
     List<Field> fieldList = new ArrayList<>();
-    if (isList(data.get(0))) {
-      firstRow = (List<Object>) data.get(0);
-      if (data.size() >= 2 && isList(data.get(1))) {
-        typeList = parseTypeList((List<Object>) data.get(1));
-      }
-    } else {
-      firstRow = data;
+    if (!isList(data.get(0))) {
+      throw new ReadBatchException(
+          "Python transformer must return a 2D list whose first row is header, got: " + data);
     }
+    List<Object> firstRow = (List<Object>) data.get(0);
+    if (firstRow.isEmpty()) {
+      throw new ReadBatchException("Header returned by python transformer has no column.");
+    }
+    checkRows(firstRow.size());
+    List<DataType> typeList = parseTypeList(firstRow.size());
 
     String fieldName;
     Pair<String, Map<String, String>> p;
     for (int i = 0; i < firstRow.size(); i++) {
+      if (!(firstRow.get(i) instanceof String) || ((String) firstRow.get(i)).isEmpty()) {
+        throw new ReadBatchException(
+            "Column name returned by python transformer must be a non-empty string, got: "
+                + firstRow.get(i));
+      }
       fieldName = (String) firstRow.get(i);
       Matcher matcher = tagMatchRegex.matcher(fieldName);
       if (!matcher.find()) {
@@ -81,7 +87,7 @@ public class PemjaReader implements Reader {
             "Invalid path :" + fieldName + ". Tags should be wrapped around by '{' & '}'.");
       } else {
         p = fromFullName(fieldName);
-        fieldList.add(new Field(p.k, typeList.isEmpty() ? DataType.BINARY : typeList.get(i), p.v));
+        fieldList.add(new Field(p.k, typeList.get(i), p.v));
       }
     }
     return new Header(fieldList);
@@ -90,11 +96,8 @@ public class PemjaReader implements Reader {
   private List<Row> getRowListFromData() {
     List<Row> rowList = new ArrayList<>();
 
-    boolean is2DList = isList(data.get(0));
-    if (is2DList) {
-      for (int i = 1; i < data.size(); i++) {
-        rowList.add(new Row(header, ((List<Object>) data.get(i)).toArray()));
-      }
+    for (int i = 1; i < data.size(); i++) {
+      rowList.add(new Row(header, ((List<Object>) data.get(i)).toArray()));
     }
     return rowList;
   }
@@ -106,9 +109,25 @@ public class PemjaReader implements Reader {
     return object instanceof List<?>;
   }
 
-  private List<DataType> parseTypeList(List<Object> dataList) {
+  private void checkRows(int columnCount) throws ReadBatchException {
+    for (int i = 1; i < data.size(); i++) {
+      if (!isList(data.get(i)) || ((List<Object>) data.get(i)).size() != columnCount) {
+        throw new ReadBatchException(
+            String.format(
+                "Row %d returned by python transformer must be a list of %d values, got: %s",
+                i, columnCount, data.get(i)));
+      }
+    }
+  }
+
+  // type of a column is decided by its first non-null value, BINARY if all values are null
+  private List<DataType> parseTypeList(int columnCount) throws ReadBatchException {
     List<DataType> res = new ArrayList<>();
-    for (Object value : dataList) {
+    for (int i = 0; i < columnCount; i++) {
+      Object value = null;
+      for (int j = 1; j < data.size() && value == null; j++) {
+        value = ((List<Object>) data.get(j)).get(i);
+      }
       // python won't pass integer, float, byte
       if (value instanceof Long) {
         res.add(DataType.LONG);
@@ -116,10 +135,10 @@ public class PemjaReader implements Reader {
         res.add(DataType.DOUBLE);
       } else if (value instanceof Boolean) {
         res.add(DataType.BOOLEAN);
-      } else if (value instanceof String || value instanceof byte[]) {
+      } else if (value == null || value instanceof String || value instanceof byte[]) {
         res.add(DataType.BINARY);
       } else {
-        throw new IllegalArgumentException(
+        throw new ReadBatchException(
             "Invalid datatype for " + value + " of class: " + value.getClass());
       }
     }
@@ -127,20 +146,18 @@ public class PemjaReader implements Reader {
   }
 
   @Override
-  public boolean hasNextBatch() {
+  protected Header readHeader() {
+    return header;
+  }
+
+  @Override
+  protected boolean hasNextRow() {
     return offset < rowList.size();
   }
 
   @Override
-  public BatchData loadNextBatch() {
-    BatchData batchData = new BatchData(header);
-    int countDown = batchSize;
-    while (countDown > 0 && offset < rowList.size()) {
-      batchData.appendRow(rowList.get(offset));
-      countDown--;
-      offset++;
-    }
-    return batchData;
+  protected Row nextRow() {
+    return rowList.get(offset++);
   }
 
   @Override

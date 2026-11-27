@@ -34,13 +34,13 @@ import cn.edu.tsinghua.iginx.transform.api.Writer;
 import cn.edu.tsinghua.iginx.transform.data.*;
 import cn.edu.tsinghua.iginx.transform.driver.PemjaDriver;
 import cn.edu.tsinghua.iginx.transform.driver.PemjaWorker;
+import cn.edu.tsinghua.iginx.transform.exception.ReadBatchException;
 import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
 import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 import cn.edu.tsinghua.iginx.transform.pojo.SQLTask;
 import cn.edu.tsinghua.iginx.transform.pojo.StreamStage;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
-import cn.edu.tsinghua.iginx.transform.utils.Mutex;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,8 +54,6 @@ public class StreamStageRunner implements Runner {
   private final StreamStage streamStage;
 
   private final int batchSize;
-
-  private final Mutex mutex;
 
   private Writer writer;
 
@@ -76,7 +74,6 @@ public class StreamStageRunner implements Runner {
     this.batchSize = config.getBatchSize();
     this.pemjaWorkerList = new ArrayList<>();
     this.writer = streamStage.getExportWriter();
-    this.mutex = ((ExportWriter) writer).getMutex();
   }
 
   @Override
@@ -88,13 +85,13 @@ public class StreamStageRunner implements Runner {
     } else {
       CollectionWriter collectionWriter =
           (CollectionWriter) streamStage.getBeforeStage().getExportWriter();
-      reader = new SplitReader(collectionWriter.getCollectedData(), batchSize);
-      collectionWriter.reset();
+      reader = new SplitReader(collectionWriter.takeCollectedData(), batchSize);
     }
 
     List<Task> taskList = streamStage.getTaskList();
     pemjaWorkerList.clear();
     this.writer = streamStage.getExportWriter();
+    writer.reset();
     for (int i = taskList.size() - 1; i >= 0; i--) {
       Task task = taskList.get(i);
       if (task.isPythonTask()) {
@@ -142,24 +139,20 @@ public class StreamStageRunner implements Runner {
             sqlList.get(sqlList.size() - 1));
       }
     }
-    return context.getResult().getResultStream();
+    RowStream resultStream = context.getResult().getResultStream();
+    if (resultStream == null) {
+      throw new TransformException(
+          "The last statement of SQL task returns no result set: "
+              + sqlList.get(sqlList.size() - 1));
+    }
+    return resultStream;
   }
 
   @Override
-  public void run() throws WriteBatchException {
+  public void run() throws ReadBatchException, WriteBatchException {
     while (reader.hasNextBatch()) {
-      mutex.lock();
       BatchData batchData = reader.loadNextBatch();
       writer.writeBatch(batchData);
-    }
-
-    // wait for last batch finished.
-    mutex.lock();
-
-    // unlock for further scheduled runs
-    mutex.unlock();
-    if (!writer.getClass().equals(CollectionWriter.class)) {
-      writer.reset();
     }
   }
 
@@ -167,6 +160,7 @@ public class StreamStageRunner implements Runner {
   public void close() {
     if (reader != null) {
       reader.close();
+      reader = null;
     }
     if (pemjaWorkerList.size() > 0) {
       pemjaWorkerList.forEach(PemjaWorker::close);

@@ -106,6 +106,20 @@ public class TransformIT {
 
   private static final String QUERY_SQL_3 = "SELECT s1, s2 FROM us.d1 WHERE key < 10;";
 
+  // Empty results are passed on as header-only batches: every receiver is still invoked and the
+  // job finishes. batchSize is 50, so EMPTY_RESULT_MANY_ROWS_SQL is read as three batches.
+  private static final String EMPTY_RESULT_NO_ROW_SQL =
+      "SELECT s1 FROM us.d1 WHERE key >= 100000000;";
+
+  private static final String EMPTY_RESULT_MANY_ROWS_SQL = "SELECT s1 FROM us.d1 WHERE key < 120;";
+
+  private static final String EMPTY_RESULT_THREE_ROWS_SQL = "SELECT s1 FROM us.d1 WHERE key < 3;";
+
+  private static final List<String> COUNT_ZERO_ONCE = Arrays.asList("count", "0");
+
+  private static final List<String> THREE_ROWS_OF_S1 =
+      Arrays.asList(GlobalConstant.KEY_NAME + ",us.d1.s1", "0,0", "1,1", "2,2");
+
   private static final Map<String, String> TASK_MAP = new HashMap<>();
 
   private static boolean dummyNoData = true;
@@ -123,6 +137,17 @@ public class TransformIT {
         "ToBytesTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_to_bytes.py");
     TASK_MAP.put(
         "SumTransformerNoKey", OUTPUT_DIR_PREFIX + File.separator + "transformer_sum_no_key.py");
+    TASK_MAP.put(
+        "DropAllTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_drop_all.py");
+    TASK_MAP.put("CountTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_count.py");
+    TASK_MAP.put(
+        "FillDefaultTransformer",
+        OUTPUT_DIR_PREFIX + File.separator + "transformer_fill_default.py");
+    TASK_MAP.put(
+        "PositiveFilterTransformer",
+        OUTPUT_DIR_PREFIX + File.separator + "transformer_positive_filter.py");
+    TASK_MAP.put(
+        "MarkEmptyTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_mark_empty.py");
   }
 
   @BeforeClass
@@ -553,6 +578,224 @@ public class TransformIT {
         Files.deleteIfExists(Paths.get(outputFileName));
       } catch (IOException e) {
         LOGGER.warn("Fail to delete result file: {}", outputFileName, e);
+      }
+    }
+  }
+
+  @Test
+  public void emptySqlResultToBatchTest() {
+    List<String> lines =
+        runEmptyResultTransform(
+            "sql_to_batch",
+            sqlTransformTask(EMPTY_RESULT_NO_ROW_SQL),
+            pythonTransformTask("CountTransformer", DataFlowType.BATCH));
+    assertEquals(COUNT_ZERO_ONCE, lines);
+  }
+
+  @Test
+  public void emptySqlResultToStreamTest() {
+    List<String> lines =
+        runEmptyResultTransform(
+            "sql_to_stream",
+            sqlTransformTask(EMPTY_RESULT_NO_ROW_SQL),
+            pythonTransformTask("CountTransformer", DataFlowType.STREAM));
+    assertEquals(COUNT_ZERO_ONCE, lines);
+  }
+
+  @Test
+  public void emptyBatchResultToSqlTest() {
+    TaskInfo dropAll = pythonTransformTask("DropAllTransformer", DataFlowType.BATCH);
+    dropAll.setOutputPrefix("emptybatchout");
+    TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+    sqlTask.setSqlList(Arrays.asList("SELECT * FROM emptybatchout;", EMPTY_RESULT_THREE_ROWS_SQL));
+    List<String> lines =
+        runEmptyResultTransform(
+            "batch_to_sql", sqlTransformTask(EMPTY_RESULT_THREE_ROWS_SQL), dropAll, sqlTask);
+    assertEquals(THREE_ROWS_OF_S1, lines);
+  }
+
+  @Test
+  public void emptyBatchResultToBatchTest() {
+    List<String> lines =
+        runEmptyResultTransform(
+            "batch_to_batch",
+            sqlTransformTask(EMPTY_RESULT_MANY_ROWS_SQL),
+            pythonTransformTask("DropAllTransformer", DataFlowType.BATCH),
+            pythonTransformTask("CountTransformer", DataFlowType.BATCH));
+    assertEquals(COUNT_ZERO_ONCE, lines);
+  }
+
+  @Test
+  public void emptyBatchResultToStreamTest() {
+    List<String> lines =
+        runEmptyResultTransform(
+            "batch_to_stream",
+            sqlTransformTask(EMPTY_RESULT_MANY_ROWS_SQL),
+            pythonTransformTask("DropAllTransformer", DataFlowType.BATCH),
+            pythonTransformTask("CountTransformer", DataFlowType.STREAM));
+    assertEquals(COUNT_ZERO_ONCE, lines);
+  }
+
+  @Test
+  public void emptyStreamResultToSqlTest() {
+    TaskInfo dropAll = pythonTransformTask("DropAllTransformer", DataFlowType.STREAM);
+    dropAll.setOutputPrefix("emptystreamout");
+    TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+    sqlTask.setSqlList(Arrays.asList("SELECT * FROM emptystreamout;", EMPTY_RESULT_THREE_ROWS_SQL));
+    List<String> lines =
+        runEmptyResultTransform(
+            "stream_to_sql", sqlTransformTask(EMPTY_RESULT_MANY_ROWS_SQL), dropAll, sqlTask);
+    assertEquals(THREE_ROWS_OF_S1, lines);
+  }
+
+  @Test
+  public void emptyStreamResultToBatchTest() {
+    // three empty outputs are merged into one empty table, so the batch task runs once
+    List<String> lines =
+        runEmptyResultTransform(
+            "stream_to_batch",
+            sqlTransformTask(EMPTY_RESULT_MANY_ROWS_SQL),
+            pythonTransformTask("DropAllTransformer", DataFlowType.STREAM),
+            pythonTransformTask("CountTransformer", DataFlowType.BATCH));
+    assertEquals(COUNT_ZERO_ONCE, lines);
+  }
+
+  @Test
+  public void emptyStreamResultToStreamTest() {
+    // each of the three empty outputs triggers one call of the downstream stream task
+    List<String> lines =
+        runEmptyResultTransform(
+            "stream_to_stream",
+            sqlTransformTask(EMPTY_RESULT_MANY_ROWS_SQL),
+            pythonTransformTask("DropAllTransformer", DataFlowType.STREAM),
+            pythonTransformTask("CountTransformer", DataFlowType.STREAM));
+    assertEquals(Arrays.asList("count", "0", "0", "0"), lines);
+  }
+
+  @Test
+  public void emptyAggregateResultTest() {
+    // an aggregation over no data has no column at all and is passed on as an empty key-only table
+    List<String> lines =
+        runEmptyResultTransform(
+            "aggregate",
+            sqlTransformTask("SELECT avg(s1) FROM us.d1 WHERE key >= 100000000;"),
+            pythonTransformTask("CountTransformer", DataFlowType.STREAM));
+    assertEquals(COUNT_ZERO_ONCE, lines);
+  }
+
+  @Test
+  public void emptyResultThroughAllTransitionsTest() {
+    // Every legal transition is entered with empty input:
+    //   SQL -> BATCH -> STREAM -> SQL -> BATCH -> SQL -> STREAM -> STREAM -> BATCH -> BATCH(fill)
+    //   -> STREAM(filter)
+    // MarkEmptyTransformer fails on non-empty input and appends a numbered column to the header.
+    // A SQL task drops the columns before it, so only the marks of the last segment remain.
+    // The tail is the example of the design: the batch fills a default row, the stream filters it.
+    TaskInfo streamToSql = pythonTransformTask("MarkEmptyTransformer", DataFlowType.STREAM);
+    streamToSql.setOutputPrefix("allstreamout");
+    TaskInfo batchToSql = pythonTransformTask("MarkEmptyTransformer", DataFlowType.BATCH);
+    batchToSql.setOutputPrefix("allbatchout");
+    TaskInfo lastSql = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+    lastSql.setSqlList(Arrays.asList("SELECT * FROM allbatchout;", EMPTY_RESULT_NO_ROW_SQL));
+    List<String> lines =
+        runEmptyResultTransform(
+            "all_transitions",
+            sqlTransformTask(EMPTY_RESULT_NO_ROW_SQL),
+            pythonTransformTask("MarkEmptyTransformer", DataFlowType.BATCH),
+            streamToSql,
+            sqlTransformTask("SELECT * FROM allstreamout;"),
+            batchToSql,
+            lastSql,
+            pythonTransformTask("MarkEmptyTransformer", DataFlowType.STREAM),
+            pythonTransformTask("MarkEmptyTransformer", DataFlowType.STREAM),
+            pythonTransformTask("MarkEmptyTransformer", DataFlowType.BATCH),
+            pythonTransformTask("FillDefaultTransformer", DataFlowType.BATCH),
+            pythonTransformTask("PositiveFilterTransformer", DataFlowType.STREAM));
+    assertEquals("only the header is expected: " + lines, 1, lines.size());
+    assertTrue(lines.get(0), lines.get(0).startsWith(GlobalConstant.KEY_NAME + ","));
+    assertTrue(lines.get(0), lines.get(0).endsWith(",mark0,mark1,mark2"));
+  }
+
+  @Test
+  public void emptySqlResultToFinalOutputTest() {
+    verifyEmptyFinalOutputs("sql_to_final", sqlTransformTask(EMPTY_RESULT_NO_ROW_SQL));
+  }
+
+  @Test
+  public void emptyBatchResultToFinalOutputTest() {
+    verifyEmptyFinalOutputs(
+        "batch_to_final",
+        sqlTransformTask(EMPTY_RESULT_THREE_ROWS_SQL),
+        pythonTransformTask("DropAllTransformer", DataFlowType.BATCH));
+  }
+
+  @Test
+  public void emptyStreamResultToFinalOutputTest() {
+    // three empty outputs still leave a single header in the file
+    verifyEmptyFinalOutputs(
+        "stream_to_final",
+        sqlTransformTask(EMPTY_RESULT_MANY_ROWS_SQL),
+        pythonTransformTask("DropAllTransformer", DataFlowType.STREAM));
+  }
+
+  /** The file keeps only the header, the log export finishes, IGinX receives no row. */
+  private void verifyEmptyFinalOutputs(String name, TaskInfo... tasks) {
+    List<String> lines = runEmptyResultTransform(name, ExportType.FILE, tasks);
+    assertEquals("file export should only keep the header: " + lines, 1, lines.size());
+    assertTrue(lines.get(0), lines.get(0).startsWith(GlobalConstant.KEY_NAME));
+
+    runEmptyResultTransform(name, ExportType.LOG, tasks);
+
+    runEmptyResultTransform(name, ExportType.IGINX, tasks);
+    try {
+      SessionExecuteSqlResult result = session.executeSql("SELECT * FROM transform;");
+      assertTrue("IGinX export should insert no row", result.getValues().isEmpty());
+    } catch (SessionException e) {
+      LOGGER.error("Fail to query exported result: {}", name, e);
+      fail(e.toString());
+    }
+  }
+
+  private List<String> runEmptyResultTransform(String name, TaskInfo... tasks) {
+    return runEmptyResultTransform(name, ExportType.FILE, tasks);
+  }
+
+  /** Runs the job once and returns all lines of the exported file, or nothing for other exports. */
+  private List<String> runEmptyResultTransform(
+      String name, ExportType exportType, TaskInfo... tasks) {
+    Assume.assumeTrue(
+        "This storage configuration does not support deterministic key comparisons",
+        needCompareResult);
+    Path outputFile = Paths.get(OUTPUT_DIR_PREFIX, "export_file_empty_" + name + ".txt");
+    try {
+      Files.deleteIfExists(outputFile);
+      for (String task :
+          Arrays.asList(
+              "DropAllTransformer",
+              "CountTransformer",
+              "MarkEmptyTransformer",
+              "FillDefaultTransformer",
+              "PositiveFilterTransformer")) {
+        registerTask(task);
+      }
+      long jobId =
+          session.commitTransformJob(
+              Arrays.asList(tasks),
+              exportType,
+              exportType == ExportType.FILE ? outputFile.toString() : "");
+      verifyJobFinishedBlocked(jobId);
+      return exportType == ExportType.FILE
+          ? Files.readAllLines(outputFile)
+          : Collections.emptyList();
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Empty result transform failed: {} ({})", name, exportType, e);
+      fail(e.toString());
+      return Collections.emptyList();
+    } finally {
+      try {
+        Files.deleteIfExists(outputFile);
+      } catch (IOException e) {
+        LOGGER.warn("Fail to delete result file: {}", outputFile, e);
       }
     }
   }

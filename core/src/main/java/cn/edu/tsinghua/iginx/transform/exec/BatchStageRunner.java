@@ -30,7 +30,6 @@ import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
 import cn.edu.tsinghua.iginx.transform.pojo.BatchStage;
 import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
-import cn.edu.tsinghua.iginx.transform.utils.Mutex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,8 +37,6 @@ public class BatchStageRunner implements Runner {
   private static final Logger LOGGER = LoggerFactory.getLogger(BatchStageRunner.class);
 
   private final BatchStage batchStage;
-
-  private final Mutex mutex;
 
   private Writer writer;
 
@@ -50,12 +47,12 @@ public class BatchStageRunner implements Runner {
   public BatchStageRunner(BatchStage batchStage) {
     this.batchStage = batchStage;
     this.writer = batchStage.getExportWriter();
-    this.mutex = ((ExportWriter) writer).getMutex();
   }
 
   @Override
   public void start() throws TransformException {
     writer = batchStage.getExportWriter();
+    writer.reset();
     Task task = batchStage.getTask();
     if (task.isPythonTask()) {
       pemjaWorker = driver.createWorker((PythonTask) task, writer);
@@ -70,17 +67,8 @@ public class BatchStageRunner implements Runner {
   public void run() throws WriteBatchException {
     CollectionWriter collectionWriter =
         (CollectionWriter) batchStage.getBeforeStage().getExportWriter();
-    BatchData batchData = collectionWriter.getCollectedData();
-    collectionWriter.reset();
-
-    mutex.lock();
+    BatchData batchData = collectionWriter.takeCollectedData();
     writer.writeBatch(batchData);
-
-    // wait for py work finish writing.
-    mutex.lock();
-
-    mutex.unlock();
-    writer.reset();
   }
 
   @Override

@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.transform.api.Reader;
 import cn.edu.tsinghua.iginx.transform.api.Writer;
 import cn.edu.tsinghua.iginx.transform.data.ArrowReader;
 import cn.edu.tsinghua.iginx.transform.data.BatchData;
+import cn.edu.tsinghua.iginx.transform.exception.ReadBatchException;
 import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -103,7 +104,7 @@ public class IPCWorker extends Thread {
 
       reader.close();
       socket.close();
-    } catch (IOException | WriteBatchException e) {
+    } catch (IOException | ReadBatchException | WriteBatchException e) {
       LOGGER.error("Worker pid={} fail to process socket.", pid);
       throw new RuntimeException("Fail to process socket", e);
     }

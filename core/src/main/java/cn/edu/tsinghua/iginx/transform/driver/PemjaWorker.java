@@ -67,7 +67,7 @@ public class PemjaWorker {
     this.writer = writer;
   }
 
-  public void process(BatchData batchData) {
+  public void process(BatchData batchData) throws WriteBatchException {
     List<List<Object>> data = new ArrayList<>();
 
     List<Object> headerRow = new ArrayList<>();
@@ -101,12 +101,12 @@ public class PemjaWorker {
     interpreter.exec(String.format("%s = %s.%s()", obj, moduleName, className));
     // Pemja caches bound methods, so invokeMethod can keep calling an old instance after reload.
     // Execute the call directly; a global helper passed to invoke also has unsafe cache ownership.
-    List<Object> res;
+    Object res;
     try {
       interpreter.set(TRANSFORM_INPUT, data);
       interpreter.exec(
           String.format("%s = %s.%s(%s)", TRANSFORM_OUTPUT, obj, UDF_FUNC, TRANSFORM_INPUT));
-      res = (List<Object>) interpreter.get(TRANSFORM_OUTPUT);
+      res = interpreter.get(TRANSFORM_OUTPUT);
     } finally {
       interpreter.exec(
           String.format(
@@ -114,16 +114,20 @@ public class PemjaWorker {
               TRANSFORM_INPUT, TRANSFORM_OUTPUT));
     }
 
+    PemjaReader reader = null;
     try {
-      PemjaReader reader = new PemjaReader(res, config.getBatchSize());
+      reader = new PemjaReader(res, config.getBatchSize());
       while (reader.hasNextBatch()) {
         BatchData nextBatchData = reader.loadNextBatch();
         writer.writeBatch(nextBatchData);
       }
-    } catch (WriteBatchException e) {
-      LOGGER.error("PemjaWorker identifier={} fail to writer data.", identifier, e);
     } catch (ReadBatchException e) {
-      LOGGER.error("Failed to read data from python transformer.", e);
+      throw new WriteBatchException(
+          "Failed to read data from python transformer " + identifier + ".", e);
+    } finally {
+      if (reader != null) {
+        reader.close();
+      }
     }
   }
 

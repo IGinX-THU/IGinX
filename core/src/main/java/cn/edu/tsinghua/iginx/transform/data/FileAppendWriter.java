@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.auth.utils.FilePermissionRuleNameFilters;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
+import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -64,7 +65,7 @@ public class FileAppendWriter extends ExportWriter {
   }
 
   @Override
-  public void write(BatchData batchData) {
+  public void write(BatchData batchData) throws WriteBatchException {
     if (!hasWriteHeader) {
       Header header = batchData.getHeader();
 
@@ -99,7 +100,7 @@ public class FileAppendWriter extends ExportWriter {
     }
   }
 
-  private void writeFile(String fileName, String content) {
+  private void writeFile(String fileName, String content) throws WriteBatchException {
     try {
       File file = new File(fileName);
 
@@ -109,7 +110,7 @@ public class FileAppendWriter extends ExportWriter {
         out.flush();
       }
     } catch (IOException e) {
-      LOGGER.error("unexpected error: ", e);
+      throw new WriteBatchException("Fail to write transform result to file: " + fileName, e);
     }
   }
 

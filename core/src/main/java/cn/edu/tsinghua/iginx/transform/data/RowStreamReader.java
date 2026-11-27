@@ -20,48 +20,56 @@
 package cn.edu.tsinghua.iginx.transform.data;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.transform.api.Reader;
+import cn.edu.tsinghua.iginx.transform.exception.ReadBatchException;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RowStreamReader implements Reader {
+public class RowStreamReader extends AbstractBatchReader {
   private static final Logger LOGGER = LoggerFactory.getLogger(RowStreamReader.class);
 
   private final RowStream rowStream;
 
-  private final int batchSize;
-
   public RowStreamReader(RowStream rowStream, int batchSize) {
-    this.rowStream = rowStream;
-    this.batchSize = batchSize;
+    super(batchSize);
+    this.rowStream = Objects.requireNonNull(rowStream);
   }
 
   @Override
-  public boolean hasNextBatch() {
+  protected Header readHeader() throws ReadBatchException {
     try {
-      return rowStream.hasNext();
+      Header header = rowStream.getHeader();
+      // the engine returns a header without any column for aggregations over no data
+      if (header != null
+          && !header.hasKey()
+          && header.getFields().isEmpty()
+          && !rowStream.hasNext()) {
+        return Header.EMPTY_HEADER_WITH_KEY;
+      }
+      return header;
     } catch (PhysicalException e) {
-      LOGGER.error("Fail to examine whether there is more data, because ", e);
-      return false;
+      throw new ReadBatchException("Fail to read header of query result.", e);
     }
   }
 
   @Override
-  public BatchData loadNextBatch() {
+  protected boolean hasNextRow() throws ReadBatchException {
     try {
-      BatchData batchData = new BatchData(rowStream.getHeader());
-      int countDown = batchSize;
-      while (countDown > 0 && rowStream.hasNext()) {
-        Row row = rowStream.next();
-        batchData.appendRow(row);
-        countDown--;
-      }
-      return batchData;
+      return rowStream.hasNext();
     } catch (PhysicalException e) {
-      LOGGER.error("Fail to load next batch of data, because ", e);
-      return null;
+      throw new ReadBatchException("Fail to examine whether there is more data.", e);
+    }
+  }
+
+  @Override
+  protected Row nextRow() throws ReadBatchException {
+    try {
+      return rowStream.next();
+    } catch (PhysicalException e) {
+      throw new ReadBatchException("Fail to read next row of query result.", e);
     }
   }
 

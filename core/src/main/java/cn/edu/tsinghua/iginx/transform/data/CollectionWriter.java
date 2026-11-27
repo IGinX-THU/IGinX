@@ -19,24 +19,58 @@
  */
 package cn.edu.tsinghua.iginx.transform.data;
 
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
+import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
+import java.util.List;
 
 public class CollectionWriter extends ExportWriter {
 
   private BatchData collectedData;
 
   @Override
-  public void write(BatchData batchData) {
+  public void write(BatchData batchData) throws WriteBatchException {
+    Header header = batchData.getHeader();
     if (collectedData == null) {
-      collectedData = new BatchData(batchData.getHeader());
+      collectedData = new BatchData(header);
+    } else {
+      checkColumns(collectedData.getHeader(), header);
+    }
+    if (batchData.getRowList().isEmpty()) {
+      return;
+    }
+    if (collectedData.getRowList().isEmpty()) {
+      // types of an empty batch from python are placeholders, adopt the real ones
+      collectedData = new BatchData(header);
     }
     for (Row row : batchData.getRowList()) {
       collectedData.appendRow(row);
     }
   }
 
-  public BatchData getCollectedData() {
-    return collectedData;
+  private static void checkColumns(Header expected, Header actual) throws WriteBatchException {
+    List<Field> expectedFields = expected.getFields();
+    List<Field> actualFields = actual.getFields();
+    boolean same =
+        expected.hasKey() == actual.hasKey() && expectedFields.size() == actualFields.size();
+    for (int i = 0; same && i < expectedFields.size(); i++) {
+      same = expectedFields.get(i).getFullName().equals(actualFields.get(i).getFullName());
+    }
+    if (!same) {
+      throw new WriteBatchException(
+          "Inconsistent columns in one result, expected: " + expected + ", got: " + actual);
+    }
+  }
+
+  /** Hands over the complete result and clears the reference held by this collector. */
+  public BatchData takeCollectedData() {
+    if (collectedData == null) {
+      throw new IllegalStateException("No data has been collected.");
+    }
+    BatchData batchData = collectedData;
+    collectedData = null;
+    return batchData;
   }
 
   @Override
