@@ -43,6 +43,8 @@ public class ServerWorker implements FileSystemRpc.Iface {
 
   @Override
   public Map<DataUnit, DataBoundary> getUnits(RawPrefix prefix) throws RpcException {
+    cn.edu.tsinghua.iginx.filesystem.service.rpc.InternalAuth.verify(
+        prefix == null ? null : prefix.getCredential(), "getUnits", prefix);
     String iginxPrefix = ServerObjectMappingUtils.resolveRawPrefix(prefix);
     try {
       Map<DataUnit, DataBoundary> units = service.getUnits(iginxPrefix);
@@ -62,6 +64,8 @@ public class ServerWorker implements FileSystemRpc.Iface {
   @Override
   public RawDataSet query(DataUnit unit, RawDataTarget target, RawAggregate aggregate)
       throws RpcException {
+    cn.edu.tsinghua.iginx.filesystem.service.rpc.InternalAuth.verify(
+        target == null ? null : target.getCredential(), "query", unit, target, aggregate);
     DataTarget dataTarget = ServerObjectMappingUtils.resolveRawDataTarget(target);
     AggregateType aggregateType = ServerObjectMappingUtils.resolveRawAggregate(aggregate);
     try {
@@ -75,6 +79,8 @@ public class ServerWorker implements FileSystemRpc.Iface {
 
   @Override
   public void delete(DataUnit unit, RawDataTarget target) throws RpcException {
+    cn.edu.tsinghua.iginx.filesystem.service.rpc.InternalAuth.verify(
+        target == null ? null : target.getCredential(), "delete", unit, target);
     DataTarget dataTarget = ServerObjectMappingUtils.resolveRawDataTarget(target);
     try {
       service.delete(unit, dataTarget);
@@ -86,6 +92,8 @@ public class ServerWorker implements FileSystemRpc.Iface {
 
   @Override
   public void insert(DataUnit unit, RawInserted data) throws RpcException {
+    cn.edu.tsinghua.iginx.filesystem.service.rpc.InternalAuth.verify(
+        data == null ? null : data.getCredential(), "insert", unit, data);
     DataView dataView = ServerObjectMappingUtils.resolveRawInserted(data);
     try {
       service.insert(unit, dataView);

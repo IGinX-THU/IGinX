@@ -72,6 +72,8 @@ public class RemoteService implements Service {
     try (PooledTTransport transport = pool.borrowObject()) {
       FileSystemRpc.Client client = wrapClient(transport);
       try {
+        rawPrefix.setCredential(
+            cn.edu.tsinghua.iginx.filesystem.service.rpc.InternalAuth.sign("getUnits", rawPrefix));
         return client.getUnits(rawPrefix);
       } catch (Exception e) {
         transport.destroy();
@@ -100,6 +102,9 @@ public class RemoteService implements Service {
     try (PooledTTransport transport = pool.borrowObject()) {
       FileSystemRpc.Client client = wrapClient(transport);
       try {
+        rawTarget.setCredential(
+            cn.edu.tsinghua.iginx.filesystem.service.rpc.InternalAuth.sign(
+                "query", unit, rawTarget, rawAggregate));
         RawDataSet dataSet = client.query(unit, rawTarget, rawAggregate);
         RowStream stream = ClientObjectMappingUtils.constructRowStream(dataSet);
         if (postFilter != null) {
@@ -126,6 +131,9 @@ public class RemoteService implements Service {
     try (PooledTTransport transport = pool.borrowObject()) {
       FileSystemRpc.Client client = wrapClient(transport);
       try {
+        rawTarget.setCredential(
+            cn.edu.tsinghua.iginx.filesystem.service.rpc.InternalAuth.sign(
+                "delete", dataUnit, rawTarget));
         client.delete(dataUnit, rawTarget);
       } catch (Exception e) {
         transport.destroy();
@@ -147,6 +155,9 @@ public class RemoteService implements Service {
     try (PooledTTransport transport = pool.borrowObject()) {
       FileSystemRpc.Client client = wrapClient(transport);
       try {
+        rawInserted.setCredential(
+            cn.edu.tsinghua.iginx.filesystem.service.rpc.InternalAuth.sign(
+                "insert", unit, rawInserted));
         client.insert(unit, rawInserted);
       } catch (Exception e) {
         transport.destroy();

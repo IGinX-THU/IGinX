@@ -22,6 +22,7 @@ package cn.edu.tsinghua.iginx.filesystem.security;
 import static cn.edu.tsinghua.iginx.filesystem.security.SecurityTestEnvironment.*;
 import static org.junit.Assert.*;
 
+import cn.edu.tsinghua.iginx.filesystem.service.rpc.InternalAuth;
 import cn.edu.tsinghua.iginx.filesystem.thrift.*;
 import cn.edu.tsinghua.iginx.thrift.*;
 import java.util.*;
@@ -137,14 +138,63 @@ final class ClusterTestFixture {
       socket.open();
       FileSystemRpc.Client client = new FileSystemRpc.Client(new TBinaryProtocol(socket));
       RawPrefix prefix = new RawPrefix().setPrefix("");
+      prefix.setCredential(InternalAuth.sign(secret, "getUnits", prefix));
       Map<DataUnit, RawDataSet> result = new HashMap<>();
       for (DataUnit unit : client.getUnits(prefix).keySet()) {
         if (unit.dummy) continue;
         RawDataTarget target = new RawDataTarget().setPatterns(Arrays.asList("*"));
         RawAggregate aggregate = new RawAggregate();
+        target.setCredential(InternalAuth.sign(secret, "query", unit, target, aggregate));
         result.put(unit, client.query(unit, target, aggregate));
       }
       return result;
+    }
+  }
+
+  static void rejectRaw(SecurityTestEnvironment.Node node) throws Exception {
+    Map<DataUnit, RawDataSet> before = physical(node, SECRET);
+    try (TSocket socket = new TSocket("127.0.0.1", node.filesystem, 5000)) {
+      socket.open();
+      FileSystemRpc.Client client = new FileSystemRpc.Client(new TBinaryProtocol(socket));
+      for (String credential : Arrays.asList(null, "incorrect-credential"))
+        for (int method = 0; method < 4; method++) {
+          DataUnit unit =
+              before.isEmpty()
+                  ? new DataUnit(false).setName("test")
+                  : before.keySet().iterator().next();
+          RawPrefix prefix = new RawPrefix().setPrefix("").setCredential(credential);
+          RawDataTarget target =
+              new RawDataTarget().setPatterns(Arrays.asList("*")).setCredential(credential);
+          RawInserted inserted =
+              new RawInserted()
+                  .setPatterns(Collections.emptyList())
+                  .setTagsList(Collections.emptyList())
+                  .setKeys(new byte[0])
+                  .setValuesList(Collections.emptyList())
+                  .setBitmapList(Collections.emptyList())
+                  .setDataTypeList(Collections.emptyList())
+                  .setRawDataType("Row")
+                  .setCredential(credential);
+          try {
+            switch (method) {
+              case 0:
+                client.getUnits(prefix);
+                break;
+              case 1:
+                client.query(unit, target, new RawAggregate());
+                break;
+              case 2:
+                client.insert(unit, inserted);
+                break;
+              default:
+                client.delete(unit, target);
+            }
+            fail("Unauthenticated FileSystem method " + method + " accepted");
+          } catch (RpcException expected) {
+            assertTrue(expected.getMessage(), expected.getMessage().contains("authentication"));
+          }
+          assertEquals(before, physical(node, SECRET));
+        }
     }
   }
 }
