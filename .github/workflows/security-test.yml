@@ -15,6 +15,8 @@ jobs:
             stage: ${{ steps.scope.outputs.stage }}
         steps:
             - uses: actions/checkout@v5
+            - name: Verify CI process deadlines
+              run: python -m unittest discover -s .github/scripts/test -p test_run_bounded.py
             - id: scope
               shell: python
               run: |
@@ -29,6 +31,7 @@ jobs:
         needs: scope
         strategy:
             fail-fast: false
+            max-parallel: 2
             matrix:
                 os: [ubuntu-24.04, windows-latest]
                 group: ${{ fromJSON(needs.scope.outputs.groups) }}
@@ -67,6 +70,7 @@ jobs:
                       **/target/surefire-reports/*
                       **/target/security-acceptance/**
                       target/security-evidence/**
+                      target/ci-diagnostics/**
     etcd:
         needs: scope
         if: needs.scope.outputs.stage >= 6
@@ -97,6 +101,7 @@ jobs:
                       **/target/surefire-reports/*
                       **/target/security-acceptance/**
                       target/security-evidence/**
+                      target/ci-diagnostics/**
     baseline:
         needs: scope
         if: needs.scope.outputs.stage == 8
@@ -122,6 +127,7 @@ jobs:
                   name: security-baseline
                   path: |
                       target/security-baseline/*.log
+                      target/ci-diagnostics/**
                       **/target/security-acceptance/**
                       **/target/surefire-reports/*
     existing-metadata-jupiter:
@@ -145,13 +151,15 @@ jobs:
                   printf 'zookeeper.user=meta\nzookeeper.password=ci-metadata-only-012345678901\nzookeeper.acl=creator\n' > conf/security.properties
                   chmod 600 conf/security.properties
                   export IGINX_CONF="$PWD/conf/config.properties"
-                  mvn -B -P'!format' -pl dependency,test -am test-compile org.apache.maven.plugins:maven-surefire-plugin:3.5.2:test -Dtest=IMetaManagerTest -Dsurefire.failIfNoSpecifiedTests=false
+                  python .github/scripts/test/run_bounded.py --timeout 1500 --label metadata-jupiter --retry-downloads 2 -- mvn -B -P'!format' -pl dependency,test -am test-compile org.apache.maven.plugins:maven-surefire-plugin:3.5.2:test -Dtest=IMetaManagerTest -Dsurefire.failIfNoSpecifiedTests=false
                   python .github/scripts/test/assert_test_reports.py 'test/target/surefire-reports/TEST-cn.edu.tsinghua.iginx.integration.mds.IMetaManagerTest.xml:1'
             - uses: actions/upload-artifact@v4
               if: always()
               with:
                   name: security-metadata-jupiter
-                  path: "**/target/surefire-reports/*"
+                  path: |
+                      **/target/surefire-reports/*
+                      target/ci-diagnostics/**
     existing-filesystem-jupiter:
         needs: scope
         if: needs.scope.outputs.stage >= 7
@@ -174,6 +182,7 @@ jobs:
                   name: security-filesystem-jupiter
                   path: |
                       target/security-baseline/*.log
+                      target/ci-diagnostics/**
                       target/security-baseline/jupiter-comparison.json
                       **/target/surefire-reports/*
     existing-suite-in-security-mode:

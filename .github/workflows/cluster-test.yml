@@ -81,7 +81,7 @@ jobs:
             - name: Install IGinX with Maven
               shell: bash
               run: |
-                  mvn clean package -DskipTests -P-format -q
+                  python .github/scripts/test/run_bounded.py --timeout 900 --label cluster-package --retry-downloads 2 -- mvn clean package -DskipTests -P-format -q
 
             - name: Configure security for all packaged nodes
               if: inputs.security-mode
@@ -137,8 +137,9 @@ jobs:
                   rest-port: "7890"
 
             - name: ClusterIT
+              timeout-minutes: 22
               shell: bash -el {0}
-              run: mvn test -q -Dtest=ClusterIT -DfailIfNoTests=false -P-format
+              run: python .github/scripts/test/run_bounded.py --timeout 1200 --label ClusterIT --retry-downloads 2 -- mvn test -q -Dtest=ClusterIT -DfailIfNoTests=false -P-format
 
             - name: Show IGinX-6888 log
               if: always()
@@ -154,3 +155,14 @@ jobs:
               if: always()
               shell: bash
               run: cat iginx-6890.log
+
+            - name: Retain cluster diagnostics
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: cluster-${{ matrix.os }}-${{ matrix.metadata }}-${{ matrix.java }}-${{ matrix.python-version }}
+                  path: |
+                      target/ci-diagnostics/**
+                      **/target/surefire-reports/**
+                      iginx-*.log
+                      core/target/**/logs/**
