@@ -19,6 +19,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.storage.execute.pushdown.strategy;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
@@ -37,10 +38,14 @@ public class NoPushDownStrategy extends PushDownStrategy {
       IStorage storage,
       boolean isDummyStorageUnit,
       RequestContext requestContext) {
+    // Authorization may remove every projected path. Do not contact storage, but still
+    // execute the remaining operators so aggregate headers retain their key semantics.
     TaskExecuteResult result =
-        isDummyStorageUnit
-            ? storage.executeProjectDummy(project, dataArea)
-            : storage.executeProject(project, dataArea);
+        project.getPatterns().isEmpty()
+            ? new TaskExecuteResult(new EmptyRowStream())
+            : isDummyStorageUnit
+                ? storage.executeProjectDummy(project, dataArea)
+                : storage.executeProject(project, dataArea);
 
     List<Operator> remainingOperators = getRemainingOperators(operators, 1);
     return executeRemainingOperators(remainingOperators, result, requestContext);

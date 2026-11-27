@@ -20,16 +20,15 @@
 package cn.edu.tsinghua.iginx.auth;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTaskExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.source.*;
 import cn.edu.tsinghua.iginx.security.SecurityConfig;
 import cn.edu.tsinghua.iginx.sql.statement.*;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.*;
 import cn.edu.tsinghua.iginx.sql.statement.select.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /** Checks explicit references before side effects, then narrows storage plans before execution. */
@@ -72,17 +71,24 @@ public final class PathAuthorizer {
 
   public void check(Statement statement) {
     if (!config.isEnabled()) return;
+    check(statement, Collections.newSetFromMap(new IdentityHashMap<Statement, Boolean>()));
+  }
+
+  private void check(Statement statement, Set<Statement> visited) {
+    // CTE bodies share the parser's CTE list, which can refer back to the same statement.
+    // Keep the traversal request-local while still checking every distinct nested statement.
+    if (!visited.add(statement)) return;
     if (!context.isInternal()
         && !StatementPermissions.permits(context.getSessionId(), statement.getType())) {
       throw new SecurityException("Statement permission denied");
     }
     if (statement instanceof InsertFromSelectStatement) {
-      check(((InsertFromSelectStatement) statement).getSubSelectStatement());
-      check(((InsertFromSelectStatement) statement).getSubInsertStatement());
+      check(((InsertFromSelectStatement) statement).getSubSelectStatement(), visited);
+      check(((InsertFromSelectStatement) statement).getSubInsertStatement(), visited);
     } else if (statement instanceof InsertFromCsvStatement) {
-      check(((InsertFromCsvStatement) statement).getSubInsertStatement());
+      check(((InsertFromCsvStatement) statement).getSubInsertStatement(), visited);
     } else if (statement instanceof ExportFileFromSelectStatement) {
-      check(((ExportFileFromSelectStatement) statement).getSelectStatement());
+      check(((ExportFileFromSelectStatement) statement).getSelectStatement(), visited);
     } else if (statement instanceof InsertStatement) {
       InsertStatement insert = (InsertStatement) statement;
       if (insert.getPrefixPath() != null)
@@ -97,10 +103,10 @@ public final class PathAuthorizer {
     } else if (statement instanceof SelectStatement) {
       SelectStatement select = (SelectStatement) statement;
       checkPaths(select.getPathSet());
-      for (CommonTableExpression cte : select.getCteList()) check(cte.getStatement());
+      for (CommonTableExpression cte : select.getCteList()) check(cte.getStatement(), visited);
       if (select instanceof BinarySelectStatement) {
-        check(((BinarySelectStatement) select).getLeftQuery());
-        check(((BinarySelectStatement) select).getRightQuery());
+        check(((BinarySelectStatement) select).getLeftQuery(), visited);
+        check(((BinarySelectStatement) select).getRightQuery(), visited);
       } else if (select instanceof UnarySelectStatement) {
         UnarySelectStatement unary = (UnarySelectStatement) select;
         List<FromPart> parts = new ArrayList<>(unary.getFromParts());
@@ -108,9 +114,10 @@ public final class PathAuthorizer {
         parts.addAll(unary.getWhereSubQueryParts());
         parts.addAll(unary.getHavingSubQueryParts());
         for (FromPart part : parts) {
-          if (part instanceof SubQueryFromPart) check(((SubQueryFromPart) part).getSubQuery());
+          if (part instanceof SubQueryFromPart)
+            check(((SubQueryFromPart) part).getSubQuery(), visited);
           if (part instanceof ShowColumnsFromPart)
-            check(((ShowColumnsFromPart) part).getShowColumnsStatement());
+            check(((ShowColumnsFromPart) part).getShowColumnsStatement(), visited);
         }
       }
     }
@@ -142,18 +149,11 @@ public final class PathAuthorizer {
           ShowColumns all =
               new ShowColumns(
                   new GlobalSource(), Collections.singleton("*"), null, Integer.MAX_VALUE, 0);
-          RowStream stream =
-              StoragePhysicalTaskExecutor.getInstance().executeShowColumns(all).getRowStream();
-          try {
-            while (stream.hasNext()) {
-              String path =
-                  cn.edu.tsinghua.iginx.utils.TagKVUtils.fromFullName(
-                          new String((byte[]) stream.next().getValues()[0], StandardCharsets.UTF_8))
-                      .getK();
-              if (!isReserved(path, config.getReservedPrefixes())) visibleColumns.add(path);
-            }
-          } finally {
-            stream.close();
+          Iterator<Column> columns = StoragePhysicalTaskExecutor.getInstance().iterateColumns(all);
+          while (columns.hasNext()) {
+            // Use the structured path: legal identifiers can themselves contain braces.
+            String path = columns.next().getPath();
+            if (!isReserved(path, config.getReservedPrefixes())) visibleColumns.add(path);
           }
         }
         for (String path : visibleColumns)
