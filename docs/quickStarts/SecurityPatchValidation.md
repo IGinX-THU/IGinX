@@ -36,6 +36,8 @@
 
 受影响的 SQL 权限、代码注册、保留路径及跨节点 FileSystem 验收共 13/13 方法通过，见 `ci-recovery-entry.log`。安装正向对照单独允许最多 60 秒 RPC 等待；拒绝路径和撤销时限不变。
 
+完整 Maven etcd 验收组最终 5/5 方法通过，执行器核对 4 个文档场景，见 `etcd-maven-recovery-final.log`。新版 ZooKeeper 撤销断言亦通过 20 轮、180 样本、最大 110 ms，见 `ci-recovery-zk.log`。仅含 PR 1 实现的隔离服务上 SQL 入口测试 5/5 通过，见 `early-stage-entry-regression.log`；保留路径拒绝断言从 PR 3 引入，不提前混入 PR 1、2。
+
 IGT-16 的正向取消先等待作业 `JOB_IDLE`，IGT-34 在连接其它节点前验证新账户已传播。IGT-30 保存线程栈，针对缓存线程池 60 秒空闲回收周期最多等待 70 秒，然后同时断言线程总数不增长、测量期间新增的线程全部退出；撤销窗口仍固定 5 秒。更新后的 etcd 测量 20 轮、180 样本、最大 206 ms，全部断言通过，见 `ci-recovery-etcd.log`。真实 pip 正向对照独立复测通过，见 `ci-recovery-pip.log`。
 
 PR 1–8 各累计版本的完整 `test` 模块 reactor 编译均通过，见 `integration-stack-validation.log`；其后生产修复的 5 种阶段变体另行编译通过，见 `ci-variant-compile.log`。`LegacyBehaviorIT` 已改用兼容测试模块 Thrift 版本的 socket 构造方式；FileSystem 的 etcd 验收补齐 Guava `failureaccess` 测试依赖。
