@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[3]
 GROUPS = {
     "entry": "SecurityConfigTest,SessionManagerTest,UserChangeTrackerTest,StatementAuthTableTest,UploadRegistryTest,SecurityConfigAcceptanceIT,SqlSecurityAcceptanceIT,PermissionMatrixIT,CodeRegistrationIT,ReservedPrefixAcceptanceIT,InternalRequestIT",
     "gateways": "RestSecurityAcceptanceIT,RootPasswordIT,MqttSecurityAcceptanceIT,MqttLegacyIT",
-    "metadata": "ZkAclTest,ZkSecurityAcceptanceIT,ZkRollingMigrationIT,StartupScriptIT",
+    "metadata": "ZkAclTest,ZooKeeperMembershipTest,ZkSecurityAcceptanceIT,ZkRollingMigrationIT,StartupScriptIT",
     "cluster": "NaivePolicyReplicaTest,InternalAuthTest,SessionRevokeAcceptanceIT,ClusterRegressionAcceptanceIT,ReplicaNumIT,FsEngineAuthIT",
     "etcd": "EtcdAuthIT,EtcdClusterAuthIT,SessionRevokeAcceptanceIT",
 }
