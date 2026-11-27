@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- CI fallback for Central HTTP 429; all other repository definitions stay intact.
+     https://docs.cloud.google.com/docs/buildpacks/java#google_cloud_hosted_maven_central_mirror -->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">
+    <mirrors>
+        <mirror>
+            <id>google-maven-central</id>
+            <name>Google-hosted Maven Central mirror</name>
+            <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+            <mirrorOf>central</mirrorOf>
+        </mirror>
+    </mirrors>
+</settings>

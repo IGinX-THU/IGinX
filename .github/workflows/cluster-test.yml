@@ -156,13 +156,13 @@ jobs:
               shell: bash
               run: cat iginx-6890.log
 
+            - name: Archive test evidence
+              if: always()
+              shell: bash
+              run: python .github/scripts/test/collect_ci_evidence.py
             - name: Retain cluster diagnostics
               if: always()
               uses: actions/upload-artifact@v4
               with:
                   name: cluster-${{ matrix.os }}-${{ matrix.metadata }}-${{ matrix.java }}-${{ matrix.python-version }}
-                  path: |
-                      target/ci-diagnostics/**
-                      **/target/surefire-reports/**
-                      iginx-*.log
-                      core/target/**/logs/**
+                  path: target/ci-artifacts/evidence.zip

@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location("run_bounded", Path(__file__).with_name("run_bounded.py"))
 runner = importlib.util.module_from_spec(spec)
@@ -26,6 +27,16 @@ class DeadlineTests(unittest.TestCase):
             code = runner.run([sys.executable, "-c", "import time; time.sleep(60)"], 0.2, "timeout", root=root)
             self.assertEqual(124, code)
             self.assertEqual(1, len(list(Path(root).rglob("timeout.txt"))))
+
+    def test_build_clean_cannot_remove_diagnostics(self):
+        with tempfile.TemporaryDirectory() as root:
+            target = Path(root) / "target"
+            target.mkdir()
+            script = "import pathlib, sys; pathlib.Path(sys.argv[1]).rmdir(); print('clean completed', flush=True); raise SystemExit(7)"
+            self.assertEqual(7, runner.run([sys.executable, "-c", script, str(target)], 10, "clean", root=root))
+            logs = list(Path(root).rglob("attempt-1.log"))
+            self.assertEqual(1, len(logs))
+            self.assertIn("clean completed", logs[0].read_text())
 
     def test_timeout_terminates_descendants_in_separate_sessions(self):
         with tempfile.TemporaryDirectory() as root:
@@ -60,6 +71,23 @@ class DeadlineTests(unittest.TestCase):
         self.assertTrue(runner.download_failure(network))
         self.assertFalse(runner.download_failure(network + "\nTests run: 3, Failures: 1"))
         self.assertFalse(runner.download_failure("[ERROR] There are test failures"))
+
+    def test_central_rate_limit_uses_mirror_but_assertions_do_not_retry(self):
+        with tempfile.TemporaryDirectory() as root:
+            executable = Path(root) / ("mvn.cmd" if os.name == "nt" else "mvn")
+            error = "[ERROR] Could not transfer artifact from https://repo.maven.apache.org/maven2: HTTP Status: 429"
+            if os.name == "nt":
+                executable.write_text('@echo off\nif "%1"=="--settings" (\n echo mirror-retry\n exit /b 0\n)\necho ' + error + '\nexit /b 1\n')
+            else:
+                executable.write_text('#!/bin/sh\nif [ "$1" = "--settings" ]; then echo mirror-retry; exit 0; fi\necho "' + error + '"\nexit 1\n')
+                executable.chmod(0o700)
+            with patch.dict(os.environ, {"GITHUB_ACTIONS": "true"}), patch.object(runner.time, "sleep"):
+                self.assertEqual(0, runner.run([str(executable), "test"], 60, "mirror", retries=1, root=root))
+            logs = list(Path(root).rglob("attempt-2.log"))
+            self.assertEqual(1, len(logs))
+            self.assertIn("mirror-retry", logs[0].read_text())
+            with patch.dict(os.environ, {"GITHUB_ACTIONS": "false"}):
+                self.assertEqual([str(executable), "test"], runner.retry_command([str(executable), "test"], error))
 
 
 if __name__ == "__main__":

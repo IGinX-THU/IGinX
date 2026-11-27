@@ -82,6 +82,29 @@ public class SessionRevokeAcceptanceIT {
         v[n] = env.nodes.get(n).raw();
         relogin(v[n], "v", "password");
       }
+      // Thrift starts its minimum workers lazily and does not retire core workers.
+      // Fill that configured pool before the baseline, while holding the connections
+      // together so one worker cannot serve the entire warmup. Keep all retirement
+      // and growth assertions below: late core-worker creation is not a query leak.
+      for (SecurityTestEnvironment.Node node : env.nodes) {
+        List<Connection> warmup = new ArrayList<>();
+        try {
+          int minimum = Integer.parseInt(node.config.getProperty("minThriftWorkerThreadNum", "20"));
+          for (int i = 0; i < minimum; i++) {
+            Connection connection = node.raw();
+            warmup.add(connection);
+            relogin(connection, "v", "password");
+          }
+        } finally {
+          for (Connection connection : warmup) {
+            try {
+              ok(connection.client.closeSession(new CloseSessionReq(connection.id)));
+            } finally {
+              connection.close();
+            }
+          }
+        }
+      }
       List<String> samples = new ArrayList<>();
       samples.add("backend,round,change,node,latency_ms");
       int[] threads = new int[3];
