@@ -45,7 +45,7 @@ public class DropTaskStatement extends SystemStatement {
   @Override
   public void execute(RequestContext ctx) throws StatementExecutionException {
     DropTaskReq req = new DropTaskReq(ctx.getSessionId(), name);
-    Status status = worker.dropTask(req);
+    Status status = worker.dropTask(req, ctx);
     ctx.setResult(new Result(status));
   }
 }
