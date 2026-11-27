@@ -80,7 +80,7 @@ def main():
     if not args.verify_only:
         executable = shutil.which("mvn.cmd" if os.name == "nt" else "mvn")
         assert executable, "Maven is required"
-        command = [executable, "-B", "-P!format", "-pl", "dataSource/filesystem", "-am", "test", "-DfailIfNoTests=false", "-Dtest=" + GROUPS[args.group], "-Duser.timezone=Asia/Shanghai"]
+        command = [executable, "-B", "-P!format", "-pl", "dependency,dataSource/filesystem", "-am", "test", "-DfailIfNoTests=false", "-Dtest=" + GROUPS[args.group], "-Duser.timezone=Asia/Shanghai"]
         if args.group == "etcd":
             assert os.environ.get("IGINX_TEST_ETCD"), "Install etcd 3.5.13 and set IGINX_TEST_ETCD"
             command.append("-Diginx.security.backend=etcd")
