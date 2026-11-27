@@ -110,5 +110,6 @@ PR 1–8 各累计版本的完整测试模块 reactor 编译均通过（`repair-
 - 后续 [PR 702 Linux 入口作业](https://github.com/IGinX-THU/IGinX/actions/runs/46010095073/job/140543190006) 在 IGT-16 节点启动时报 `BindException`，未进入业务断言。夹具用 `ServerSocket(0)` 选端口后释放，在子 JVM 启动前可能被系统临时端口分配抢占。夹具改为从 CI 临时端口范围之外的 10000–29999 选择可绑定端口，同一 JVM 不重复分配；新增可绑定性、唯一性及存活监听器不受后续分配影响的两项回归。
 - 同轮 [PR 697 Linux 集群作业](https://github.com/IGinX-THU/IGinX/actions/runs/46010097308/job/140543213390) 没有运行测试：首次下载 AntRun 插件失败，后两次只重复本地缓存的失败。依赖重试补上 [`-U`](https://maven.apache.org/ref/3.9.8/maven-embedder/cli.html)，强制检查缺失发布版本；保留原重试次数、总时限、真实失败退出码和断言不重试规则，新增失败缓存刷新回归。
 - [PR 700 格式作业](https://github.com/IGinX-THU/IGinX/actions/runs/46010094668/job/140543111309) 的插件前缀查询遇到 Central 429，但下载错误以 WARNING 记录，最终是 `NoPluginFoundForPrefixException`，未被旧下载分类器识别。补齐该类错误的有界重试；必须同时存在下载失败证据，单纯写错插件前缀仍立即失败。
+- 再次重跑的 [PR 699 Windows 网关作业](https://github.com/IGinX-THU/IGinX/actions/runs/46011912064/job/140549562294) 在 REST 测试清空数据后的插入阶段等待刷盘，随后三个方法连续 RPC 超时。检查发现 `MemTableQueue.awaitNext` 在队列空检查与进入条件等待之间没有持有通知锁，存在丢失唤醒窗口。新增受控线程时序回归，修复前确定性复现等待超时，预先发布数据的对照正常通过；修复将条件检查与进入等待置于同一把可中断的通知锁下，发布方在释放队列锁后通知，保持锁顺序。原 REST 的权限、100 轮撤销及 5 秒上限继续保留。
 
 新增 `ResultResponseTest` 通过 Binary、Compact 两种编码实际序列化并读回两种响应。修复前访问拒绝和过载拒绝两项确定性复现同样的缺字段错误，正常类型对照通过。该类纳入各适用分支的入口验收，拒绝响应回归映射到 IGT-30；原三节点撤销的 20 轮、180 样本及 5 秒时限继续保留。原始日志与本轮复验记录位于 `target/ci-fixes-round3/`，最新 CI 结果记录在各 PR 说明中。
