@@ -33,14 +33,30 @@ public class ShowColumns extends AbstractUnaryOperator {
   private final TagFilter tagFilter;
   private final int limit;
   private final int offset;
+  private final boolean emptyResult;
 
   public ShowColumns(
       GlobalSource source, Set<String> pathRegexSet, TagFilter tagFilter, int limit, int offset) {
+    this(source, pathRegexSet, tagFilter, limit, offset, false);
+  }
+
+  public ShowColumns(
+      GlobalSource source,
+      Set<String> pathRegexSet,
+      TagFilter tagFilter,
+      int limit,
+      int offset,
+      boolean emptyResult) {
     super(OperatorType.ShowColumns, source);
     this.pathRegexSet = pathRegexSet;
     this.tagFilter = tagFilter;
     this.limit = limit;
     this.offset = offset;
+    this.emptyResult = emptyResult;
+  }
+
+  public boolean isEmptyResult() {
+    return emptyResult;
   }
 
   public ShowColumns(GlobalSource source, ShowColumnsStatement statement) {
@@ -75,7 +91,8 @@ public class ShowColumns extends AbstractUnaryOperator {
         new HashSet<>(pathRegexSet),
         tagFilter == null ? null : tagFilter.copy(),
         limit,
-        offset);
+        offset,
+        emptyResult);
   }
 
   @Override
@@ -85,7 +102,8 @@ public class ShowColumns extends AbstractUnaryOperator {
         new HashSet<>(pathRegexSet),
         tagFilter == null ? null : tagFilter.copy(),
         limit,
-        offset);
+        offset,
+        emptyResult);
   }
 
   @Override

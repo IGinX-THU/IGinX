@@ -122,15 +122,6 @@ public class MemTableQueue implements NoexceptAutoCloseable {
     }
   }
 
-  private void await() throws InterruptedException {
-    pollLock.lock();
-    try {
-      pollLockCond.await();
-    } finally {
-      pollLock.unlock();
-    }
-  }
-
   private void signalAll() {
     pollLock.lock();
     try {
@@ -148,21 +139,28 @@ public class MemTableQueue implements NoexceptAutoCloseable {
    */
   @Nonnegative
   public long awaitNext(@Nonnegative long idAtLeast) throws InterruptedException {
-    while (true) {
-      queueLock.readLock().lock();
-      try {
-        Long nextId = archives.ceilingKey(idAtLeast);
-        if (nextId != null) {
-          return nextId;
+    // Checking the predicate and entering the wait must share the publisher's signal lock.
+    // Otherwise a flush/compact notification can arrive after the empty check and be lost.
+    pollLock.lockInterruptibly();
+    try {
+      while (true) {
+        queueLock.readLock().lock();
+        try {
+          Long nextId = archives.ceilingKey(idAtLeast);
+          if (nextId != null) {
+            return nextId;
+          }
+          Long activeNextId = active.newestKey(idAtLeast);
+          if (activeNextId != null) {
+            return activeNextId;
+          }
+        } finally {
+          queueLock.readLock().unlock();
         }
-        Long activeNextId = active.newestKey(idAtLeast);
-        if (activeNextId != null) {
-          return activeNextId;
-        }
-      } finally {
-        queueLock.readLock().unlock();
+        pollLockCond.await();
       }
-      await();
+    } finally {
+      pollLock.unlock();
     }
   }
 

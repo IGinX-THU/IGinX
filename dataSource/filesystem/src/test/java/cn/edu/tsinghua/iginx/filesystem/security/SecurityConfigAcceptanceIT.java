@@ -70,6 +70,7 @@ public class SecurityConfigAcceptanceIT {
       node.jvmOptions.add("-Dinternal.secret=system-property-must-not-override-file");
       node.start();
       node.admin.execute("INSERT INTO business (key,a) VALUES (1,2);");
+      denied(node.admin.sql("SELECT * FROM indagent.t;").status);
       assertFalse(ClusterTestFixture.physical(node, SECRET).isEmpty());
       for (java.lang.reflect.Field field :
           cn.edu.tsinghua.iginx.conf.Config.class.getDeclaredFields())

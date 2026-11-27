@@ -20,6 +20,8 @@
 package cn.edu.tsinghua.iginx.auth;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTaskExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.source.*;
@@ -41,11 +43,30 @@ public final class PathAuthorizer {
   }
 
   public boolean restricted() {
-    return false; // Reserved path filtering is introduced by PR 3.
+    return config.isEnabled()
+        && !config.getReservedPrefixes().isEmpty()
+        && (context.isInternal()
+            || !config.allowsReserved(
+                SessionManager.getInstance().getUsername(context.getSessionId())));
+  }
+
+  public static boolean isReserved(String path, List<String> prefixes) {
+    // SQL parsing has already unquoted identifiers. Also normalize wire-level quoted paths.
+    String normalized = path.replace("`", "");
+    for (String prefix : prefixes) {
+      if (normalized.equals(prefix)
+          || normalized.startsWith(prefix + ".")
+          || normalized.startsWith(prefix + "{")) return true;
+    }
+    return false;
   }
 
   public void checkPaths(Collection<String> paths) {
-    // Recursive statement permissions are enforced by check().
+    if (!restricted()) return;
+    for (String path : paths) {
+      if (isReserved(path, config.getReservedPrefixes()))
+        throw new SecurityException("Reserved path access denied");
+    }
   }
 
   public void check(Statement statement) {
@@ -102,11 +123,94 @@ public final class PathAuthorizer {
     }
   }
 
+  static boolean needsExpansion(String pattern, List<String> prefixes) {
+    pattern = pattern.replace("`", "");
+    int wildcard = pattern.indexOf('*');
+    if (wildcard < 0) return false;
+    String fixed = pattern.substring(0, wildcard);
+    for (String prefix : prefixes) {
+      if (prefix.startsWith(fixed)
+          || (prefix + ".").startsWith(fixed)
+          || fixed.startsWith(prefix + ".")) return true;
+    }
+    return false;
+  }
+
   public List<String> resolve(Collection<String> paths) throws PhysicalException {
-    return new ArrayList<>(paths);
+    if (!restricted()) return new ArrayList<>(paths);
+    checkPaths(paths);
+    Set<String> result = new LinkedHashSet<>();
+    for (String pattern : paths) {
+      if (!needsExpansion(pattern, config.getReservedPrefixes())) {
+        result.add(pattern);
+      } else {
+        if (visibleColumns == null) {
+          visibleColumns = new ArrayList<>();
+          ShowColumns all =
+              new ShowColumns(
+                  new GlobalSource(), Collections.singleton("*"), null, Integer.MAX_VALUE, 0);
+          Iterator<Column> columns = StoragePhysicalTaskExecutor.getInstance().iterateColumns(all);
+          while (columns.hasNext()) {
+            // Use the structured path: legal identifiers can themselves contain braces.
+            String path = columns.next().getPath();
+            if (!isReserved(path, config.getReservedPrefixes())) visibleColumns.add(path);
+          }
+        }
+        for (String path : visibleColumns)
+          if (SecurityConfig.globMatches(pattern, path)) result.add(path);
+      }
+    }
+    return new ArrayList<>(result);
   }
 
   public Operator rewrite(Operator operator) throws PhysicalException {
+    if (operator == null || !restricted()) return operator;
+    if (operator instanceof ShowColumns) {
+      ShowColumns show = (ShowColumns) operator;
+      Collection<String> patterns =
+          show.getPathRegexSet().isEmpty() ? Collections.singleton("*") : show.getPathRegexSet();
+      Set<String> visible = new HashSet<>(resolve(patterns));
+      return new ShowColumns(
+          new GlobalSource(),
+          visible,
+          show.getTagFilter(),
+          show.getLimit(),
+          show.getOffset(),
+          visible.isEmpty());
+    }
+    if (operator instanceof Project) {
+      Project project = (Project) operator;
+      if (project.getSource() instanceof FragmentSource
+          || project.getSource() instanceof GlobalSource) {
+        project.setPatterns(resolve(project.getPatterns()));
+      }
+    }
+    if (operator instanceof Delete) {
+      Delete delete = (Delete) operator;
+      List<String> paths = resolve(delete.getPatterns());
+      return new Delete(
+          (FragmentSource) delete.getSource(), delete.getKeyRanges(), paths, delete.getTagFilter());
+    }
+    if (operator instanceof Insert) checkPaths(((Insert) operator).getData().getPaths());
+    if (operator instanceof UnaryOperator) {
+      UnaryOperator unary = (UnaryOperator) operator;
+      unary.setSource(rewriteSource(unary.getSource()));
+    } else if (operator instanceof BinaryOperator) {
+      BinaryOperator binary = (BinaryOperator) operator;
+      binary.setSourceA(rewriteSource(binary.getSourceA()));
+      binary.setSourceB(rewriteSource(binary.getSourceB()));
+    } else if (operator instanceof MultipleOperator) {
+      MultipleOperator multiple = (MultipleOperator) operator;
+      List<Source> sources = new ArrayList<>();
+      for (Source source : multiple.getSources()) sources.add(rewriteSource(source));
+      multiple.setSources(sources);
+    }
     return operator;
+  }
+
+  private Source rewriteSource(Source source) throws PhysicalException {
+    return source instanceof OperatorSource
+        ? new OperatorSource(rewrite(((OperatorSource) source).getOperator()))
+        : source;
   }
 }
