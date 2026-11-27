@@ -215,6 +215,8 @@ public class Result {
       return resp;
     }
     resp.setQueryId(queryId);
+    // Successful commands such as INSERT have no row stream, but still own a query id.
+    if (resultStream == null) return resp;
     try {
       List<String> paths = new ArrayList<>();
       List<Map<String, String>> tagsList = new ArrayList<>();
@@ -309,6 +311,7 @@ public class Result {
 
   public FetchResultsResp fetch(int fetchSize) {
     FetchResultsResp resp = new FetchResultsResp(status, false);
+    if (resultStream == null) return resp;
 
     if (status != RpcUtils.SUCCESS && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
       return resp;

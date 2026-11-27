@@ -47,6 +47,11 @@ do
      echo " test  -- Faile  : "$? >> ./test/src/test/resources/testResult.txt
      exit 1
    else
+     if [ "$line" != "LegacyBehaviorIT" ] || [ "${IGINX_TEST_SECURITY:-false}" != "true" ]; then
+       for report in test/target/surefire-reports/TEST-*."$line".xml; do
+         python .github/scripts/test/assert_test_reports.py "$report:1" || exit 1
+       done
+     fi
      echo " test  -- Success !"
      echo " test  -- Success !" >> ./test/src/test/resources/testResult.txt
    fi

@@ -1,6 +1,10 @@
 name: "conf-writer"
 description: "use conf-writer to change the target/conf after IGinX was installed"
 inputs:
+    Security-Mode:
+        description: "Write a security configuration for integration testing"
+        required: false
+        default: "false"
     if-CapExp:
         description: "if you need capacity expansion"
         required: false
@@ -53,6 +57,21 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
+        - name: Write security configuration
+          if: inputs.Security-Mode == 'true'
+          shell: python
+          env:
+              PROJECT_ROOT: ${{ inputs.Root-Dir-Path }}
+          run: |
+              import os
+              from pathlib import Path
+              files = list(Path(os.environ['PROJECT_ROOT']).glob('core/target/iginx-core-*/conf/config.properties'))
+              assert files, 'Packaged IGinX configuration not found'
+              for config in files:
+                  security = config.with_name('security.properties')
+                  security.write_text('reserved.prefixes=indagent,bigfile,sys.blob\nreserved.accounts=indagent_data_*\n', encoding='utf-8')
+                  if os.name != 'nt':
+                      security.chmod(0o600)
         - id: project
           uses: ./.github/actions/project
 

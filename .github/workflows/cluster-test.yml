@@ -3,6 +3,11 @@ name: "Cluster Test"
 on:
     workflow_call:
         inputs:
+            security-mode:
+                description: "Run the original ClusterIT with authenticated metadata and internal RPC"
+                type: boolean
+                required: false
+                default: false
             java-matrix:
                 description: "The java version to run the test on"
                 type: string
@@ -40,6 +45,8 @@ jobs:
                 os: ${{ fromJSON(inputs.os-matrix) }}
                 metadata: ${{ fromJSON(inputs.metadata-matrix) }}
         runs-on: ${{ matrix.os }}
+        env:
+            IGINX_TEST_SECURITY: ${{ inputs.security-mode }}
         steps:
             - uses: actions/checkout@v5
             - name: Environment dependence
@@ -75,6 +82,19 @@ jobs:
               shell: bash
               run: |
                   mvn clean package -DskipTests -P-format -q
+
+            - name: Configure security for all packaged nodes
+              if: inputs.security-mode
+              shell: python
+              run: |
+                  from pathlib import Path
+                  import os
+                  files = list(Path('core/target').glob('iginx-core-*/conf/config.properties'))
+                  assert files
+                  for config in files:
+                      security = config.with_name('security.properties')
+                      security.write_text('zookeeper.user=cluster_ci\nzookeeper.password=cluster-ci-metadata-test-secret\nzookeeper.acl=creator\ninternal.secret=cluster-ci-internal-test-secret-32\ninternal.auth=required\nreserved.prefixes=indagent,bigfile,sys.blob\nreserved.accounts=indagent_data_*\n', encoding='utf-8')
+                      if os.name != 'nt': security.chmod(0o600)
 
             - name: Copy IGinX
               shell: bash

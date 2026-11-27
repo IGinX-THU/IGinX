@@ -11,6 +11,8 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    security-test:
+        uses: ./.github/workflows/security-test.yml
     unit-test:
         uses: ./.github/workflows/unit-test.yml
     unit-mds:
@@ -168,6 +170,7 @@ jobs:
         if: always()
         needs: # List of jobs that must pass. Add more jobs if needed.
             - unit-test
+            - security-test
             - unit-mds
             - case-regression
             - standalone-test

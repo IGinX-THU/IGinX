@@ -40,6 +40,21 @@ public class RequestContext {
 
   private long sessionId;
 
+  // Server-only provenance; never populated from a wire request.
+  private boolean internal;
+
+  public RequestContext child(Statement statement, boolean stream) {
+    RequestContext child = new RequestContext(sessionId, statement, stream);
+    child.internal = internal;
+    return child;
+  }
+
+  public RequestContext replicaContext() {
+    RequestContext replica = child(statement, useStream);
+    replica.internal = true;
+    return replica;
+  }
+
   private Map<String, Object> extraParams;
 
   private Status status;

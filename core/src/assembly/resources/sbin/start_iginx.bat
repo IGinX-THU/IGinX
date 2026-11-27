@@ -32,7 +32,7 @@ popd
 if NOT DEFINED IGINX_CONF_DIR set IGINX_CONF_DIR=%IGINX_HOME%\conf
 
 set IGINX_ENV=%IGINX_CONF_DIR%\iginx-env.cmd
-set IGINX_CONF=%IGINX_CONF_DIR%\config.properties
+if NOT DEFINED IGINX_CONF set IGINX_CONF=%IGINX_CONF_DIR%\config.properties
 set IGINX_DRIVER=%IGINX_HOME%\driver
 
 if exist "%IGINX_ENV%" (
@@ -60,16 +60,14 @@ set JAVA_VERSION=%MAJOR_VERSION%
 @REM we do not check jdk that version less than 1.6 because they are too stale...
 IF "%JAVA_VERSION%" == "6" (
 		echo IGinX only supports jdk >= 8, please check your java version.
-		goto finally
+		exit /b 1
 )
 IF "%JAVA_VERSION%" == "7" (
 		echo IGinX only supports jdk >= 8, please check your java version.
-		goto finally
+		exit /b 1
 )
 
 if "%OS%" == "Windows_NT" setlocal
-
-set IGINX_CONF=%IGINX_HOME%\conf\config.properties
 
 @setlocal ENABLEDELAYEDEXPANSION ENABLEEXTENSIONS
 set is_conf_path=false
@@ -123,15 +121,16 @@ goto okClasspath
 set LOCAL_JAVA_OPTS=^
  -ea^
  -cp %CLASSPATH%^
- -DIGINX_HOME=%IGINX_HOME%^
- -DIGINX_DRIVER=%IGINX_DRIVER%^
- -DIGINX_CONF=%IGINX_CONF%^
+ -DIGINX_HOME="%IGINX_HOME%"^
+ -DIGINX_DRIVER="%IGINX_DRIVER%"^
+ -DIGINX_CONF="%IGINX_CONF%"^
  -Dfile.encoding=UTF-8
 
 @REM set DRIVER=
 @REM setx DRIVER "%IGINX_HOME%\driver"
 
 "%JAVA_HOME%\bin\java" %HEAP_OPTS% %IGINX_JAVA_OPTS% %LOCAL_JAVA_OPTS% %MAIN_CLASS%
+exit /b %ERRORLEVEL%
 
 @REM reg delete "HKEY_CURRENT_USER\Environment" /v "DRIVER" /f
 @REM set DRIVER=
@@ -140,12 +139,10 @@ goto finally
 
 :err
 echo JAVA_HOME environment variable must be set!
-pause
+exit /b 1
 
 
 @REM -----------------------------------------------------------------------------
 :finally
 
-pause
-
-ENDLOCAL
+exit /b %ERRORLEVEL%

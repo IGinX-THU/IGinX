@@ -27,6 +27,7 @@ import static cn.edu.tsinghua.iginx.utils.StringUtils.isEqual;
 
 import cn.edu.tsinghua.iginx.auth.FilePermissionManager;
 import cn.edu.tsinghua.iginx.auth.SessionManager;
+import cn.edu.tsinghua.iginx.auth.UploadRegistry;
 import cn.edu.tsinghua.iginx.auth.UserManager;
 import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
 import cn.edu.tsinghua.iginx.auth.utils.FilePermissionRuleNameFilters;
@@ -46,6 +47,7 @@ import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.resource.QueryResourceManager;
+import cn.edu.tsinghua.iginx.security.SecurityConfig;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
@@ -160,7 +162,12 @@ public class IginxWorker implements IService.Iface {
       resp.setSessionId(0L);
       return resp;
     }
-    long sessionId = sessionManager.openSession(username);
+    long sessionId =
+        SecurityConfig.getInstance().isEnabled()
+            ? sessionManager.openSession(username, password)
+            : sessionManager.openSession(username);
+    if (sessionId == 0)
+      return new OpenSessionResp(RpcUtils.WRONG_USERNAME_OR_PASSWORD).setSessionId(0);
     OpenSessionResp resp = new OpenSessionResp(RpcUtils.SUCCESS);
     resp.setSessionId(sessionId);
     return resp;
@@ -168,13 +175,18 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status closeSession(CloseSessionReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !sessionManager.isValidSession(req.getSessionId())) {
+      return RpcUtils.ACCESS_DENY;
+    }
     sessionManager.closeSession(req.getSessionId());
     return RpcUtils.SUCCESS;
   }
 
   @Override
   public Status deleteColumns(DeleteColumnsReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Write)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "deleteColumns")) {
       return RpcUtils.ACCESS_DENY;
     }
     RequestContext ctx = contextBuilder.build(req);
@@ -184,7 +196,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status insertColumnRecords(InsertColumnRecordsReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Write)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "insertColumnRecords")) {
       return RpcUtils.ACCESS_DENY;
     }
     if (!StringUtils.allHasMoreThanOneSubPath(req.getPaths())) {
@@ -198,7 +211,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status insertNonAlignedColumnRecords(InsertNonAlignedColumnRecordsReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Write)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "insertNonAlignedColumnRecords")) {
       return RpcUtils.ACCESS_DENY;
     }
     if (!StringUtils.allHasMoreThanOneSubPath(req.getPaths())) {
@@ -212,7 +226,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status insertRowRecords(InsertRowRecordsReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Write)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "insertRowRecords")) {
       return RpcUtils.ACCESS_DENY;
     }
     if (!StringUtils.allHasMoreThanOneSubPath(req.getPaths())) {
@@ -226,7 +241,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status insertNonAlignedRowRecords(InsertNonAlignedRowRecordsReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Write)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "insertNonAlignedRowRecords")) {
       return RpcUtils.ACCESS_DENY;
     }
     if (!StringUtils.allHasMoreThanOneSubPath(req.getPaths())) {
@@ -240,7 +256,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status deleteDataInColumns(DeleteDataInColumnsReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Write)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "deleteDataInColumns")) {
       return RpcUtils.ACCESS_DENY;
     }
     RequestContext ctx = contextBuilder.build(req);
@@ -250,7 +267,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public QueryDataResp queryData(QueryDataReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Read)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "queryData")) {
       return new QueryDataResp(RpcUtils.ACCESS_DENY);
     }
     RequestContext ctx = contextBuilder.build(req);
@@ -260,7 +278,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status removeStorageEngine(RemoveStorageEngineReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "removeStorageEngine")) {
       return RpcUtils.ACCESS_DENY;
     }
     List<RemovedStorageEngineInfo> removedStorageEngineInfoList =
@@ -331,7 +350,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status addStorageEngines(AddStorageEnginesReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "addStorageEngines")) {
       return RpcUtils.ACCESS_DENY;
     }
     List<StorageEngine> storageEngines = req.getStorageEngines();
@@ -605,7 +625,8 @@ public class IginxWorker implements IService.Iface {
   /** This function is only for read-only dummy, temporarily */
   @Override
   public Status alterStorageEngine(AlterStorageEngineReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "alterStorageEngine")) {
       return RpcUtils.ACCESS_DENY;
     }
     Status status = new Status(RpcUtils.SUCCESS.code);
@@ -656,7 +677,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public AggregateQueryResp aggregateQuery(AggregateQueryReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Read)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "aggregateQuery")) {
       return new AggregateQueryResp(RpcUtils.ACCESS_DENY);
     }
     RequestContext ctx = contextBuilder.build(req);
@@ -666,7 +688,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public DownsampleQueryResp downsampleQuery(DownsampleQueryReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Read)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "downsampleQuery")) {
       return new DownsampleQueryResp(RpcUtils.ACCESS_DENY);
     }
     RequestContext ctx = contextBuilder.build(req);
@@ -676,7 +699,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public ShowColumnsResp showColumns(ShowColumnsReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Read)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "showColumns")) {
       return new ShowColumnsResp(RpcUtils.ACCESS_DENY);
     }
     RequestContext ctx = contextBuilder.build(req);
@@ -686,7 +710,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public GetReplicaNumResp getReplicaNum(GetReplicaNumReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Read)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "getReplicaNum")) {
       return new GetReplicaNumResp(RpcUtils.ACCESS_DENY);
     }
     GetReplicaNumResp resp = new GetReplicaNumResp(RpcUtils.SUCCESS);
@@ -696,6 +721,10 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public ExecuteSqlResp executeSql(ExecuteSqlReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !sessionManager.isValidSession(req.getSessionId())) {
+      return new ExecuteSqlResp(RpcUtils.ACCESS_DENY, SqlType.Unknown);
+    }
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
     if (req.isSetRemoteSession()) {
@@ -707,7 +736,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public LastQueryResp lastQuery(LastQueryReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Read)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "lastQuery")) {
       return new LastQueryResp(RpcUtils.ACCESS_DENY);
     }
 
@@ -718,7 +748,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status updateUser(UpdateUserReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Admin)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "updateUser")) {
       return RpcUtils.ACCESS_DENY;
     }
     if (userManager.updateUser(req.username, req.password, req.auths)) {
@@ -729,7 +760,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status addUser(AddUserReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Admin)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "addUser")) {
       return RpcUtils.ACCESS_DENY;
     }
     if (userManager.addUser(req.username, req.password, req.auths)) {
@@ -740,7 +772,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status deleteUser(DeleteUserReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Admin)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "deleteUser")) {
       return RpcUtils.ACCESS_DENY;
     }
     if (userManager.deleteUser(req.username)) {
@@ -751,7 +784,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public GetUserResp getUser(GetUserReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Read)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "getUser")) {
       return new GetUserResp(RpcUtils.ACCESS_DENY);
     }
     GetUserResp resp = new GetUserResp(RpcUtils.SUCCESS);
@@ -773,7 +807,8 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public GetClusterInfoResp getClusterInfo(GetClusterInfoReq req) {
-    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
+    if (!cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+        req.getSessionId(), "getClusterInfo")) {
       return new GetClusterInfoResp(RpcUtils.ACCESS_DENY);
     }
 
@@ -887,15 +922,40 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public ExecuteStatementResp executeStatement(ExecuteStatementReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !sessionManager.isValidSession(req.getSessionId())) {
+      return new ExecuteStatementResp(RpcUtils.ACCESS_DENY, SqlType.Unknown);
+    }
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
-    queryManager.registerQuery(ctx.getId(), ctx);
+    if (SecurityConfig.getInstance().isEnabled()
+        && !sessionManager.isValidSession(req.getSessionId())) {
+      queryManager.registerQuery(ctx.getId(), ctx);
+      queryManager.releaseQuery(ctx.getId());
+      return new ExecuteStatementResp(RpcUtils.ACCESS_DENY, SqlType.Unknown);
+    }
+    if (!SecurityConfig.getInstance().isEnabled()
+        || (ctx.getResult().getStatus().getCode() == RpcUtils.SUCCESS.getCode()
+            && sessionManager.isValidSession(req.getSessionId()))) {
+      queryManager.registerQuery(ctx.getId(), ctx);
+      // A concurrent revoke may have run between the validity check and registration.
+      if (SecurityConfig.getInstance().isEnabled()
+          && !sessionManager.isValidSession(req.getSessionId())) {
+        queryManager.releaseQuery(ctx.getId());
+        return new ExecuteStatementResp(RpcUtils.ACCESS_DENY, SqlType.Unknown);
+      }
+    }
     return ctx.getResult().getExecuteStatementResp(req.getFetchSize());
   }
 
   @Override
   public FetchResultsResp fetchResults(FetchResultsReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && (!sessionManager.isValidSession(req.getSessionId())
+            || !queryManager.ownsQuery(req.getSessionId(), req.getQueryId()))) {
+      return new FetchResultsResp(RpcUtils.ACCESS_DENY, false);
+    }
     RequestContext context = queryManager.getQuery(req.queryId);
     if (context == null) {
       return new FetchResultsResp(RpcUtils.SUCCESS, false);
@@ -905,8 +965,16 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public LoadCSVResp loadCSV(LoadCSVReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !sessionManager.isValidSession(req.getSessionId())) {
+      return new LoadCSVResp().setStatus(RpcUtils.ACCESS_DENY);
+    }
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
+    if (SecurityConfig.getInstance().isEnabled()
+        && !UploadRegistry.getInstance().owns(req.getSessionId(), req.csvFileName)) {
+      return new LoadCSVResp(RpcUtils.ACCESS_DENY);
+    }
     ctx.setLoadCSVFileName(req.csvFileName);
     executor.execute(ctx);
     return ctx.getResult().getLoadCSVResp();
@@ -914,6 +982,10 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public LoadUDFResp loadUDF(LoadUDFReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !sessionManager.isValidSession(req.getSessionId())) {
+      return new LoadUDFResp().setStatus(RpcUtils.ACCESS_DENY);
+    }
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
     ctx.setUDFModuleByteBuffer(req.udfFile);
@@ -924,12 +996,22 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status closeStatement(CloseStatementReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && (!sessionManager.isValidSession(req.getSessionId())
+            || !queryManager.ownsQuery(req.getSessionId(), req.getQueryId()))) {
+      return RpcUtils.ACCESS_DENY;
+    }
     queryManager.releaseQuery(req.queryId);
     return RpcUtils.SUCCESS;
   }
 
   @Override
   public CommitTransformJobResp commitTransformJob(CommitTransformJobReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+            req.getSessionId(), "commitTransformJob")) {
+      return new CommitTransformJobResp(RpcUtils.ACCESS_DENY, 0);
+    }
     TransformJobManager manager = TransformJobManager.getInstance();
     CommitTransformJobResp resp = new CommitTransformJobResp();
     try {
@@ -949,6 +1031,11 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public QueryTransformJobStatusResp queryTransformJobStatus(QueryTransformJobStatusReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+            req.getSessionId(), "queryTransformJobStatus")) {
+      return new QueryTransformJobStatusResp(RpcUtils.ACCESS_DENY, JobState.JOB_UNKNOWN);
+    }
     TransformJobManager manager = TransformJobManager.getInstance();
     JobState jobState = manager.queryJobState(req.getJobId());
     if (jobState != null) {
@@ -960,6 +1047,11 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public ShowEligibleJobResp showEligibleJob(ShowEligibleJobReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+            req.getSessionId(), "showEligibleJob")) {
+      return new ShowEligibleJobResp(RpcUtils.ACCESS_DENY, Collections.emptyMap());
+    }
     TransformJobManager manager = TransformJobManager.getInstance();
     Map<JobState, List<Long>> jobStateMap = manager.showEligibleJob(req.getJobState());
     return new ShowEligibleJobResp(RpcUtils.SUCCESS, jobStateMap);
@@ -967,6 +1059,11 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status cancelTransformJob(CancelTransformJobReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+            req.getSessionId(), "cancelTransformJob")) {
+      return RpcUtils.ACCESS_DENY;
+    }
     TransformJobManager manager = TransformJobManager.getInstance();
     try {
       boolean success = manager.cancel(req.getJobId());
@@ -978,6 +1075,11 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status registerTask(RegisterTaskReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+            req.getSessionId(), "registerTask")) {
+      return RpcUtils.ACCESS_DENY;
+    }
     List<UDFClassPair> pairs = req.getUDFClassPairs();
     String filePath = req.getFilePath();
     String errorMsg;
@@ -1176,6 +1278,11 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status dropTask(DropTaskReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+            req.getSessionId(), "dropTask")) {
+      return RpcUtils.ACCESS_DENY;
+    }
     String name = req.getName().trim();
     PyFunctionMeta pyFunctionMeta = metaManager.getPyFunction(name);
     String errorMsg = "";
@@ -1244,6 +1351,11 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public GetRegisterTaskInfoResp getRegisterTaskInfo(GetRegisterTaskInfoReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+            req.getSessionId(), "getRegisterTaskInfo")) {
+      return new GetRegisterTaskInfoResp().setStatus(RpcUtils.ACCESS_DENY);
+    }
     List<PyFunctionMeta> taskMetaList = metaManager.getPyFunctions();
     List<RegisterTaskInfo> taskInfoList = new ArrayList<>();
     List<IpPortPair> ipPortPairs;
@@ -1268,11 +1380,19 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public CurveMatchResp curveMatch(CurveMatchReq req) throws TException {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+            req.getSessionId(), "curveMatch")) {
+      return new CurveMatchResp().setStatus(RpcUtils.ACCESS_DENY);
+    }
     QueryDataReq queryDataReq =
         new QueryDataReq(req.getSessionId(), req.getPaths(), req.getStartKey(), req.getEndKey());
     RequestContext ctx = contextBuilder.build(queryDataReq);
     executor.execute(ctx);
     QueryDataResp queryDataResp = ctx.getResult().getQueryDataResp();
+    if (queryDataResp.getStatus().getCode() != RpcUtils.SUCCESS.getCode()) {
+      return new CurveMatchResp(queryDataResp.getStatus());
+    }
 
     for (DataType type : queryDataResp.getDataTypeList()) {
       if (type.equals(DataType.BINARY) || type.equals(DataType.BOOLEAN)) {
@@ -1350,6 +1470,7 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public DebugInfoResp debugInfo(DebugInfoReq req) {
+    if (SecurityConfig.getInstance().isEnabled()) return new DebugInfoResp(RpcUtils.ACCESS_DENY);
     byte[] payload = null;
     boolean parseFailure = false;
     switch (req.payloadType) {
@@ -1404,12 +1525,22 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public ShowSessionIDResp showSessionID(ShowSessionIDReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+            req.getSessionId(), "showSessionID")) {
+      return new ShowSessionIDResp(RpcUtils.ACCESS_DENY, Collections.emptyList());
+    }
     List<Long> sessionIDs = new ArrayList<>(SessionManager.getInstance().getSessionIds());
     return new ShowSessionIDResp(RpcUtils.SUCCESS, sessionIDs);
   }
 
   @Override
   public ShowRulesResp showRules(ShowRulesReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+            req.getSessionId(), "showRules")) {
+      return new ShowRulesResp(RpcUtils.ACCESS_DENY, Collections.emptyMap());
+    }
     try {
       IRuleCollection ruleCollection = getRuleCollection();
       return new ShowRulesResp(RpcUtils.SUCCESS, ruleCollection.getRulesInfo());
@@ -1421,6 +1552,11 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status setRules(SetRulesReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+            req.getSessionId(), "setRules")) {
+      return RpcUtils.ACCESS_DENY;
+    }
     Map<String, Boolean> rulesChange = req.getRulesChange();
     try {
       getRuleCollection().setRules(rulesChange);
@@ -1447,7 +1583,15 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status uploadFileChunk(UploadFileReq req) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
+            req.getSessionId(), "uploadFileChunk")) {
+      return RpcUtils.ACCESS_DENY;
+    }
     FileChunk chunk = req.getFileChunk();
+    if (SecurityConfig.getInstance().isEnabled()) {
+      return UploadRegistry.getInstance().write(req.getSessionId(), chunk);
+    }
 
     String filename = chunk.fileName;
     if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {

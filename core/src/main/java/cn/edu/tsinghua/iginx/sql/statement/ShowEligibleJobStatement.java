@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.thrift.ShowEligibleJobReq;
 import cn.edu.tsinghua.iginx.thrift.ShowEligibleJobResp;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.util.List;
 import java.util.Map;
 
@@ -47,7 +46,7 @@ public class ShowEligibleJobStatement extends SystemStatement {
     ShowEligibleJobResp resp = worker.showEligibleJob(req);
     Map<JobState, List<Long>> jobStateMap = resp.getJobStateMap();
 
-    Result result = new Result(RpcUtils.SUCCESS);
+    Result result = new Result(resp.getStatus());
     result.setJobStateMap(jobStateMap);
     ctx.setResult(result);
   }

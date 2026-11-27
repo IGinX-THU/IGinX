@@ -31,6 +31,10 @@ public class SessionException extends Exception {
 
   protected int errorCode;
 
+  public int getErrorCode() {
+    return errorCode;
+  }
+
   public SessionException(Status status) {
     super(status.message);
     errorCode = status.code;

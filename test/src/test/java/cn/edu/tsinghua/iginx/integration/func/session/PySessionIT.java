@@ -471,6 +471,9 @@ public class PySessionIT {
 
   @Test
   public void testDebugInfo() {
+    org.junit.Assume.assumeFalse(
+        "Debug RPC is disabled in security mode",
+        "true".equalsIgnoreCase(System.getenv("IGINX_TEST_SECURITY")));
     String result = "";
     try {
       LOGGER.info("get debug info");

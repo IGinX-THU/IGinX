@@ -625,14 +625,14 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   @Override
   public Statement visitCreateUserStatement(SqlParser.CreateUserStatementContext ctx) {
-    String username = ctx.username.getChild(0).toString();
-    String password = ctx.password.getChild(0).toString();
+    String username = parseNodeName(ctx.username);
+    String password = parseNodeName(ctx.password);
     return new CreateUserStatement(username, password);
   }
 
   @Override
   public Statement visitGrantUserStatement(SqlParser.GrantUserStatementContext ctx) {
-    String username = ctx.username.getChild(0).toString();
+    String username = parseNodeName(ctx.username);
     Set<AuthType> authTypes = new HashSet<>();
     if (ctx.permissionSpec() != null) {
       ctx.permissionSpec().permission().forEach(e -> authTypes.add(parseAuthType(e.getText())));
@@ -642,14 +642,14 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   @Override
   public Statement visitChangePasswordStatement(SqlParser.ChangePasswordStatementContext ctx) {
-    String username = ctx.username.getChild(0).toString();
-    String password = ctx.password.getChild(0).toString();
+    String username = parseNodeName(ctx.username);
+    String password = parseNodeName(ctx.password);
     return new ChangePasswordStatement(username, password);
   }
 
   @Override
   public Statement visitDropUserStatement(SqlParser.DropUserStatementContext ctx) {
-    String username = ctx.username.getChild(0).toString();
+    String username = parseNodeName(ctx.username);
     return new DropUserStatement(username);
   }
 
@@ -657,7 +657,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   public Statement visitShowUserStatement(SqlParser.ShowUserStatementContext ctx) {
     List<String> users = new ArrayList<>();
     if (ctx.userSpec() != null) {
-      ctx.userSpec().nodeName().forEach(this::parseNodeName);
+      ctx.userSpec().nodeName().forEach(node -> users.add(parseNodeName(node)));
     }
     return new ShowUserStatement(users);
   }

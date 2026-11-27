@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException
 import cn.edu.tsinghua.iginx.thrift.GetRegisterTaskInfoReq;
 import cn.edu.tsinghua.iginx.thrift.GetRegisterTaskInfoResp;
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.util.List;
 
 public class ShowRegisterTaskStatement extends SystemStatement {
@@ -43,7 +42,7 @@ public class ShowRegisterTaskStatement extends SystemStatement {
     GetRegisterTaskInfoResp resp = worker.getRegisterTaskInfo(req);
     List<RegisterTaskInfo> taskInfos = resp.getRegisterTaskInfoList();
 
-    Result result = new Result(RpcUtils.SUCCESS);
+    Result result = new Result(resp.getStatus());
     result.setRegisterTaskInfos(taskInfos);
     ctx.setResult(result);
   }

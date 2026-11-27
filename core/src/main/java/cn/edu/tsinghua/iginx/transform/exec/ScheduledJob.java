@@ -111,6 +111,7 @@ public class ScheduledJob implements org.quartz.Job {
                         .collect(Collectors.joining(", "))
                     + ";");
         RequestContext IginxContext = contextBuilder.build(req);
+        IginxContext.setInternal(true);
         executor.execute(IginxContext);
         if (IginxContext.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
           LOGGER.error(

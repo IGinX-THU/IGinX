@@ -26,6 +26,10 @@ import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUti
 import static cn.edu.tsinghua.iginx.utils.StringUtils.replaceSpecialCharsWithUnderscore;
 import static cn.edu.tsinghua.iginx.utils.StringUtils.tryParse2Key;
 
+import cn.edu.tsinghua.iginx.auth.PathAuthorizer;
+import cn.edu.tsinghua.iginx.auth.SessionManager;
+import cn.edu.tsinghua.iginx.auth.StatementPermissions;
+import cn.edu.tsinghua.iginx.auth.UploadRegistry;
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.logical.constraint.ConstraintChecker;
@@ -59,6 +63,7 @@ import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.resource.ResourceManager;
+import cn.edu.tsinghua.iginx.security.SecurityConfig;
 import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.statement.*;
 import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
@@ -239,6 +244,12 @@ public class StatementExecutor {
   }
 
   public void execute(RequestContext ctx) {
+    if (SecurityConfig.getInstance().isEnabled()
+        && !ctx.isInternal()
+        && !SessionManager.getInstance().isValidSession(ctx.getSessionId())) {
+      ctx.setResult(new Result(RpcUtils.ACCESS_DENY));
+      return;
+    }
     if (config.isEnableMemoryControl() && resourceManager.reject(ctx)) {
       ctx.setResult(new Result(RpcUtils.SERVICE_UNAVAILABLE));
       return;
@@ -278,6 +289,13 @@ public class StatementExecutor {
   public void executeStatement(RequestContext ctx) {
     try {
       Statement statement = ctx.getStatement();
+      if (SecurityConfig.getInstance().isEnabled()
+          && !ctx.isInternal()
+          && !StatementPermissions.permits(ctx.getSessionId(), statement.getType())) {
+        ctx.setResult(new Result(RpcUtils.ACCESS_DENY));
+        return;
+      }
+      new PathAuthorizer(ctx).check(statement);
       if (statement instanceof DataStatement) {
         StatementType type = statement.getType();
         switch (type) {
@@ -313,7 +331,16 @@ public class StatementExecutor {
       } else {
         ((SystemStatement) statement).execute(ctx);
       }
+    } catch (SecurityException e) {
+      ctx.setResult(new Result(new Status(RpcUtils.ACCESS_DENY).setMessage(e.getMessage())));
     } catch (StatementExecutionException | PhysicalException | IOException e) {
+      for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+        if (cause instanceof SecurityException) {
+          ctx.setResult(
+              new Result(new Status(RpcUtils.ACCESS_DENY).setMessage(cause.getMessage())));
+          return;
+        }
+      }
       if (e.getCause() != null) {
         LOGGER.error("Execute Error: ", e);
       }
@@ -329,11 +356,12 @@ public class StatementExecutor {
   }
 
   private void process(RequestContext ctx) throws StatementExecutionException, PhysicalException {
+    new PathAuthorizer(ctx).check(ctx.getStatement());
     StatementType type = ctx.getStatement().getType();
     List<LogicalGenerator> generatorList = generatorMap.get(type);
     for (LogicalGenerator generator : generatorList) {
       before(ctx, preLogicalProcessors);
-      Operator root = generator.generate(ctx);
+      Operator root = new PathAuthorizer(ctx).rewrite(generator.generate(ctx));
       after(ctx, postLogicalProcessors);
       if (root == null && !metaManager.hasWritableStorageEngines()) {
         ctx.setResult(new Result(RpcUtils.SUCCESS));
@@ -423,7 +451,7 @@ public class StatementExecutor {
 
     // step 1: select stage
     SelectStatement selectStatement = statement.getSelectStatement();
-    RequestContext selectContext = new RequestContext(ctx.getSessionId(), selectStatement, true);
+    RequestContext selectContext = ctx.child(selectStatement, true);
     process(selectContext);
     RowStream stream = selectContext.getResult().getResultStream();
 
@@ -478,17 +506,21 @@ public class StatementExecutor {
     final int BATCH_SIZE = config.getBatchSizeImportCsv();
     String filepath =
         String.join(File.separator, System.getProperty("java.io.tmpdir"), ctx.getLoadCSVFileName());
-    File tmpCSV = new File(filepath);
+    File tmpCSV =
+        SecurityConfig.getInstance().isEnabled()
+            ? UploadRegistry.getInstance()
+                .path(ctx.getSessionId(), ctx.getLoadCSVFileName())
+                .toFile()
+            : new File(filepath);
     long count = 0;
     LOGGER.info("Begin to load data from csv file: {}", tmpCSV.getCanonicalPath());
-    try {
-      CSVParser parser =
-          importCsv
-              .getCSVBuilder()
-              .build()
-              .parse(
-                  new InputStreamReader(
-                      Files.newInputStream(tmpCSV.toPath()), CharsetDetector.detect(tmpCSV)));
+    try (CSVParser parser =
+        importCsv
+            .getCSVBuilder()
+            .build()
+            .parse(
+                new InputStreamReader(
+                    Files.newInputStream(tmpCSV.toPath()), CharsetDetector.detect(tmpCSV)))) {
 
       CSVRecord tmp;
       Iterator<CSVRecord> iterator = parser.stream().iterator();
@@ -507,6 +539,9 @@ public class StatementExecutor {
         // 从文件中读出列名来，并设置给insertStatement
         tmp = iterator.next();
         for (int i = 0; i < tmp.size(); i++) {
+          new PathAuthorizer(ctx)
+              .checkPaths(
+                  Collections.singletonList(insertStatement.getPrefixPath() + "." + tmp.get(i)));
           String colName = replaceSpecialCharsWithUnderscore(tmp.get(i));
           if (colName.equalsIgnoreCase(KEY_NAME)) {
             keyInFile.set(true);
@@ -528,6 +563,8 @@ public class StatementExecutor {
         // update pathSize accordingly
         pathSize = insertStatement.getPaths().size();
       } else keyInFile.set(true);
+
+      new PathAuthorizer(ctx).check(insertStatement);
 
       // sort by paths
       List<String> iPaths = insertStatement.getPaths();
@@ -654,7 +691,7 @@ public class StatementExecutor {
 
         // do the actual insert
         LOGGER.info("Inserting {} rows, {} rows completed", recordsSize, count);
-        RequestContext subInsertContext = new RequestContext(ctx.getSessionId(), insertStatement);
+        RequestContext subInsertContext = ctx.child(insertStatement, false);
         process(subInsertContext);
 
         if (!subInsertContext.getResult().getStatus().equals(RpcUtils.SUCCESS)) {
@@ -676,7 +713,11 @@ public class StatementExecutor {
       throw new RuntimeException(e);
     }
 
-    Files.delete(tmpCSV.toPath());
+    if (SecurityConfig.getInstance().isEnabled()) {
+      UploadRegistry.getInstance().release(ctx.getSessionId(), ctx.getLoadCSVFileName());
+    } else {
+      Files.delete(tmpCSV.toPath());
+    }
   }
 
   private void processInsertFromSelect(RequestContext ctx)
@@ -685,7 +726,7 @@ public class StatementExecutor {
 
     // step 1: select stage
     SelectStatement selectStatement = statement.getSubSelectStatement();
-    RequestContext subSelectContext = new RequestContext(ctx.getSessionId(), selectStatement, true);
+    RequestContext subSelectContext = ctx.child(selectStatement, true);
     process(subSelectContext);
 
     RowStream rowStream = subSelectContext.getResult().getResultStream();
@@ -694,8 +735,7 @@ public class StatementExecutor {
     InsertStatement insertStatement = statement.getSubInsertStatement();
     parseOldTagsFromHeader(rowStream.getHeader(), insertStatement);
     parseInsertValuesSpecFromRowStream(statement.getKeyOffset(), rowStream, insertStatement);
-    RequestContext subInsertContext =
-        new RequestContext(ctx.getSessionId(), insertStatement, ctx.isUseStream());
+    RequestContext subInsertContext = ctx.child(insertStatement, ctx.isUseStream());
     process(subInsertContext);
 
     ctx.setResult(subInsertContext.getResult());
