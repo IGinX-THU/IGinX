@@ -618,18 +618,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         client.create().withMode(CreateMode.EPHEMERAL).forPath(IGINX_CONNECTION_NODE_PREFIX);
       } else {
         List<String> children = client.getChildren().forPath(IGINX_CONNECTION_NODE_PREFIX);
-        for (String childName : children) {
-          byte[] data = client.getData().forPath(IGINX_CONNECTION_NODE_PREFIX + "/" + childName);
-          long[] toIds = JsonUtils.fromJson(data, long[].class);
-          if (toIds == null) {
-            LOGGER.error("resolve data from {}/{} error", IGINX_CONNECTION_NODE_PREFIX, childName);
-            continue;
-          }
-          long fromId = Long.parseLong(childName.substring(NODE_PREFIX.length()));
-          for (long toId : toIds) {
-            connectionMap.computeIfAbsent(fromId, k -> new HashSet<>()).add(toId);
-          }
-        }
+        connectionMap.putAll(readConnections(client, IGINX_CONNECTION_NODE_PREFIX, children));
       }
       return connectionMap;
     } catch (Exception e) {
@@ -712,19 +701,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         client.create().withMode(CreateMode.EPHEMERAL).forPath(STORAGE_CONNECTION_NODE_PREFIX);
       } else {
         List<String> children = client.getChildren().forPath(STORAGE_CONNECTION_NODE_PREFIX);
-        for (String childName : children) {
-          byte[] data = client.getData().forPath(STORAGE_CONNECTION_NODE_PREFIX + "/" + childName);
-          long[] storageIds = JsonUtils.fromJson(data, long[].class);
-          if (storageIds == null) {
-            LOGGER.error(
-                "resolve data from {}/{} error", STORAGE_CONNECTION_NODE_PREFIX, childName);
-            continue;
-          }
-          long iginxId = Long.parseLong(childName.substring(NODE_PREFIX.length()));
-          for (long storageId : storageIds) {
-            connectionMap.computeIfAbsent(iginxId, k -> new HashSet<>()).add(storageId);
-          }
-        }
+        connectionMap.putAll(readConnections(client, STORAGE_CONNECTION_NODE_PREFIX, children));
       }
       return connectionMap;
     } catch (Exception e) {
@@ -737,6 +714,30 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             "get error when release interprocess lock for " + STORAGE_CONNECTION_LOCK_NODE, e);
       }
     }
+  }
+
+  static Map<Long, Set<Long>> readConnections(
+      CuratorFramework client, String parent, List<String> children) throws Exception {
+    Map<Long, Set<Long>> connections = new HashMap<>();
+    for (String childName : children) {
+      byte[] data;
+      try {
+        data = client.getData().forPath(parent + "/" + childName);
+      } catch (KeeperException.NoNodeException departed) {
+        // Session expiry removes ephemeral connections without taking our application lock.
+        continue;
+      }
+      long[] targets = JsonUtils.fromJson(data, long[].class);
+      if (targets == null) {
+        LOGGER.error("resolve data from {}/{} error", parent, childName);
+        continue;
+      }
+      long fromId = Long.parseLong(childName.substring(NODE_PREFIX.length()));
+      for (long target : targets) {
+        connections.computeIfAbsent(fromId, k -> new HashSet<>()).add(target);
+      }
+    }
+    return connections;
   }
 
   @Override
