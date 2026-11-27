@@ -1078,7 +1078,15 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status registerTask(RegisterTaskReq req) {
+    return registerTask(req, null);
+  }
+
+  /** Server-side statement dispatch; the context is never accepted from the wire. */
+  public Status registerTask(RegisterTaskReq req, RequestContext context) {
+    boolean internal =
+        context != null && context.isInternal() && context.getSessionId() == req.getSessionId();
     if (SecurityConfig.getInstance().isEnabled()
+        && !internal
         && !cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
             req.getSessionId(), "registerTask")) {
       return RpcUtils.ACCESS_DENY;
@@ -1281,7 +1289,15 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status dropTask(DropTaskReq req) {
+    return dropTask(req, null);
+  }
+
+  /** Server-side statement dispatch; the context is never accepted from the wire. */
+  public Status dropTask(DropTaskReq req, RequestContext context) {
+    boolean internal =
+        context != null && context.isInternal() && context.getSessionId() == req.getSessionId();
     if (SecurityConfig.getInstance().isEnabled()
+        && !internal
         && !cn.edu.tsinghua.iginx.auth.StatementPermissions.permitsRpc(
             req.getSessionId(), "dropTask")) {
       return RpcUtils.ACCESS_DENY;

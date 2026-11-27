@@ -135,7 +135,17 @@ public class RestSession {
   }
 
   private synchronized boolean checkRedirect(Status status) {
-    if (request != null && status.getCode() == RpcUtils.ACCESS_DENY.getCode()) request.reject();
+    if (request != null) {
+      // Revocation can happen while the worker is executing. Never turn a failed
+      // query response into an empty successful HTTP response.
+      request.sessionId();
+      if (status.getCode() == RpcUtils.ACCESS_DENY.getCode()) request.reject();
+      try {
+        StatusUtils.verifySuccess(status);
+      } catch (SessionException error) {
+        throw new IllegalStateException("REST operation failed", error);
+      }
+    }
     return false;
   }
 

@@ -26,7 +26,8 @@
     "UploadRegistryTest",
     "ZkAclTest",
     "ZkRollingMigrationIT",
-    "ZkSecurityAcceptanceIT"
+    "ZkSecurityAcceptanceIT",
+    "UserChangeTrackerTest"
   ],
   "notes": "PR 0-8 are cumulative. Earlier PRs enumerate deferred tests in the coverage matrix; stage 8 requires all 48 IDs."
 }

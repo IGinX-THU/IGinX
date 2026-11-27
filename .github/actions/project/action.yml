@@ -1,5 +1,5 @@
 name: "project"
-description: "use maven to get project information in pom.xml"
+description: "read project information from pom.xml"
 inputs:
     workspace:
         description: "file paths delimited by space"
@@ -22,16 +22,18 @@ runs:
           shell: bash
           working-directory: ${{ inputs.workspace }}
           run: |
-              # retry: the help plugin download occasionally fails, and -q hides why
-              for attempt in 1 2 3; do
-                if VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout); then
-                  break
-                fi
-                echo "mvn help:evaluate failed (attempt $attempt)"
-                [ "$attempt" -eq 3 ] && { mvn help:evaluate -Dexpression=project.version -DforceStdout || true; exit 1; }
-                sleep 10
-              done
-              echo "version=$VERSION" >> $GITHUB_OUTPUT
+              python - <<'PY'
+              import os, xml.etree.ElementTree as ET
+              root = ET.parse('pom.xml').getroot()
+              ns = {'m': 'http://maven.apache.org/POM/4.0.0'}
+              version = root.findtext('m:version', namespaces=ns)
+              if version == '${revision}':
+                  version = root.findtext('m:properties/m:revision', namespaces=ns)
+              if not version or '${' in version:
+                  raise SystemExit('Cannot resolve project version from pom.xml')
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+                  output.write('version=' + version + '\n')
+              PY
 
         - name: "absolute workspace path"
           id: workspace
