@@ -65,10 +65,6 @@ public class MemoryPhysicalTaskDispatcher {
           try {
             while (true) {
               final MemoryPhysicalTask task = taskQueue.getTask();
-              if (isCancelled(task.getSessionId())) {
-                LOGGER.warn("MemoryPhysicalTask[sessionId={}] is cancelled.", task.getSessionId());
-                continue;
-              }
               taskExecuteThreadPool.submit(
                   () -> {
                     MemoryPhysicalTask currentTask = task;
@@ -76,7 +72,14 @@ public class MemoryPhysicalTaskDispatcher {
                       TaskExecuteResult result;
                       long startTime = System.currentTimeMillis();
                       try {
-                        result = currentTask.execute();
+                        if (!currentTask.getContext().isInternal()
+                            && isCancelled(currentTask.getSessionId())) {
+                          result =
+                              new TaskExecuteResult(
+                                  new PhysicalException("Session has been closed"));
+                        } else {
+                          result = currentTask.execute();
+                        }
                       } catch (Exception e) {
                         LOGGER.error("execute memory task failure: ", e);
                         result = new TaskExecuteResult(new PhysicalException(e));

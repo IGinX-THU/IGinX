@@ -106,6 +106,16 @@ runs:
               echo $PYTHON_PATH
               echo "IGINX_PYTHON_PATH=$PYTHON_PATH" >> $GITHUB_ENV
 
+        - if: inputs.scope=='all' && inputs.iginx-conda-flag == 'true'
+          name: Cache Conda Python downloads
+          uses: actions/cache@v4
+          with:
+              path: |
+                  ~/.cache/pip
+                  ~/AppData/Local/pip/Cache
+                  ~/Library/Caches/pip
+              key: pip-cpu-${{ runner.os }}-${{ runner.arch }}-${{ inputs.python-version }}-${{ hashFiles('.github/python/*.txt') }}
+
         - if: inputs.scope=='all'
           name: Install Python dependencies
           shell: bash -el {0}
@@ -116,6 +126,11 @@ runs:
               echo $PATH
               which python
               python -m pip install --upgrade pip
+              # Hosted runners have no CUDA device. Install the matching CPU wheel
+              # first; the pinned requirements then resolve its ordinary dependencies.
+              if [ "$RUNNER_OS" = "Linux" ] || [ "$RUNNER_OS" = "Windows" ]; then
+                python -m pip install --no-deps --index-url https://download.pytorch.org/whl/cpu torch==2.7.1
+              fi
               # package lists live in .github/python (see the comments there)
               pip install -r "$GITHUB_WORKSPACE/.github/python/requirements.txt" -c "$GITHUB_WORKSPACE/.github/python/constraints.txt"
 

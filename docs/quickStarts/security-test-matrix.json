@@ -149,7 +149,8 @@
       "pr": 1,
       "tests": [
         "CodeRegistrationIT#igt16_registrationAndJobPermissionsThroughSqlAndRpc",
-        "CodeRegistrationIT#igt16_deniedDirectoryRegistrationDoesNotInvokePip"
+        "CodeRegistrationIT#igt16_deniedDirectoryRegistrationDoesNotInvokePip",
+        "CodeRegistrationIT#igt16_backgroundRegistrationSurvivesSubmitterDisconnect"
       ],
       "design_steps": "只有 Read 的账户执行 SHOW FUNCTIONS、查询作业状态与可选的作业；Read 与 Write 的普通账户执行 CREATE FUNCTION（本地路径与远程上传两种）、loadUDF、DROP FUNCTION、COMMIT TRANSFORM JOB、取消作业，SQL 与原始的 Thrift 方法各一遍；只有 Admin 的账户做同样的注册、删除、提交与取消；root 做全部操作",
       "expected": "只读的三种查询成功；普通账户的注册、删除、提交与取消一律被拒绝，经 SQL 返回的也是拒绝而不是空结果，SHOW FUNCTIONS 前后相同，UDF 目录没有新文件，没有执行 pip；只有 Admin 的账户这五种操作全部成功，它执行三种查询被拒绝（要 Read）；root 全部成功"
