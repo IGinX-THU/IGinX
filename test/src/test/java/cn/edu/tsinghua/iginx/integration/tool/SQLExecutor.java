@@ -29,11 +29,8 @@ import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +38,7 @@ public class SQLExecutor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SQLExecutor.class);
 
-  private final ExecutorService pool = Executors.newFixedThreadPool(30);
+  private ExecutorService pool = Executors.newFixedThreadPool(30);
 
   private final MultiConnection conn;
 
@@ -52,11 +49,23 @@ public class SQLExecutor {
   }
 
   public void open() throws SessionException {
+    if (pool.isShutdown()) pool = Executors.newFixedThreadPool(30);
     conn.openSession();
   }
 
   public void close() throws SessionException {
-    conn.closeSession();
+    pool.shutdownNow();
+    try {
+      conn.closeSession();
+    } finally {
+      try {
+        if (!pool.awaitTermination(5, TimeUnit.SECONDS))
+          throw new AssertionError("Concurrent SQL workers did not terminate");
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new AssertionError("Interrupted while closing SQL workers", e);
+      }
+    }
   }
 
   public void setNeedCompareResult(boolean needCompareResult) {
@@ -156,77 +165,60 @@ public class SQLExecutor {
   }
 
   public void concurrentExecute(List<String> statements) {
-    LOGGER.info("Concurrent execute statements, size={}", statements.size());
-    CountDownLatch latch = new CountDownLatch(statements.size());
-
-    for (String statement : statements) {
-      pool.submit(
+    List<Callable<Void>> tasks = new ArrayList<>();
+    for (String statement : statements)
+      tasks.add(
           () -> {
             execute(statement);
-            latch.countDown();
+            return null;
           });
-    }
-
-    try {
-      latch.await();
-    } catch (InterruptedException e) {
-      LOGGER.error("Interrupt when latch await");
-      fail();
-    }
+    runConcurrent(tasks);
   }
 
   public void concurrentExecuteAndCompare(List<Pair<String, String>> statementsAndExpectRes) {
-    LOGGER.info("Concurrent execute statements, size={}", statementsAndExpectRes.size());
-    List<Pair<String, Pair<String, String>>> failedList =
-        Collections.synchronizedList(new ArrayList<>());
-    CountDownLatch start = new CountDownLatch(statementsAndExpectRes.size());
-    CountDownLatch end = new CountDownLatch(statementsAndExpectRes.size());
-
-    for (Pair<String, String> pair : statementsAndExpectRes) {
-      pool.submit(
+    List<Callable<Void>> tasks = new ArrayList<>();
+    for (Pair<String, String> pair : statementsAndExpectRes)
+      tasks.add(
           () -> {
-            String statement = pair.getK();
-            String expected = pair.getV();
-            boolean ignoreOrder = statement.toLowerCase().startsWith("show columns");
-            start.countDown();
-
-            try {
-              start.await();
-            } catch (InterruptedException e) {
-              LOGGER.error("Interrupt when latch await");
-            }
-
-            String actualOutput = execute(statement);
-            if (ignoreOrder && !TestUtils.isResultSetEqual(expected, actualOutput)) {
-              failedList.add(new Pair<>(statement, new Pair<>(expected, actualOutput)));
-            } else if (!ignoreOrder && !expected.equals(actualOutput)) {
-              failedList.add(new Pair<>(statement, new Pair<>(expected, actualOutput)));
-            }
-            LOGGER.info("Successfully execute statement: \"{}\"", statement);
-            end.countDown();
+            executeAndCompare(
+                pair.getK(), pair.getV(), pair.getK().toLowerCase().startsWith("show columns"));
+            return null;
           });
-    }
+    runConcurrent(tasks);
+  }
 
+  private void runConcurrent(List<Callable<Void>> tasks) {
+    CompletionService<Void> completed = new ExecutorCompletionService<>(pool);
+    List<Future<Void>> futures = new ArrayList<>();
+    // A single release gate also works when there are more tasks than workers.
+    CountDownLatch start = new CountDownLatch(1);
+    long deadline =
+        System.nanoTime()
+            + TimeUnit.SECONDS.toNanos(Long.getLong("iginx.test.concurrentTimeoutSeconds", 120L));
     try {
-      end.await();
+      for (Callable<Void> task : tasks)
+        futures.add(
+            completed.submit(
+                () -> {
+                  start.await();
+                  return task.call();
+                }));
+      start.countDown();
+      for (int i = 0; i < tasks.size(); i++) {
+        Future<Void> result =
+            completed.poll(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
+        if (result == null)
+          throw new AssertionError("Concurrent SQL timed out; completed " + i + "/" + tasks.size());
+        result.get();
+      }
+    } catch (ExecutionException e) {
+      throw new AssertionError("Concurrent SQL failed", e.getCause());
     } catch (InterruptedException e) {
-      LOGGER.error("Interrupt when latch await");
-      fail();
-    }
-
-    if (!needCompareResult) {
-      return;
-    }
-    if (!failedList.isEmpty()) {
-      failedList.forEach(
-          failed -> {
-            LOGGER.error(
-                "Statement: \"{}\" execute result is inconsistent with the expectation.",
-                failed.getK());
-            LOGGER.error("Expected: {}", failed.getV().getK());
-            LOGGER.error("Actual: {}", failed.getV().getV());
-          });
-      fail();
+      Thread.currentThread().interrupt();
+      throw new AssertionError("Concurrent SQL interrupted", e);
+    } finally {
+      start.countDown();
+      for (Future<Void> future : futures) if (!future.isDone()) future.cancel(true);
     }
   }
 }

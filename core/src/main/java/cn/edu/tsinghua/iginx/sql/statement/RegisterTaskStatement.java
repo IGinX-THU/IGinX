@@ -80,7 +80,7 @@ public class RegisterTaskStatement extends SystemStatement {
             types,
             ctx.getUDFModuleByteBuffer(),
             ctx.isRemoteSession());
-    status = worker.registerTask(req);
+    status = worker.registerTask(req, ctx);
     ctx.setResult(new Result(status));
     ctx.getResult().setUDFModulePath(filePath);
   }

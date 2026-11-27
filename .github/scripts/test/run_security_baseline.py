@@ -17,7 +17,7 @@ DIRECTORY = ROOT / "target/security-baseline"
 def run(command, cwd, log, allow_test_failures=False):
     print("Running:", " ".join(str(arg) for arg in command), flush=True)
     with (DIRECTORY / log).open("w", encoding="utf-8") as out:
-        result = subprocess.run(command, cwd=cwd, stdout=out, stderr=subprocess.STDOUT)
+        result = subprocess.run([os.sys.executable, str(ROOT / ".github/scripts/test/run_bounded.py"), "--timeout", "900", "--label", log, "--retry-downloads", "2", "--", *command], cwd=cwd, stdout=out, stderr=subprocess.STDOUT)
     if result.returncode and not allow_test_failures:
         print((DIRECTORY / log).read_text(encoding="utf-8", errors="replace")[-12000:])
         raise SystemExit(result.returncode)

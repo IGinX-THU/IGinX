@@ -92,6 +92,12 @@ public class RestSecurityAcceptanceIT {
     }
   }
 
+  static void awaitMarker(java.nio.file.Path marker) throws Exception {
+    long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+    while (!Files.exists(marker) && System.nanoTime() < until) Thread.sleep(2);
+    if (!Files.exists(marker)) fail("Missing query barrier " + marker + "\n" + node.logs());
+  }
+
   static String annotation(String file) throws Exception {
     return new String(
         Files.readAllBytes(projectRoot().resolve("test/src/test/resources/restAnnotation/" + file)),
@@ -178,8 +184,10 @@ public class RestSecurityAcceptanceIT {
   public static void start() throws Exception {
     env = new SecurityTestEnvironment();
     node = env.node(0, secure("creator", "required"));
+    node.mainClass = RestRevocationNode.class.getName();
     node.config.setProperty("enableRestService", "true");
     node.start();
+    awaitMarker(node.home.resolve("rest-revocation-ready"));
     node.user("r", AuthType.Read);
     node.user("w", AuthType.Write);
     node.user("rw", AuthType.Read, AuthType.Write);
@@ -396,6 +404,14 @@ public class RestSecurityAcceptanceIT {
     try {
       for (int i = 0; i < 100; i++) {
         node.user("revoked_rest", AuthType.Read);
+        java.nio.file.Path barrier = Files.createDirectory(node.home.resolve("rest-barrier-" + i));
+        java.nio.file.Path command = node.home.resolve("rest-revocation-next");
+        Files.write(command, barrier.getFileName().toString().getBytes(StandardCharsets.UTF_8));
+        Files.move(
+            command,
+            node.home.resolve("rest-revocation-command"),
+            java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+        awaitMarker(barrier.resolve("armed"));
         Future<Response> query =
             executor.submit(
                 () ->
@@ -405,28 +421,51 @@ public class RestSecurityAcceptanceIT {
                         "/api/v1/datapoints/query",
                         auth("revoked_rest", "password"),
                         longQuery));
-        long overlap = System.nanoTime() + TimeUnit.SECONDS.toNanos(1);
-        while (!query.isDone()
-            && node.admin
-                    .client
-                    .showSessionID(new ShowSessionIDReq(node.admin.id))
-                    .getSessionIDListSize()
-                == sessions
-            && System.nanoTime() < overlap) Thread.sleep(1);
-        long begin = System.nanoTime();
-        ok(node.admin.client.deleteUser(new DeleteUserReq(node.admin.id, "revoked_rest")));
+        long begin;
+        try {
+          awaitMarker(barrier.resolve("entered"));
+          assertFalse("Query completed before revocation", query.isDone());
+          begin = System.nanoTime();
+          ok(node.admin.client.deleteUser(new DeleteUserReq(node.admin.id, "revoked_rest")));
+        } finally {
+          Files.write(barrier.resolve("release"), new byte[0]);
+        }
         Response completed = query.get(5, TimeUnit.SECONDS);
-        assertTrue(Arrays.asList(200, 400, 401, 403).contains(completed.code));
+        assertTrue(
+            "Queued revoked query unexpectedly succeeded: " + completed.code,
+            Arrays.asList(400, 401, 403).contains(completed.code));
         assertTrue(System.nanoTime() - begin < TimeUnit.SECONDS.toNanos(5));
-        assertEquals(
-            401,
-            http(
-                    node,
-                    "POST",
-                    "/api/v1/datapoints/query",
-                    auth("revoked_rest", "password"),
-                    longQuery)
-                .code);
+        // IGT-26 allows at most five seconds for deletion to converge. Once denied,
+        // subsequent requests must remain denied, including delayed watch events.
+        long deadline = begin + TimeUnit.SECONDS.toNanos(5);
+        int status;
+        do {
+          status =
+              http(
+                      node,
+                      "POST",
+                      "/api/v1/datapoints/query",
+                      auth("revoked_rest", "password"),
+                      longQuery)
+                  .code;
+          if (status == 401) break;
+          assertTrue(
+              "Deletion did not converge in five seconds: " + status, System.nanoTime() < deadline);
+          Thread.sleep(10);
+        } while (true);
+        assertTrue("Revocation exceeded five seconds", System.nanoTime() < deadline);
+        awaitMarker(barrier.resolve("finished"));
+        for (int check = 0; check < 3; check++)
+          assertEquals(
+              "Revoked account was restored by a delayed event",
+              401,
+              http(
+                      node,
+                      "POST",
+                      "/api/v1/datapoints/query",
+                      auth("revoked_rest", "password"),
+                      longQuery)
+                  .code);
       }
     } finally {
       executor.shutdownNow();
