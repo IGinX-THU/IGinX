@@ -106,5 +106,6 @@ PR 1–8 各累计版本的完整测试模块 reactor 编译均通过（`repair-
 - [PR 697 的失败作业](https://github.com/IGinX-THU/IGinX/actions/runs/45977059148/job/140488604328) 中，22 个原回归类均返回 0，最后上传产物时出现栈溢出。本分支尚未包含后继 PR 的归档修复；本轮补齐限定目录的 ZIP 归档、clean 后保留诊断及对应脚本回归。
 - [PR 699 的红色汇总检查](https://github.com/IGinX-THU/IGinX/actions/runs/45997093386/job/140499106888) 来自被替代的重复运行，四个前置任务均为 `cancelled`。同提交的有效测试和 lint 运行已经通过。汇总的 `always()` 改为 `!cancelled()`，取消时不再启动汇总，真实失败仍由原检查阻断。本轮首次推送后，重复运行的汇总已正确归为取消，未产生失败。
 - 重跑的 [PR 702 集群作业](https://github.com/IGinX-THU/IGinX/actions/runs/46006413323/job/140530664075) 暴露了共享实现的另一处竞态：会话在 RPC 入口检查后、执行器再次检查前失效，执行器提前返回 `Result(ACCESS_DENY)`，未设置 SQL 类型。节点日志明确记录 `ExecuteSqlResp` 的必填 `type` 为空，Thrift 序列化异常关闭连接；客户端因此收到传输异常，而非拒绝状态。`Result` 现在默认使用 `SqlType.Unknown`，同样覆盖解析前过载拒绝及两种 SQL 响应，已知 SQL 类型继续保留，公共 Thrift 协议不变。
+- 同轮 [PR 699 的 Windows 元数据作业](https://github.com/IGinX-THU/IGinX/actions/runs/46006414786/job/140530728113) 在回退的最后一个节点持续查询失败。节点日志显示，存储连接表枚举与读取之间，旧成员的 `/iginx/connection-storage/node…` 临时记录消失，导致整个连接表刷新中断；该节点没有可用路由，随后报空操作符错误。存储连接表和节点连接表现共用快照读取，仅忽略已经离开的记录，保留所有存活记录，继续传播权限等其它异常。新增两条路径各自的离开竞态和未授权读取回归；修复前两个离开用例稳定复现 `NoNodeException`。
 
 新增 `ResultResponseTest` 通过 Binary、Compact 两种编码实际序列化并读回两种响应。修复前访问拒绝和过载拒绝两项确定性复现同样的缺字段错误，正常类型对照通过。该类纳入各适用分支的入口验收，拒绝响应回归映射到 IGT-30；原三节点撤销的 20 轮、180 样本及 5 秒时限继续保留。原始日志与本轮复验记录位于 `target/ci-fixes-round3/`，最新 CI 结果记录在各 PR 说明中。

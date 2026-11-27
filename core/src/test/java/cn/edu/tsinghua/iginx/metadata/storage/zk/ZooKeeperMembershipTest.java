@@ -28,9 +28,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -129,5 +132,73 @@ public class ZooKeeperMembershipTest {
     } catch (KeeperException.NoAuthException expected) {
       // Only NoNode from a departed member may be ignored.
     }
+  }
+
+  private void departedConnectionsAreIgnored(String parent) throws Exception {
+    CuratorFramework observer = client();
+    CuratorFramework departing = client();
+    departing
+        .create()
+        .creatingParentsIfNeeded()
+        .withMode(CreateMode.EPHEMERAL)
+        .forPath(parent + "/node0", JsonUtils.toJson(new long[] {10}));
+    observer
+        .create()
+        .withMode(CreateMode.EPHEMERAL)
+        .forPath(parent + "/node1", JsonUtils.toJson(new long[] {10, 11}));
+    List<String> snapshot = observer.getChildren().forPath(parent);
+    assertEquals(2, snapshot.size());
+    departing.close();
+    long end = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+    while (observer.checkExists().forPath(parent + "/node0") != null) {
+      assertTrue("Ephemeral connections did not depart", System.nanoTime() < end);
+      Thread.sleep(10);
+    }
+    Map<Long, Set<Long>> connections =
+        ZooKeeperMetaStorage.readConnections(observer, parent, snapshot);
+    assertEquals(Collections.singleton(1L), connections.keySet());
+    assertEquals(new HashSet<>(Arrays.asList(10L, 11L)), connections.get(1L));
+  }
+
+  @Test(timeout = 30000)
+  public void storageConnectionsSurviveDepartureDuringSnapshot() throws Exception {
+    departedConnectionsAreIgnored("/iginx/connection-storage");
+  }
+
+  @Test(timeout = 30000)
+  public void peerConnectionsSurviveDepartureDuringSnapshot() throws Exception {
+    departedConnectionsAreIgnored("/iginx/connection-iginx");
+  }
+
+  private void unreadableConnectionsFail(String parent) throws Exception {
+    CuratorFramework owner = client();
+    owner
+        .getZookeeperClient()
+        .getZooKeeper()
+        .addAuthInfo("digest", "owner:secret".getBytes(StandardCharsets.UTF_8));
+    owner.create().creatingParentsIfNeeded().forPath(parent);
+    owner
+        .create()
+        .withMode(CreateMode.EPHEMERAL)
+        .withACL(ZooDefs.Ids.CREATOR_ALL_ACL)
+        .forPath(parent + "/node0", JsonUtils.toJson(new long[] {10}));
+    CuratorFramework anonymous = client();
+    try {
+      ZooKeeperMetaStorage.readConnections(
+          anonymous, parent, anonymous.getChildren().forPath(parent));
+      fail("An unreadable live connection record must fail closed");
+    } catch (KeeperException.NoAuthException expected) {
+      // Losing read permission must not turn live connections into an empty snapshot.
+    }
+  }
+
+  @Test(timeout = 30000)
+  public void storageConnectionPermissionFailurePropagates() throws Exception {
+    unreadableConnectionsFail("/iginx/connection-storage");
+  }
+
+  @Test(timeout = 30000)
+  public void peerConnectionPermissionFailurePropagates() throws Exception {
+    unreadableConnectionsFail("/iginx/connection-iginx");
   }
 }
