@@ -17,7 +17,8 @@
     "StartupScriptIT",
     "StatementAuthTableTest",
     "UploadRegistryTest",
-    "UserChangeTrackerTest"
+    "UserChangeTrackerTest",
+    "MemTableQueueNotificationTest"
   ],
   "notes": "Cumulative chapter-10 PR. Deferred scenario methods are explicit in security-test-matrix.json."
 }
