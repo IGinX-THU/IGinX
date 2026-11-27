@@ -435,25 +435,21 @@ public class RestSecurityAcceptanceIT {
             "Queued revoked query unexpectedly succeeded: " + completed.code,
             Arrays.asList(400, 401, 403).contains(completed.code));
         assertTrue(System.nanoTime() - begin < TimeUnit.SECONDS.toNanos(5));
-        // IGT-26 allows at most five seconds for deletion to converge. Once denied,
-        // subsequent requests must remain denied, including delayed watch events.
-        long deadline = begin + TimeUnit.SECONDS.toNanos(5);
-        int status;
-        do {
-          status =
-              http(
-                      node,
-                      "POST",
-                      "/api/v1/datapoints/query",
-                      auth("revoked_rest", "password"),
-                      longQuery)
-                  .code;
-          if (status == 401) break;
-          assertTrue(
-              "Deletion did not converge in five seconds: " + status, System.nanoTime() < deadline);
-          Thread.sleep(10);
-        } while (true);
-        assertTrue("Revocation exceeded five seconds", System.nanoTime() < deadline);
+        // The deleting node applies its revision synchronously. Keep the original
+        // immediate HTTP 401 assertion; late watch events must not resurrect it.
+        assertEquals(
+            "Fresh credentials still work after deletion",
+            401,
+            http(
+                    node,
+                    "POST",
+                    "/api/v1/datapoints/query",
+                    auth("revoked_rest", "password"),
+                    longQuery)
+                .code);
+        assertTrue(
+            "Revocation exceeded five seconds",
+            System.nanoTime() - begin < TimeUnit.SECONDS.toNanos(5));
         awaitMarker(barrier.resolve("finished"));
         for (int check = 0; check < 3; check++)
           assertEquals(

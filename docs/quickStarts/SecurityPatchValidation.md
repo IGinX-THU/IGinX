@@ -79,10 +79,12 @@ python .github/scripts/test/run_security_baseline.py --jupiter
 
 - PR 695 的 Controller 作业达到 100 分钟限制后进入取消阶段，总计约 105 分钟；原任务详细日志不可取得，无法证明具体卡在哪个方法。并发 SQL 辅助类曾忽略工作线程异常并无限等待计数器；现在传播异常、统一限时并回收线程。PR 1 同时补齐已取消物理任务的结果通知，内部后台任务不依赖已关闭的提交者会话。
 - 多个 PR 的原 `TransformIT.commitMixedPythonJobsByYamlWithRegisterTest` 因后台 SQL 注册函数被新入口鉴权拒绝而失败。注册/删除函数现在显式接收服务端内部上下文；外部 RPC（包括 sessionId=0）仍须通过管理员鉴权。新增提交者断开后的真实后台注册回归，并保留普通用户和伪造会话的拒绝断言。
-- Windows IGT-26 的撤销结果不稳定。用户缓存现在按 ZooKeeper zxid / etcd revision 合并本地写入、初始快照和 watch 事件，保留删除版本，拒绝过期事件；同名同密码账户重建也会使旧会话失效。REST 在读取结果后重新验证会话及 RPC 状态，避免取消查询返回 HTTP 200。测试用独立节点夹具阻塞真实存储任务，每轮确认任务已进入后撤销账户；100 轮均保留 5 秒上限、后续请求 401、会话和工作线程回收断言。
+- Windows IGT-26 的撤销结果不稳定。用户缓存现在按 ZooKeeper zxid / etcd revision 合并本地写入、初始快照和 watch 事件，保留删除版本，拒绝过期事件；同名同密码账户重建也会使旧会话失效。REST 在读取结果后重新验证会话及 RPC 状态，避免取消查询返回 HTTP 200。测试用独立节点夹具阻塞真实存储任务，每轮确认任务已进入后撤销账户；100 轮均保留 5 秒上限、删除后的首次新请求立即返回 401、后续请求持续 401、会话和工作线程回收断言。
 - CI 项目版本直接从 POM 读取，避免为了一个版本号下载 Maven help 插件。仅依赖解析失败允许有上限的重试；断言失败不重试。无 GPU 的 Linux/Windows runner 预装同版本 CPU PyTorch，配合 pip 缓存，避免下载无用 CUDA 组件。Java/Python Pemjax 同步主分支 0.2.4。
 - 每个回归类最多 15 分钟，Controller 最多 45 分钟，ClusterIT 最多 20 分钟；超时先保存 JVM 线程栈，再终止进程树。单类失败后继续执行其余原测试，最终保留失败退出码；报告、服务日志和超时诊断始终上传。
 
-修复后的本地 Windows / Java 8 验证：核心会话和事件顺序单元测试 8/8；代码注册及 REST 验收 6/6（包含 100 轮真实阻塞撤销）；并发 SQL 辅助类 2/2；ZooKeeper 和 etcd 跨节点撤销各 3/3；原失败 Transform 方法 1/1；原 SQLSessionIT 62/62；Python 超时执行器 3/3。合计 85 个 Java 方法和 3 个 Python 测试通过。原测试断言未修改。
+修复后的本地 Windows / Java 8 验证：核心会话和事件顺序单元测试 8/8；代码注册及 REST 验收 6/6（包含 100 轮真实阻塞撤销）；并发 SQL 辅助类 2/2；ZooKeeper 和 etcd 跨节点撤销各 3/3；原 TransformIT 完整类 27/27 执行项通过（保留原有 2 个忽略项），含原失败方法；原 SQLSessionIT 62/62；Python 超时执行器 4/4（含独立进程组的孙进程清理）。累计版本共 111 个 Java 方法和 4 个 Python 测试通过。另外仅含 PR 1 源码的独立运行时，入口与代码注册 8/8 通过。仓库原有 SQL/Transform 回归断言未修改。
 
-证据保存在修复工作区 `target/ci-fixes/`：`focused-round2.log`、`sql-executor.log`、`zk-regression.log`、`etcd-regression.log`、`transform-regression.log`、`sql-regression.log` 及对应 XML。以上是明确的本地验证范围；各 PR 最新远程 CI 的完整结果仍须独立核对，历史 FileSystem Jupiter 的四项既有问题仍按原始基线对照。
+证据保存在修复工作区 `target/ci-fixes/`：`focused-round2.log`、`sql-executor.log`、`zk-regression.log`、`etcd-regression.log`、`transform-regression.log`、`transform-all-regression.log`、`rest-immediate.log`、`sql-regression.log`、`pr1-regression.log` 及对应 XML。以上是明确的本地验证范围；各 PR 最新远程 CI 的完整结果仍须独立核对，历史 FileSystem Jupiter 的四项既有问题仍按原始基线对照。
+
+PR 1–8 各累计版本的完整测试模块 reactor 编译均通过（`repair-stage-compilation.json`，具体提交及日志保存在本轮 CI 修复记录中）。最后保留即时 401 的 REST 断言变更在 PR 4–8 使用相同测试类，另行编译并完成 3/3 验收和 100 轮阻塞撤销。Java 格式检查及许可证检查均通过。
