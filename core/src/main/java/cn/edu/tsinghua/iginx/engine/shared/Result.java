@@ -51,7 +51,8 @@ public class Result {
   private List<ByteBuffer> valuesList;
   private List<ByteBuffer> bitmapList;
 
-  private SqlType sqlType;
+  // Rejection before parsing still needs the required type in both SQL response structs.
+  private SqlType sqlType = SqlType.Unknown;
   private Long pointsNum;
   private Integer replicaNum;
 
