@@ -60,9 +60,9 @@ def main():
         source.extractall(original)
     maven = shutil.which("mvn.cmd" if os.name == "nt" else "mvn")
     assert maven, "Maven is required"
-    run([maven, "-B", "-P!format", "-pl", "core,dataSource/filesystem", "-am", "test-compile", "-DskipTests"], original, "build-original.log")
+    run([maven, "-B", "-P!format", "-pl", "dependency,core,dataSource/filesystem", "-am", "test-compile", "-DskipTests"], original, "build-original.log")
     if args.jupiter:
-        command = [maven, "-B", "-P!format", "-pl", "dataSource/filesystem", "-am", "test-compile", "org.apache.maven.plugins:maven-surefire-plugin:3.5.2:test", "-Duser.timezone=Asia/Shanghai", "-Dmaven.test.failure.ignore=true"]
+        command = [maven, "-B", "-P!format", "-pl", "dependency,dataSource/filesystem", "-am", "test-compile", "org.apache.maven.plugins:maven-surefire-plugin:3.5.2:test", "-Duser.timezone=Asia/Shanghai", "-Dmaven.test.failure.ignore=true"]
         run(command, original, "jupiter-original.log")
         run(command, ROOT, "jupiter-current.log")
         before, after = filesystem_results(original), filesystem_results(ROOT)
@@ -70,7 +70,7 @@ def main():
         (DIRECTORY / "jupiter-comparison.json").write_text(json.dumps({"baseline": BASELINE, "result": after}, indent=2) + "\n")
         print(f"FileSystem Jupiter comparison: {len(after['methods'])} methods; {len(after['failures'])} pre-existing failures (see JSON).")
         return
-    run([maven, "-B", "-P!format", "-pl", "dataSource/filesystem", "-am", "test", "-Dtest=BaselineNegativeControlsIT,MqttLegacyIT", "-DfailIfNoTests=false", "-Diginx.acceptance.baselineRoot=" + str(original)], ROOT, "counterexamples.log")
+    run([maven, "-B", "-P!format", "-pl", "dependency,dataSource/filesystem", "-am", "test", "-Dtest=BaselineNegativeControlsIT,MqttLegacyIT", "-DfailIfNoTests=false", "-Diginx.acceptance.baselineRoot=" + str(original)], ROOT, "counterexamples.log")
     import sys
     subprocess.run([sys.executable, str(ROOT / ".github/scripts/test/assert_test_reports.py"), "dataSource/filesystem/target/surefire-reports/TEST-cn.edu.tsinghua.iginx.filesystem.security.BaselineNegativeControlsIT.xml:2", "dataSource/filesystem/target/surefire-reports/TEST-cn.edu.tsinghua.iginx.filesystem.security.MqttLegacyIT.xml:1"], cwd=ROOT, check=True)
 
