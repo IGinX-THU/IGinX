@@ -99,7 +99,7 @@ public interface IMetaStorage {
 
   void updateUser(UserMeta userMeta) throws MetaStorageException;
 
-  void removeUser(String username) throws MetaStorageException;
+  long removeUser(String username) throws MetaStorageException;
 
   void registerTimeseriesChangeHook(TimeSeriesChangeHook hook);
 

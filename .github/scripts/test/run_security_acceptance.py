@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[3]
 GROUPS = {
-    "entry": "SecurityConfigTest,SessionManagerTest,StatementAuthTableTest,UploadRegistryTest,SecurityConfigAcceptanceIT,SqlSecurityAcceptanceIT,PermissionMatrixIT,CodeRegistrationIT,ReservedPrefixAcceptanceIT,InternalRequestIT",
+    "entry": "SecurityConfigTest,SessionManagerTest,UserChangeTrackerTest,StatementAuthTableTest,UploadRegistryTest,SecurityConfigAcceptanceIT,SqlSecurityAcceptanceIT,PermissionMatrixIT,CodeRegistrationIT,ReservedPrefixAcceptanceIT,InternalRequestIT",
     "gateways": "RestSecurityAcceptanceIT,RootPasswordIT,MqttSecurityAcceptanceIT,MqttLegacyIT",
     "metadata": "ZkAclTest,ZkSecurityAcceptanceIT,ZkRollingMigrationIT,StartupScriptIT",
     "cluster": "NaivePolicyReplicaTest,InternalAuthTest,SessionRevokeAcceptanceIT,ClusterRegressionAcceptanceIT,ReplicaNumIT,FsEngineAuthIT",
@@ -84,7 +84,7 @@ def main():
         if args.group == "etcd":
             assert os.environ.get("IGINX_TEST_ETCD"), "Install etcd 3.5.13 and set IGINX_TEST_ETCD"
             command.append("-Diginx.security.backend=etcd")
-        subprocess.run(command, cwd=ROOT, check=True)
+        subprocess.run([os.sys.executable, str(ROOT / ".github/scripts/test/run_bounded.py"), "--timeout", "1500", "--label", args.group, "--retry-downloads", "2", "--", *command], cwd=ROOT, check=True)
     verify(args.group)
 
 

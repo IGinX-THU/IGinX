@@ -154,6 +154,7 @@ final class SecurityTestEnvironment implements AutoCloseable {
     final Map<String, String> environment = new HashMap<>();
     final List<String> jvmOptions = new ArrayList<>();
     final List<Connection> connections = new ArrayList<>();
+    String mainClass = "cn.edu.tsinghua.iginx.Iginx";
     Process process;
     Connection admin;
     int generation;
@@ -227,7 +228,7 @@ final class SecurityTestEnvironment implements AutoCloseable {
                   "-DIGINX_DRIVER=" + home.resolve("driver"),
                   "-cp",
                   classpath(),
-                  "cn.edu.tsinghua.iginx.Iginx"));
+                  mainClass));
       cmd.addAll(
           1,
           Arrays.asList(

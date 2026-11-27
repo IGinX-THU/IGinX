@@ -26,6 +26,9 @@ import java.util.Set;
 
 public class UserMeta {
 
+  private transient long revision;
+  private transient long incarnation;
+
   private String username;
 
   private String password;
@@ -73,7 +76,26 @@ public class UserMeta {
     this.auths = auths;
   }
 
+  public long getRevision() {
+    return revision;
+  }
+
+  public void setRevision(long revision) {
+    this.revision = revision;
+  }
+
+  public long getIncarnation() {
+    return incarnation;
+  }
+
+  public void setIncarnation(long incarnation) {
+    this.incarnation = incarnation;
+  }
+
   public UserMeta copy() {
-    return new UserMeta(username, password, userType, new HashSet<>(auths));
+    UserMeta copy = new UserMeta(username, password, userType, new HashSet<>(auths));
+    copy.revision = revision;
+    copy.incarnation = incarnation;
+    return copy;
   }
 }

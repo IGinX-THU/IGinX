@@ -150,4 +150,23 @@ public class SessionManagerTest {
     user.setPassword("new");
     assertTrue(manager.checkSession(id, AuthType.Read));
   }
+
+  @org.junit.Test
+  public void recreatedAccountInvalidatesSessionEvenWhenPasswordAndPermissionsMatch() {
+    java.util.Map<String, UserMeta> users = new java.util.HashMap<>();
+    UserMeta original = user("u", "password");
+    original.setIncarnation(10);
+    users.put("u", original);
+    SessionManager manager = new SessionManager(users::get, true);
+    long session = manager.openSession("u", "password");
+    UserMeta noOpUpdate = original.copy();
+    noOpUpdate.setRevision(20);
+    users.put("u", noOpUpdate);
+    manager.invalidateUser("u", noOpUpdate);
+    org.junit.Assert.assertTrue(manager.isValidSession(session));
+    UserMeta recreated = original.copy();
+    recreated.setIncarnation(30);
+    users.put("u", recreated);
+    org.junit.Assert.assertFalse(manager.isValidSession(session));
+  }
 }

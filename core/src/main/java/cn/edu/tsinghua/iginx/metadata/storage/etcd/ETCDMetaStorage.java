@@ -357,13 +357,17 @@ public class ETCDMetaStorage implements IMetaStorage {
                           userMeta =
                               JsonUtils.fromJson(
                                   event.getKeyValue().getValue().getBytes(), UserMeta.class);
-                          userChangeHook.onChange(userMeta.getUsername(), userMeta);
+                          userMeta.setRevision(event.getKeyValue().getModRevision());
+                          userMeta.setIncarnation(event.getKeyValue().getCreateRevision());
+                          userChangeHook.onChange(
+                              userMeta.getUsername(), userMeta, userMeta.getRevision());
                           break;
                         case DELETE:
                           userMeta =
                               JsonUtils.fromJson(
                                   event.getPrevKV().getValue().getBytes(), UserMeta.class);
-                          userChangeHook.onChange(userMeta.getUsername(), null);
+                          userChangeHook.onChange(
+                              userMeta.getUsername(), null, event.getKeyValue().getModRevision());
                           break;
                         default:
                           LOGGER.error("unexpected watchEvent: {}", event.getEventType());
@@ -1548,6 +1552,8 @@ public class ETCDMetaStorage implements IMetaStorage {
             .forEach(
                 e -> {
                   UserMeta user = JsonUtils.fromJson(e.getValue().getBytes(), UserMeta.class);
+                  user.setRevision(e.getModRevision());
+                  user.setIncarnation(e.getCreateRevision());
                   users.put(user.getUsername(), user);
                 });
         return new ArrayList<>(users.values());
@@ -1580,12 +1586,19 @@ public class ETCDMetaStorage implements IMetaStorage {
   public void updateUser(UserMeta userMeta) throws MetaStorageException {
     try {
       lockUser();
-      this.client
-          .getKVClient()
-          .put(
-              ByteSequence.from((USER_NODE_PREFIX + userMeta.getUsername()).getBytes()),
-              ByteSequence.from(JsonUtils.toJson(userMeta)))
-          .get();
+      io.etcd.jetcd.kv.PutResponse response =
+          this.client
+              .getKVClient()
+              .put(
+                  ByteSequence.from((USER_NODE_PREFIX + userMeta.getUsername()).getBytes()),
+                  ByteSequence.from(JsonUtils.toJson(userMeta)),
+                  PutOption.newBuilder().withPrevKV().build())
+              .get();
+      userMeta.setRevision(response.getHeader().getRevision());
+      userMeta.setIncarnation(
+          response.getPrevKv().getCreateRevision() == 0
+              ? userMeta.getRevision()
+              : response.getPrevKv().getCreateRevision());
     } catch (ExecutionException | InterruptedException e) {
       LOGGER.error("got error when add/update user: ", e);
       throw new MetaStorageException(e);
@@ -1595,18 +1608,21 @@ public class ETCDMetaStorage implements IMetaStorage {
       }
     }
     if (userChangeHook != null) {
-      userChangeHook.onChange(userMeta.getUsername(), userMeta);
+      userChangeHook.onChange(userMeta.getUsername(), userMeta, userMeta.getRevision());
     }
   }
 
   @Override
-  public void removeUser(String username) throws MetaStorageException {
+  public long removeUser(String username) throws MetaStorageException {
+    long revision;
     try {
       lockUser();
-      this.client
-          .getKVClient()
-          .delete(ByteSequence.from((USER_NODE_PREFIX + username).getBytes()))
-          .get();
+      io.etcd.jetcd.kv.DeleteResponse response =
+          this.client
+              .getKVClient()
+              .delete(ByteSequence.from((USER_NODE_PREFIX + username).getBytes()))
+              .get();
+      revision = response.getHeader().getRevision();
     } catch (ExecutionException | InterruptedException e) {
       LOGGER.error("got error when remove user: ", e);
       throw new MetaStorageException(e);
@@ -1616,8 +1632,9 @@ public class ETCDMetaStorage implements IMetaStorage {
       }
     }
     if (userChangeHook != null) {
-      userChangeHook.onChange(username, null);
+      userChangeHook.onChange(username, null, revision);
     }
+    return revision;
   }
 
   @Override
