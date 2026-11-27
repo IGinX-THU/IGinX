@@ -140,10 +140,20 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   public ETCDMetaStorage() {
-    client =
+    io.etcd.jetcd.ClientBuilder builder =
         Client.builder()
-            .endpoints(ConfigDescriptor.getInstance().getConfig().getEtcdEndpoints().split(","))
-            .build();
+            .endpoints(ConfigDescriptor.getInstance().getConfig().getEtcdEndpoints().split(","));
+    cn.edu.tsinghua.iginx.security.SecurityConfig security =
+        cn.edu.tsinghua.iginx.security.SecurityConfig.getInstance();
+    if (security.get("etcd.user") != null) {
+      builder
+          .user(
+              ByteSequence.from(security.get("etcd.user"), java.nio.charset.StandardCharsets.UTF_8))
+          .password(
+              ByteSequence.from(
+                  security.get("etcd.password"), java.nio.charset.StandardCharsets.UTF_8));
+    }
+    client = builder.build();
 
     // 注册 iginx 的监听
     this.iginxWatcher =

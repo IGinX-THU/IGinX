@@ -1,0 +1,29 @@
+@REM
+@REM IGinX - the polystore system with high performance
+@REM Copyright (C) Tsinghua University
+@REM TSIGinX@gmail.com
+@REM
+@REM This program is free software; you can redistribute it and/or
+@REM modify it under the terms of the GNU Lesser General Public
+@REM License as published by the Free Software Foundation; either
+@REM version 3 of the License, or (at your option) any later version.
+@REM
+@REM This program is distributed in the hope that it will be useful,
+@REM but WITHOUT ANY WARRANTY; without even the implied warranty of
+@REM MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+@REM Lesser General Public License for more details.
+@REM
+@REM You should have received a copy of the GNU Lesser General Public License
+@REM along with this program; if not, write to the Free Software Foundation,
+@REM Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+@REM
+
+@echo off
+setlocal
+if not defined IGINX_HOME for %%I in ("%~dp0..") do set "IGINX_HOME=%%~fI"
+if not defined IGINX_CONF_DIR set "IGINX_CONF_DIR=%IGINX_HOME%\conf"
+if not defined IGINX_CONF set "IGINX_CONF=%IGINX_CONF_DIR%\config.properties"
+set "JAVA=java"
+if defined JAVA_HOME set "JAVA=%JAVA_HOME%\bin\java.exe"
+"%JAVA%" -cp "%IGINX_HOME%\conf;%IGINX_HOME%\lib\*" cn.edu.tsinghua.iginx.metadata.storage.etcd.EtcdAuthMigration %*
+exit /b %ERRORLEVEL%
