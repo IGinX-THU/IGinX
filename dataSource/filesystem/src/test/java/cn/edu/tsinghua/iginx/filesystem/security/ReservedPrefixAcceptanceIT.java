@@ -106,6 +106,7 @@ public class ReservedPrefixAcceptanceIT {
                 "INSERT INTO " + prefix + " (key,a) VALUES (SELECT c0 FROM a);",
                 "INSERT INTO output (key,a) VALUES (SELECT a FROM " + prefix + ");",
                 "SELECT * FROM (SELECT * FROM " + prefix + ");",
+                "WITH protected(a) AS (SELECT a FROM " + prefix + ") SELECT a FROM protected;",
                 "LOAD DATA FROM INFILE \"missing.csv\" AS CSV INTO " + prefix + ";",
                 "SELECT * FROM " + prefix + " INTO OUTFILE \"denied.csv\" AS CSV;")) {
           String before = service.execute("SELECT * FROM *;").toString();
@@ -343,6 +344,11 @@ public class ReservedPrefixAcceptanceIT {
 
   @Test
   public void igt20_boundariesQuotesTagsAndCase() throws Exception {
+    ordinary.execute("INSERT INTO braces{} (key,c) VALUES (1,11);");
+    assertTrue(ordinary.execute("SHOW COLUMNS;").paths.contains("braces{}.c"));
+    assertEquals(1, ordinary.execute("COUNT POINTS;").pointsNum);
+    ordinary.execute("CLEAR DATA;");
+    assertEquals(0, ordinary.execute("COUNT POINTS;").pointsNum);
     for (String prefix : Arrays.asList("indagentx", "a.indagent")) {
       ordinary.execute("INSERT INTO " + prefix + " (key,b) VALUES (1,11);");
       assertEquals(1, ordinary.execute("SELECT * FROM " + prefix + ";").getPathsSize());

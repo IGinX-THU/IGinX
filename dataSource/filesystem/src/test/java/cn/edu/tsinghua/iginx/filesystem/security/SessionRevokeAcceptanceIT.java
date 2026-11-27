@@ -85,6 +85,7 @@ public class SessionRevokeAcceptanceIT {
       List<String> samples = new ArrayList<>();
       samples.add("backend,round,change,node,latency_ms");
       int[] threads = new int[3];
+      List<Set<String>> baselineWorkers = new ArrayList<>();
       long maximum = 0;
       String password = "password";
       // Warm all lazy worker pools before measuring thread growth; still measure 20 full rounds.
@@ -112,6 +113,7 @@ public class SessionRevokeAcceptanceIT {
             for (int n = 0; n < 3; n++) {
               Set<String> names = env.nodes.get(n).workerThreadNames();
               threads[n] = names.size();
+              baselineWorkers.add(names);
               Files.write(
                   env.directory.resolve("threads-before-" + n + ".txt"),
                   names,
@@ -177,6 +179,20 @@ public class SessionRevokeAcceptanceIT {
               + maximum
               + "ms; "
               + env.directory);
+      // Cached executor workers retire after 60 seconds of idleness. Wait for retirement,
+      // then require every worker created during measurement to be gone, not just a stable total.
+      long retirementDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(70);
+      List<Set<String>> remaining = new ArrayList<>();
+      do {
+        remaining.clear();
+        for (int n = 0; n < 3; n++) {
+          Set<String> added = env.nodes.get(n).workerThreadNames();
+          added.removeAll(baselineWorkers.get(n));
+          remaining.add(added);
+        }
+        if (remaining.stream().allMatch(Set::isEmpty)) break;
+        Thread.sleep(500);
+      } while (System.nanoTime() < retirementDeadline);
       for (int n = 0; n < 3; n++) {
         Files.write(
             env.directory.resolve("threads-after-" + n + ".txt"),
@@ -186,6 +202,9 @@ public class SessionRevokeAcceptanceIT {
         assertTrue(
             "Worker growth on node " + n + ": " + threads[n] + " -> " + actual,
             actual <= threads[n]);
+        assertTrue(
+            "Unreleased workers on node " + n + ": " + remaining.get(n),
+            remaining.get(n).isEmpty());
       }
     }
   }

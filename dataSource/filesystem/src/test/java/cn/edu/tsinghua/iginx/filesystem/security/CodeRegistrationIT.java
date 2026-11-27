@@ -68,6 +68,8 @@ public class CodeRegistrationIT {
         }
       // A real, offline pip invocation proves the marker can observe the side effect.
       try (Connection admin = node.connect("administrator", "password")) {
+        // Installation can exceed the normal RPC timeout on a cold CI runner.
+        admin.socket.setTimeout(60000);
         admin.execute(sql);
         assertTrue("Positive control did not invoke pip", java.nio.file.Files.size(marker) > 0);
         admin.execute("DROP FUNCTION \"pip_fixture\";");
@@ -89,6 +91,7 @@ public class CodeRegistrationIT {
           ordinary = node.connect("ordinary", "password"),
           admin = node.connect("admin", "password");
       long job = CodeTestFixture.submit(root, fixture.scheduled(root.id));
+      CodeTestFixture.await(root, job, JobState.JOB_IDLE);
       root.execute(fixture.create("existing"));
       for (Connection c : Arrays.asList(reader, ordinary, admin, root)) {
         boolean canRead = c != admin;
@@ -149,6 +152,7 @@ public class CodeRegistrationIT {
         c.execute(fixture.create("allowed"));
         c.execute("DROP FUNCTION \"allowed\";");
         long id = CodeTestFixture.submit(c, fixture.scheduled(c.id));
+        CodeTestFixture.await(root, id, JobState.JOB_IDLE);
         ok(c.client.cancelTransformJob(new CancelTransformJobReq(c.id, id)));
         ExecuteSqlResp submitted =
             c.execute(
@@ -157,6 +161,7 @@ public class CodeRegistrationIT {
             fixture.yaml.toString().replace('\\', '/'), submitted.jobYamlPath.replace('\\', '/'));
         // SQL COMMIT returns a client-side YAML path; the client submits the parsed request.
         long sqlJob = CodeTestFixture.submit(c, fixture.scheduled(c.id));
+        CodeTestFixture.await(root, sqlJob, JobState.JOB_IDLE);
         c.execute("CANCEL TRANSFORM JOB " + sqlJob + ";");
       }
       ok(root.client.cancelTransformJob(new CancelTransformJobReq(root.id, job)));
