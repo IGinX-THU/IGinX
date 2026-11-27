@@ -42,12 +42,11 @@
     {
       "id": "IGT-05",
       "pr": 2,
-      "tests": [],
-      "design_steps": "用户 u 开 3 个会话，用户 v 开 1 个；按用户关闭 u；对 v 做一次口令与权限都不变的更新；另在不发通知的情况下改 v 的口令，再检查 v 的会话",
-      "expected": "u 的 3 个会话失效，v 的会话在关闭 u 时不受影响；口令与权限都没有变化的更新不关闭 v 的会话；v 的口令改了之后，即使没有收到通知，检查会话时核对版本不符，v 的会话也失效",
-      "deferred_tests": [
+      "tests": [
         "SessionManagerTest#closeByUserAndVersion"
-      ]
+      ],
+      "design_steps": "用户 u 开 3 个会话，用户 v 开 1 个；按用户关闭 u；对 v 做一次口令与权限都不变的更新；另在不发通知的情况下改 v 的口令，再检查 v 的会话",
+      "expected": "u 的 3 个会话失效，v 的会话在关闭 u 时不受影响；口令与权限都没有变化的更新不关闭 v 的会话；v 的口令改了之后，即使没有收到通知，检查会话时核对版本不符，v 的会话也失效"
     },
     {
       "id": "IGT-06",
@@ -82,12 +81,11 @@
     {
       "id": "IGT-09",
       "pr": 2,
-      "tests": [],
-      "design_steps": "用注入了用户表的 SessionManager。8 个线程不停地为用户 u 开会话、检查会话、关会话，另一个线程在其间 200 次交替地改 u 的口令并按用户关闭 u；最后停下全部线程，改一次口令",
-      "expected": "全程没有异常；最后一次改口令之后，此前开出的 u 的会话检查时一律返回 false，会话到用户的对应表里没有 u 的残留；别的用户的会话不受影响",
-      "deferred_tests": [
+      "tests": [
         "SessionManagerTest#concurrentOpenAndRevoke"
-      ]
+      ],
+      "design_steps": "用注入了用户表的 SessionManager。8 个线程不停地为用户 u 开会话、检查会话、关会话，另一个线程在其间 200 次交替地改 u 的口令并按用户关闭 u；最后停下全部线程，改一次口令",
+      "expected": "全程没有异常；最后一次改口令之后，此前开出的 u 的会话检查时一律返回 false，会话到用户的对应表里没有 u 的残留；别的用户的会话不受影响"
     },
     {
       "id": "IGT-10",
@@ -288,22 +286,20 @@
     {
       "id": "IGT-30",
       "pr": 2,
-      "tests": [],
-      "design_steps": "三个 IGinX 节点。用户 u 在每个节点开 2 个会话，用户 v 各开 1 个。在节点 1 依次执行：GRANT 把 u 从 Read、Write 改为 Read；ALTER USER 改 u 的口令；DROP USER u。每次之后各节点每 100 毫秒用 u 的旧会话执行一条语句。其中一次在 u 的一个分页查询取到一半时变更。整组重复 20 次，ZooKeeper 与 etcd 两种元数据存储各做一遍",
-      "expected": "每次变更后 5 秒内 u 在三个节点上的旧会话全部被拒绝，记下每个节点的实际时延与 20 次中的最大值；取到一半的查询此后取不到下一页；被取消的语句在 5 秒内返回，全部做完之后 IGinX 的工作线程数没有增长；v 始终不受影响；用新口令、新权限重新登录后行为符合新权限",
-      "deferred_tests": [
+      "tests": [
         "SessionRevokeAcceptanceIT#igt30_twentyRoundsAllChangesAllNodes"
-      ]
+      ],
+      "design_steps": "三个 IGinX 节点。用户 u 在每个节点开 2 个会话，用户 v 各开 1 个。在节点 1 依次执行：GRANT 把 u 从 Read、Write 改为 Read；ALTER USER 改 u 的口令；DROP USER u。每次之后各节点每 100 毫秒用 u 的旧会话执行一条语句。其中一次在 u 的一个分页查询取到一半时变更。整组重复 20 次，ZooKeeper 与 etcd 两种元数据存储各做一遍",
+      "expected": "每次变更后 5 秒内 u 在三个节点上的旧会话全部被拒绝，记下每个节点的实际时延与 20 次中的最大值；取到一半的查询此后取不到下一页；被取消的语句在 5 秒内返回，全部做完之后 IGinX 的工作线程数没有增长；v 始终不受影响；用新口令、新权限重新登录后行为符合新权限"
     },
     {
       "id": "IGT-31",
       "pr": 2,
-      "tests": [],
-      "design_steps": "工作流在启动节点 3 之前，用一个步骤在后台启动一个 TCP 转发（.github/scripts 下新增的小脚本，监听 2182 转发到 2181，另开一个控制端口接受“暂停”“恢复”两个命令），并把节点 3 的 zookeeperConnectionString 改为 127.0.0.1:2182。测试方法经控制端口让转发暂停 20 秒（暂停时断开已有连接、拒绝新连接），期间在节点 1 改 u 的口令；然后恢复",
-      "expected": "恢复后 5 秒内节点 3 上 u 的旧会话失效。断开期间节点 3 沿用旧的用户缓存，这一段的实际行为记录在测试报告里。20 秒短于 Curator 默认的 60 秒会话超时，节点 3 不会因此丢失自己的临时节点",
-      "deferred_tests": [
+      "tests": [
         "SessionRevokeAcceptanceIT#igt31_revokeAfterTwentySecondDisconnect"
-      ]
+      ],
+      "design_steps": "工作流在启动节点 3 之前，用一个步骤在后台启动一个 TCP 转发（.github/scripts 下新增的小脚本，监听 2182 转发到 2181，另开一个控制端口接受“暂停”“恢复”两个命令），并把节点 3 的 zookeeperConnectionString 改为 127.0.0.1:2182。测试方法经控制端口让转发暂停 20 秒（暂停时断开已有连接、拒绝新连接），期间在节点 1 改 u 的口令；然后恢复",
+      "expected": "恢复后 5 秒内节点 3 上 u 的旧会话失效。断开期间节点 3 沿用旧的用户缓存，这一段的实际行为记录在测试报告里。20 秒短于 Curator 默认的 60 秒会话超时，节点 3 不会因此丢失自己的临时节点"
     },
     {
       "id": "IGT-32",
@@ -317,11 +313,12 @@
     {
       "id": "IGT-33",
       "pr": 1,
-      "tests": [],
+      "tests": [
+        "ClusterRegressionAcceptanceIT#igt33_storageChangesRestartsAndFourthNode"
+      ],
       "design_steps": "安全模式下的三节点集群，布局照 cluster-test.yml（IoTDB12 与三个本地 filesystem 引擎）：以 root 运行现有的 ClusterIT；增加、删除存储引擎；逐个重启节点；再扩容一个节点（重启与扩容是工作流里的步骤，扩容与增删存储引擎都放在 ClusterIT 之后）。另一遍 replicaNum 取 1：一个账户连续写入 1 000 行后立即关闭会话，另一次在写入途中由 Admin 改它的口令；经 REST 写入 1 000 行；然后停掉主单元所在的存储引擎，从副本读回",
       "expected": "ClusterIT 全部通过；增删存储引擎、重启、扩容都正常；新节点同样在安全模式下（会话号 0 被拒绝）；停掉主单元所在的存储引擎之后，从副本读回的行数与已返回成功的写入相同",
       "deferred_tests": [
-        "ClusterRegressionAcceptanceIT#igt33_storageChangesRestartsAndFourthNode",
         "ClusterRegressionAcceptanceIT#igt33_thousandRowsCloseRevokeRestAndPrimaryFailure"
       ]
     },

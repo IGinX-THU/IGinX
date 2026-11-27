@@ -109,6 +109,11 @@ public class FoldedMemoryPhysicalTask extends MultipleMemoryPhysicalTask {
 
     // 根据运行时结果生成最终操作树
     Operator finalRoot = reGenerateRoot(foldedRoot, streams);
+    try {
+      finalRoot = new cn.edu.tsinghua.iginx.auth.PathAuthorizer(getContext()).rewrite(finalRoot);
+    } catch (PhysicalException e) {
+      return new TaskExecuteResult(e);
+    }
     if (!constraintManager.check(finalRoot) || !checker.check(finalRoot)) {
       throw new RuntimeException(
           "Execute Error: can not reconstruct this folded operator to a legal logical tree.");
@@ -178,7 +183,12 @@ public class FoldedMemoryPhysicalTask extends MultipleMemoryPhysicalTask {
           }
         });
 
-    return fillRootWithPath(root, selectedPaths);
+    try {
+      return fillRootWithPath(
+          root, new cn.edu.tsinghua.iginx.auth.PathAuthorizer(getContext()).resolve(selectedPaths));
+    } catch (PhysicalException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private Operator fillRootWithPath(Operator operator, List<String> selectedPaths) {

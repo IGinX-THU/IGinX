@@ -330,7 +330,8 @@ public class StoragePhysicalTaskExecutor {
             continue;
           }
           StoragePhysicalTask replicaTask =
-              new StoragePhysicalTask(task.getOperators(), false, false, task.getContext());
+              new StoragePhysicalTask(
+                  task.getOperators(), false, false, task.getContext().replicaContext());
           storageTaskQueues.get(replicaId).addTask(replicaTask);
           LOGGER.info("broadcasting task {} to {}", task, replicaId);
         }

@@ -65,6 +65,7 @@ public class DefaultMetaManager implements IMetaManager {
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
   private static volatile DefaultMetaManager INSTANCE;
   private final IMetaCache cache;
+  private final UserChangeTracker userChanges;
 
   private final IMetaStorage storage;
   private final List<StorageEngineChangeHook> storageEngineChangeHooks;
@@ -85,6 +86,13 @@ public class DefaultMetaManager implements IMetaManager {
 
   private DefaultMetaManager() {
     cache = DefaultMetaCache.getInstance();
+    userChanges =
+        new UserChangeTracker(
+            (username, user) -> {
+              if (user == null) cache.removeUser(username);
+              else cache.addOrUpdateUser(user);
+              cn.edu.tsinghua.iginx.auth.SessionManager.userChanged(username, user);
+            });
 
     switch (config.getMetaStorage()) {
       case Constants.ZOOKEEPER_META:
@@ -399,16 +407,9 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   private void initUser() throws MetaStorageException {
-    storage.registerUserChangeHook(
-        (username, user) -> {
-          if (user == null) {
-            cache.removeUser(username);
-          } else {
-            cache.addOrUpdateUser(user);
-          }
-        });
+    storage.registerUserChangeHook(userChanges::accept);
     for (UserMeta user : storage.loadUser(resolveUserFromConf())) {
-      cache.addOrUpdateUser(user);
+      userChanges.accept(user.getUsername(), user, user.getRevision());
     }
   }
 
@@ -1358,7 +1359,7 @@ public class DefaultMetaManager implements IMetaManager {
   public boolean addUser(UserMeta user) {
     try {
       storage.addUser(user);
-      cache.addOrUpdateUser(user);
+      userChanges.accept(user.getUsername(), user, user.getRevision());
       return true;
     } catch (MetaStorageException e) {
       LOGGER.error("add user error: ", e);
@@ -1372,7 +1373,7 @@ public class DefaultMetaManager implements IMetaManager {
     if (users.size() == 0) { // 待更新的用户不存在
       return false;
     }
-    UserMeta user = users.get(0);
+    UserMeta user = users.get(0).copy();
     if (password != null) {
       user.setPassword(password);
     }
@@ -1381,7 +1382,7 @@ public class DefaultMetaManager implements IMetaManager {
     }
     try {
       storage.updateUser(user);
-      cache.addOrUpdateUser(user);
+      userChanges.accept(username, user, user.getRevision());
       return true;
     } catch (MetaStorageException e) {
       LOGGER.error("update user error: ", e);
@@ -1392,8 +1393,8 @@ public class DefaultMetaManager implements IMetaManager {
   @Override
   public boolean removeUser(String username) {
     try {
-      storage.removeUser(username);
-      cache.removeUser(username);
+      long revision = storage.removeUser(username);
+      userChanges.accept(username, null, revision);
       return true;
     } catch (MetaStorageException e) {
       LOGGER.error("remove user error: ", e);
