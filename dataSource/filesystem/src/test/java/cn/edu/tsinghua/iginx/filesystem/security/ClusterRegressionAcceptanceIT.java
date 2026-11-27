@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.*;
+import org.apache.curator.framework.CuratorFramework;
 import org.junit.Test;
 
 /** Complements the unmodified IoTDB12 + FileSystem ClusterIT job in security-test.yml. */
@@ -62,11 +63,17 @@ public class ClusterRegressionAcceptanceIT {
   }
 
   @Test(timeout = 240000)
-  public void igt33_thousandRowsCloseAndRevoke() throws Exception {
-    try (SecurityTestEnvironment env = new SecurityTestEnvironment()) {
-      ClusterTestFixture.start(env, 1, secure("creator", "required"), 3);
+  public void igt33_thousandRowsCloseRevokeRestAndPrimaryFailure() throws Exception {
+    try (SecurityTestEnvironment env = new SecurityTestEnvironment();
+        CuratorFramework metadata = ZkSecurityAcceptanceIT.client(env, true)) {
+      for (int i = 0; i < 3; i++) {
+        SecurityTestEnvironment.Node node = env.node(1, secure("creator", "required"));
+        node.config.setProperty("enableRestService", "true");
+        node.start();
+      }
       SecurityTestEnvironment.Node first = env.nodes.get(0);
       first.user("writer", AuthType.Read, AuthType.Write);
+      first.user("rest_writer", AuthType.Write);
       try (Connection c = first.connect("writer", "password")) {
         for (int row = 0; row < 1000; row++)
           c.execute("INSERT INTO durable_close (key,a) VALUES (" + row + "," + row + ");");
@@ -109,8 +116,24 @@ public class ClusterRegressionAcceptanceIT {
         assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
       }
       assertTrue(accepted.size() >= 250 && accepted.size() < 1000);
+      StringBuilder json = new StringBuilder("[{\"name\":\"durable_rest.a\",\"datapoints\":[");
+      for (int i = 0; i < 1000; i++) {
+        if (i > 0) json.append(',');
+        json.append('[').append(i).append(',').append(i).append(']');
+      }
+      json.append("],\"tags\":{}}]");
+      RestSecurityAcceptanceIT.Response response =
+          RestSecurityAcceptanceIT.http(
+              env.nodes.get(2),
+              "POST",
+              "/api/v1/datapoints",
+              RestSecurityAcceptanceIT.auth("rest_writer", "password"),
+              json.toString());
+      assertEquals(response.body, 200, response.code);
       assertEquals(
           1000, first.admin.execute("SELECT * FROM durable_close;").queryDataSet.valuesList.size());
+      assertEquals(
+          1000, first.admin.execute("SELECT * FROM durable_rest;").queryDataSet.valuesList.size());
       ExecuteSqlResp revoked = first.admin.execute("SELECT * FROM durable_revoke;");
       Set<Integer> persisted = new HashSet<>();
       for (long key :
@@ -141,6 +164,12 @@ public class ClusterRegressionAcceptanceIT {
         Thread.sleep(100);
       } while (System.nanoTime() < until);
       assertTrue(copies >= 2);
+      SecurityTestEnvironment.Node primary = ReplicaNumIT.primary(env, metadata);
+      SecurityTestEnvironment.Node survivor =
+          env.nodes.stream().filter(n -> n != primary).findFirst().get();
+      primary.stop();
+      assertEquals(
+          before, ReplicaNumIT.readAfterFailure(survivor.admin, "SELECT * FROM *;").toString());
       Files.write(
           env.directory.resolve("igt33-accepted-rows.txt"),
           Arrays.asList(
@@ -148,7 +177,8 @@ public class ClusterRegressionAcceptanceIT {
               "revoke-acknowledged=" + accepted.size(),
               "revoke-in-flight=" + uncertain.size(),
               "revoke-persisted=" + persisted.size(),
-              "physical-copies=" + copies),
+              "rest=1000",
+              "stopped-primary=" + primary.rpc),
           StandardCharsets.UTF_8);
     }
   }
