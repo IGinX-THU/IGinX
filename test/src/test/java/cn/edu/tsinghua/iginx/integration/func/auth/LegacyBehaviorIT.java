@@ -37,7 +37,8 @@ public class LegacyBehaviorIT {
 
   @Test
   public void originalSessionAndSqlBehavior() throws Exception {
-    try (TSocket socket = new TSocket("127.0.0.1", 6888, 15000)) {
+    try (TSocket socket = new TSocket("127.0.0.1", 6888)) {
+      socket.setTimeout(15000);
       socket.open();
       IService.Client client = new IService.Client(new TBinaryProtocol(socket));
       long root =
