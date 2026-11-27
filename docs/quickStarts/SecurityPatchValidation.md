@@ -72,7 +72,6 @@ python .github/scripts/test/run_security_baseline.py --jupiter
 
 可通过 `IGINX_TEST_PYTHON` 指定 Python；etcd 固定为 3.5.13。执行器检查实际 XML 中的方法、失败、错误和跳过，缺依赖直接失败。原公共 `rpc.thrift` 未改动；仅内部 FileSystem Thrift 添加可选凭据字段。安全模式迁移、etcd 字节前缀授权和回退见 [安全模式指南](SecurityMode.md)。
 
-
 ## PR 695–702 的 CI 故障修复（2026-11-27）
 
 该轮检查针对实际失败日志，不把下载失败、断言失败和整项作业超时混为同一原因。
@@ -88,3 +87,16 @@ python .github/scripts/test/run_security_baseline.py --jupiter
 证据保存在修复工作区 `target/ci-fixes/`：`focused-round2.log`、`sql-executor.log`、`zk-regression.log`、`etcd-regression.log`、`transform-regression.log`、`transform-all-regression.log`、`rest-immediate.log`、`sql-regression.log`、`pr1-regression.log` 及对应 XML。以上是明确的本地验证范围；各 PR 最新远程 CI 的完整结果仍须独立核对，历史 FileSystem Jupiter 的四项既有问题仍按原始基线对照。
 
 PR 1–8 各累计版本的完整测试模块 reactor 编译均通过（`repair-stage-compilation.json`，具体提交及日志保存在本轮 CI 修复记录中）。最后保留即时 401 的 REST 断言变更在 PR 4–8 使用相同测试类，另行编译并完成 3/3 验收和 100 轮阻塞撤销。Java 格式检查及许可证检查均通过。
+
+## PR 698–702 后续失败分析与修复（2026-11-27）
+
+本轮依据上述最终提交实际产生的 24 个失败检查逐项分类，原始日志和验收产物保存于修复工作区 `target/ci-fixes-round2/`。同一提交因堆叠分支更新触发了重复运行，以下同时检查了两次运行，不能用其中一次成功覆盖另一次失败。
+
+- FileSystem 原回归在多次运行中通过，最后的 `actions/upload-artifact` 却报 `Maximum call stack size exceeded`，例如 [PR 698 的作业](https://github.com/IGinX-THU/IGinX/actions/runs/45977055108/job/140431297435)。工作流原先以仓库级递归通配符搜索报告，遍历了测试数据库和 Python 环境。改为按 POM 模块定位报告、按指定目录收集日志，再上传一个 ZIP；保留报告、节点日志、原基线对照、超时线程栈和文件清单。诊断目录移至 `.ci-diagnostics/`，避免 `mvn clean` 删除正在写入的证据。
+- PR 698、701、702 的部分构建或验收在下载 Maven 插件、JUnit 依赖时持续返回 HTTP 429，未运行测试。原先的两次重试仍访问同一地址。现在仅 GitHub CI 的 Central 429 在有上限的重试中切换至 [Google 公布的 Central 镜像](https://docs.cloud.google.com/docs/buildpacks/java#google_cloud_hosted_maven_central_mirror)，保留总时限，不重试断言失败；本地 Maven 配置不变。新增工作流并发分组，取消同一 PR 被新事件替代的重复运行。
+- PR 699 Windows、PR 701 Linux 的 IGT-43 均因 `/iginx/info/node…` 的 `NoNodeException` 启动失败，见 [PR 701 元数据作业](https://github.com/IGinX-THU/IGinX/actions/runs/45977058625/job/140473300247)。ZooKeeper 会话过期删除临时节点不受应用层互斥锁约束，`getChildren` 与 `getData` 之间仍可能发生成员离开。成员快照读取现在只忽略已离开的节点，保留其它节点；权限、连接等其它异常继续抛出。新增真实 ZooKeeper 的确定性离开竞态和拒绝未授权读取两项回归，从 PR 5 起执行。
+- PR 701 的 etcd IGT-30 报新增 `TThreadPoolServer WorkerProcess-5` 未回收；产物中的线程栈显示它在 `ThreadPoolExecutor.getTask` 空闲等待，总线程数从 26 降至 24。默认 20 个 Thrift 核心线程按需创建且不因空闲退出，原基线只看到其中 5 个。测量前同时持有足够的 RPC 连接完成核心池预热，再关闭这些测试会话；20 轮、180 个节点样本、5 秒撤销上限、线程总数不增长及新增工作线程回收断言均保留。
+- PR 702 格式检查指出验证文档中多余的空行，已移除。Windows 检出换行与 Linux 检查的差异单独核对，避免局部过滤检查漏掉文档。
+- PR 702 的一次 UDFIT 在 `SELECT no_mod(1.98)` 后达到 15 分钟限制；同提交另一次及其它 PR 的该类通过。该次线程栈因归档失败未留存，不能据此断言是业务死锁或已定位其原因。继续保留原 UDF 回归和超时失败，并在本轮完整重跑中核对；归档修复确保再次发生时可取得诊断。
+
+本轮本地复验：真实 ZooKeeper 成员读取回归 2/2；ZooKeeper 滚动迁移与撤销 4/4；etcd 撤销 3/3；CI 进程控制、Central 429 回退、clean 后证据保存及归档测试 7/7。撤销时限与原验收断言未放宽。记录见 `membership-test.log`、`zk-regression.log`、`etcd-regression.log`、`python-tests.log`。最新远程矩阵的结果需按本轮新提交另行核对。
