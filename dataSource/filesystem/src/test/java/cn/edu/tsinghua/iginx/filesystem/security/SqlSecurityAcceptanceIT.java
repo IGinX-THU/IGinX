@@ -295,6 +295,7 @@ public class SqlSecurityAcceptanceIT {
       for (java.lang.reflect.Field f : cn.edu.tsinghua.iginx.conf.Config.class.getDeclaredFields())
         assertNotEquals(key, f.getName());
     }
+    denied(root.sql("SELECT * FROM indagent;").status);
     assertFalse(node.logs().contains(SECRET));
   }
 }

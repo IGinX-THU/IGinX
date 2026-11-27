@@ -51,12 +51,11 @@
     {
       "id": "IGT-06",
       "pr": 3,
-      "tests": [],
-      "design_steps": "对一组路径判断是否在保留前缀下，对一组模式判断是否可能匹配保留前缀（保留前缀取 indagent、bigfile 与 sys.blob）；另对一组账户名判断是否符合允许名单",
-      "expected": "indagent、indagent.ctl.a、反引号写法的 indagent.a 在；indagentx.a、a.indagent.b 不在；模式 *、*.ctl、in*、indagent*、ind*.ctl.* 可能匹配，按通配处理；indagent.*、indagent.t.* 的固定部分已在保留前缀之内，按显式路径处理；a.*、x*.y 不可能匹配。大小写按 IGinX 路径本身的规则：IGinX 认为相同的写法结论相同。sys.blob、sys.blob.x 在，sys、sys.blobx、sys.other.x 不在；模式 sys.*、sys.*.x 可能匹配，按通配处理；sys.blob.* 按显式路径处理。账户名对允许名单模式 indagent_data_* 的匹配：indagent_data_t1、indagent_data_ 符合；x_indagent_data_1、indagent_dat、INDAGENT_DATA_1、root 不符合；允许名单写两个模式时，符合其一即放行",
-      "deferred_tests": [
+      "tests": [
         "StatementAuthTableTest#reservedBoundaries"
-      ]
+      ],
+      "design_steps": "对一组路径判断是否在保留前缀下，对一组模式判断是否可能匹配保留前缀（保留前缀取 indagent、bigfile 与 sys.blob）；另对一组账户名判断是否符合允许名单",
+      "expected": "indagent、indagent.ctl.a、反引号写法的 indagent.a 在；indagentx.a、a.indagent.b 不在；模式 *、*.ctl、in*、indagent*、ind*.ctl.* 可能匹配，按通配处理；indagent.*、indagent.t.* 的固定部分已在保留前缀之内，按显式路径处理；a.*、x*.y 不可能匹配。大小写按 IGinX 路径本身的规则：IGinX 认为相同的写法结论相同。sys.blob、sys.blob.x 在，sys、sys.blobx、sys.other.x 不在；模式 sys.*、sys.*.x 可能匹配，按通配处理；sys.blob.* 按显式路径处理。账户名对允许名单模式 indagent_data_* 的匹配：indagent_data_t1、indagent_data_ 符合；x_indagent_data_1、indagent_dat、INDAGENT_DATA_1、root 不符合；允许名单写两个模式时，符合其一即放行"
     },
     {
       "id": "IGT-07",
@@ -155,63 +154,57 @@
     {
       "id": "IGT-17",
       "pr": 3,
-      "tests": [],
-      "design_steps": "保留前缀取 indagent、bigfile 与 sys.blob，允许名单取 indagent_data_*。不在允许名单的账户（Read 与 Write 的普通账户，以及 Admin 的 root）经 SQL 与有对应方法的会话接口：写、读、删 indagent.t.a，DELETE COLUMNS indagent.t.a，SHOW COLUMNS indagent.*，LOAD CSV 到 indagent.x，LOAD CSV 到 sys（只给路径，CSV 的表头里有一列 blob.c），INSERT INTO indagent.x SELECT …，INSERT INTO a.x SELECT … FROM indagent.t，带 indagent.t 的子查询，VALUE2META 三种写法（普通账户先在 a.paths 里写入字符串：SELECT VALUE2META(SELECT p FROM a.paths) FROM a.x, a.y，值为 indagent.t.a；… FROM *，值为 t.a；值为 *），同一条写入里一个普通路径加一个 indagent 下的路径，SELECT * FROM indagent.*，从 indagent.t 导出；bigfile 下同样一遍；再用允许名单账户做一遍",
-      "expected": "前两轮除 VALUE2META 的第二、三种之外一律被拒绝且没有副作用，混合写入里的普通路径也没有写进去；表头里带保留前缀下列名的 LOAD CSV 整条被拒绝，其中的普通列也没有写入；VALUE2META 的第二种（FROM *，值为 t.a）与第三种（值为 *）不被拒绝，结果里没有保留前缀下的列；允许名单账户全部成功",
-      "deferred_tests": [
+      "tests": [
         "ReservedPrefixAcceptanceIT#igt17_explicitSqlAndRpcPaths"
-      ]
+      ],
+      "design_steps": "保留前缀取 indagent、bigfile 与 sys.blob，允许名单取 indagent_data_*。不在允许名单的账户（Read 与 Write 的普通账户，以及 Admin 的 root）经 SQL 与有对应方法的会话接口：写、读、删 indagent.t.a，DELETE COLUMNS indagent.t.a，SHOW COLUMNS indagent.*，LOAD CSV 到 indagent.x，LOAD CSV 到 sys（只给路径，CSV 的表头里有一列 blob.c），INSERT INTO indagent.x SELECT …，INSERT INTO a.x SELECT … FROM indagent.t，带 indagent.t 的子查询，VALUE2META 三种写法（普通账户先在 a.paths 里写入字符串：SELECT VALUE2META(SELECT p FROM a.paths) FROM a.x, a.y，值为 indagent.t.a；… FROM *，值为 t.a；值为 *），同一条写入里一个普通路径加一个 indagent 下的路径，SELECT * FROM indagent.*，从 indagent.t 导出；bigfile 下同样一遍；再用允许名单账户做一遍",
+      "expected": "前两轮除 VALUE2META 的第二、三种之外一律被拒绝且没有副作用，混合写入里的普通路径也没有写进去；表头里带保留前缀下列名的 LOAD CSV 整条被拒绝，其中的普通列也没有写入；VALUE2META 的第二种（FROM *，值为 t.a）与第三种（值为 *）不被拒绝，结果里没有保留前缀下的列；允许名单账户全部成功"
     },
     {
       "id": "IGT-18",
       "pr": 3,
-      "tests": [],
+      "tests": [
+        "ReservedPrefixAcceptanceIT#igt18_wildcardReadCountAndPagination"
+      ],
       "design_steps": "indagent 下 50 列、bigfile 下 5 列、sys.blob 下 3 列、sys.other 下 2 列、a 下 30 列；a、indagent、bigfile 下各有一列名为 c0。普通账户执行 SELECT * FROM *、SELECT count(*) FROM *、COUNT POINTS、SHOW COLUMNS、SHOW COLUMNS LIMIT 10 OFFSET 25、SHOW COLUMNS LIMIT 10 OFFSET 32、把 SHOW COLUMNS 写在 FROM 里、SELECT * FROM *.c0、SELECT * FROM sys.*，以及会话接口的 queryData、aggregateQuery、downsampleQuery、lastQuery、showColumns，路径分别取 [\"*\"] 与 [\"in*\"]（部分通配只能经会话接口发出，SQL 的语法里 * 只能独占一级）",
       "expected": "结果只含 a 下的 30 列与 sys.other 下的 2 列，共 32 列；计数只算这 32 列；SHOW COLUMNS LIMIT 10 OFFSET 25 正好返回 7 列，都不在保留前缀下，OFFSET 32 返回空（executeShowColumns 合并各引擎的结果时不排序，不断言是哪 7 列）；SELECT * FROM *.c0 只返回 a.c0；SELECT * FROM sys.* 只返回 sys.other 下的 2 列；路径取 [\"in*\"] 的各次调用返回空。允许名单账户看到 90 列，SHOW COLUMNS LIMIT 10 OFFSET 25 返回 10 列",
-      "semantic_note": "FROM denotes a table prefix. Keep original SELECT * FROM *.c0 -> empty regression, and verify SELECT c0 FROM * plus queryData([\"*.c0\"]) -> a.c0. ShowColumnsReq has no path parameter; use SQL SHOW COLUMNS for pattern-specific coverage.",
-      "deferred_tests": [
-        "ReservedPrefixAcceptanceIT#igt18_wildcardReadCountAndPagination"
-      ]
+      "semantic_note": "FROM denotes a table prefix. Keep original SELECT * FROM *.c0 -> empty regression, and verify SELECT c0 FROM * plus queryData([\"*.c0\"]) -> a.c0. ShowColumnsReq has no path parameter; use SQL SHOW COLUMNS for pattern-specific coverage."
     },
     {
       "id": "IGT-19",
       "pr": 3,
-      "tests": [],
-      "design_steps": "同样的数据。普通账户与 root 依次执行 DELETE FROM * WHERE key < 某值、DELETE COLUMNS *.c0、DELETE COLUMNS *、CLEAR DATA，以及会话接口的 deleteColumns([\"in*\"])、deleteColumns([\"*\"])、deleteDataInColumns([\"*\"], 起止键)",
-      "expected": "a 与 sys.other 下的数据按各语句的语义被删除；indagent、bigfile 与 sys.blob 下的数据全部还在，允许名单账户读回逐列相同",
-      "deferred_tests": [
+      "tests": [
         "ReservedPrefixAcceptanceIT#igt19_everyWildcardDeletePreservesData"
-      ]
+      ],
+      "design_steps": "同样的数据。普通账户与 root 依次执行 DELETE FROM * WHERE key < 某值、DELETE COLUMNS *.c0、DELETE COLUMNS *、CLEAR DATA，以及会话接口的 deleteColumns([\"in*\"])、deleteColumns([\"*\"])、deleteDataInColumns([\"*\"], 起止键)",
+      "expected": "a 与 sys.other 下的数据按各语句的语义被删除；indagent、bigfile 与 sys.blob 下的数据全部还在，允许名单账户读回逐列相同"
     },
     {
       "id": "IGT-20",
       "pr": 3,
-      "tests": [],
-      "design_steps": "读写 indagentx.a、a.indagent.b、带标签的 indagent.t.a{k=v}、反引号写法的 indagent.t.a、大小写不同的 INDAGENT.t.a、反引号里带 * 的写法（`in*`.t.a）",
-      "expected": "前两者是普通路径，普通账户可以读写；带标签与反引号的两种按保留前缀处理，被拒绝；大小写不同的写法读不到 indagent.t.a 的数据；反引号里带 * 的写法要么按字面当作普通列名，要么按通配处理并去掉保留前缀下的列，读不到 indagent.t.a 的数据，实际是哪一种记在 PR 的说明里",
-      "deferred_tests": [
+      "tests": [
         "ReservedPrefixAcceptanceIT#igt20_boundariesQuotesTagsAndCase"
-      ]
+      ],
+      "design_steps": "读写 indagentx.a、a.indagent.b、带标签的 indagent.t.a{k=v}、反引号写法的 indagent.t.a、大小写不同的 INDAGENT.t.a、反引号里带 * 的写法（`in*`.t.a）",
+      "expected": "前两者是普通路径，普通账户可以读写；带标签与反引号的两种按保留前缀处理，被拒绝；大小写不同的写法读不到 indagent.t.a 的数据；反引号里带 * 的写法要么按字面当作普通列名，要么按通配处理并去掉保留前缀下的列，读不到 indagent.t.a 的数据，实际是哪一种记在 PR 的说明里"
     },
     {
       "id": "IGT-21",
       "pr": 3,
-      "tests": [],
-      "design_steps": "Admin 新建 indagent_data_v1（名字符合允许名单）并授予 Read、Write，v1 开一个会话并读写一次 indagent.t.a；Admin 再新建 indagent_data_v2 并授予 Read、Write，不改配置、不重启；删除 indagent_data_v1；建 other_admin 并授予全部权限",
-      "expected": "v2 立即可以访问保留前缀；v1 已打开的会话 5 秒内失效；other_admin 访问保留前缀被拒绝",
-      "deferred_tests": [
+      "tests": [
         "ReservedPrefixAcceptanceIT#igt21_allowlistRotationWithoutRestart"
-      ]
+      ],
+      "design_steps": "Admin 新建 indagent_data_v1（名字符合允许名单）并授予 Read、Write，v1 开一个会话并读写一次 indagent.t.a；Admin 再新建 indagent_data_v2 并授予 Read、Write，不改配置、不重启；删除 indagent_data_v1；建 other_admin 并授予全部权限",
+      "expected": "v2 立即可以访问保留前缀；v1 已打开的会话 5 秒内失效；other_admin 访问保留前缀被拒绝"
     },
     {
       "id": "IGT-22",
       "pr": 3,
-      "tests": [],
-      "design_steps": "安全模式下 root 提交 Transform 作业（SQL 段与 Python 段）、定时作业，等它们清理临时表；另提交一个读写 indagent 下路径的作业；外部客户端用会话号 0 发请求；indagent 与 bigfile 下有数据时，由 root 打开即时压缩并执行 COMPACT",
-      "expected": "前两种照常完成，临时表被清理；第三个作业在访问保留前缀时失败并写明原因；会话号 0 被拒绝，客户端设置不了内部标记；压缩之后，允许名单账户读回保留前缀下的数据逐列相同",
-      "deferred_tests": [
+      "tests": [
         "InternalRequestIT#igt22_realPythonTasksCleanupAndCompaction"
-      ]
+      ],
+      "design_steps": "安全模式下 root 提交 Transform 作业（SQL 段与 Python 段）、定时作业，等它们清理临时表；另提交一个读写 indagent 下路径的作业；外部客户端用会话号 0 发请求；indagent 与 bigfile 下有数据时，由 root 打开即时压缩并执行 COMPACT",
+      "expected": "前两种照常完成，临时表被清理；第三个作业在访问保留前缀时失败并写明原因；会话号 0 被拒绝，客户端设置不了内部标记；压缩之后，允许名单账户读回保留前缀下的数据逐列相同"
     },
     {
       "id": "IGT-23",

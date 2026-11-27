@@ -288,7 +288,10 @@ public class StoragePhysicalTaskExecutor {
           result = pair.k.executeInsert((Insert) op, dataArea);
           break;
         case Delete:
-          result = pair.k.executeDelete((Delete) op, dataArea);
+          result =
+              ((Delete) op).getPatterns().isEmpty()
+                  ? new TaskExecuteResult(new EmptyRowStream())
+                  : pair.k.executeDelete((Delete) op, dataArea);
           break;
         default:
           result = new TaskExecuteResult(new UnsupportedPhysicalTaskException());
@@ -424,6 +427,10 @@ public class StoragePhysicalTaskExecutor {
   }
 
   public TaskExecuteResult executeShowColumns(ShowColumns showColumns) throws PhysicalException {
+    if (showColumns.isEmptyResult()) {
+      return new TaskExecuteResult(
+          new ShowColumnsRowStream(Collections.<Column>emptyList().iterator()));
+    }
     List<StorageEngineMeta> storageEngineList = metaManager.getStorageEngineList();
     List<Flowable<Column>> allStreams = new ArrayList<>();
 

@@ -1,9 +1,11 @@
 {
-  "stage": 2,
+  "stage": 3,
   "classes": [
     "ClusterRegressionAcceptanceIT",
     "CodeRegistrationIT",
+    "InternalRequestIT",
     "PermissionMatrixIT",
+    "ReservedPrefixAcceptanceIT",
     "RootPasswordIT",
     "SecurityConfigAcceptanceIT",
     "SecurityConfigTest",

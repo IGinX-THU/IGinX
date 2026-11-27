@@ -153,4 +153,33 @@ public class StatementAuthTableTest {
     for (String name : names.split(" "))
       assertNull(table.put(StatementType.valueOf(name), EnumSet.of(auth)));
   }
+
+  @Test
+  public void reservedBoundaries() {
+    List<String> prefixes = Arrays.asList("indagent", "bigfile", "sys.blob");
+    for (String path :
+        Arrays.asList(
+            "indagent",
+            "indagent.ctl.a",
+            "`indagent`.a",
+            "indagent.t.a{k=v}",
+            "indagent.*",
+            "sys.blob",
+            "sys.blob.x")) assertTrue(path, PathAuthorizer.isReserved(path, prefixes));
+    for (String path :
+        Arrays.asList(
+            "indagentx.a", "a.indagent.b", "sys", "sys.blobx", "sys.other.x", "*", "in*", "sys.*"))
+      assertFalse(path, PathAuthorizer.isReserved(path, prefixes));
+    for (String pattern :
+        Arrays.asList(
+            "*", "*.ctl", "in*", "indagent*", "ind*.ctl.*", "sys.*", "sys.*.x", "`in*`.t.a"))
+      assertTrue(pattern, PathAuthorizer.needsExpansion(pattern, prefixes));
+    for (String pattern : Arrays.asList("a.*", "x*.y", "sys.other.*", "business.a"))
+      assertFalse(pattern, PathAuthorizer.needsExpansion(pattern, prefixes));
+    for (String pattern : Arrays.asList("indagent.*", "indagent.t.*", "sys.blob.*"))
+      assertTrue(
+          "Explicit reserved reference: " + pattern, PathAuthorizer.isReserved(pattern, prefixes));
+    assertFalse(PathAuthorizer.isReserved("indagent.x", Collections.emptyList()));
+    assertFalse(PathAuthorizer.needsExpansion("*", Collections.emptyList()));
+  }
 }
