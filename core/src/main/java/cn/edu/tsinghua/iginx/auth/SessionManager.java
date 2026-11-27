@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -128,13 +129,35 @@ public class SessionManager {
   }
 
   public synchronized boolean isValidSession(long id) {
-    return sessionIds.contains(id);
+    if (!sessionIds.contains(id)) return false;
+    if (!secure) return true;
+    SessionIdentity identity = identities.get(id);
+    UserMeta current = identity == null ? null : users.apply(identity.username);
+    if (current == null || !Arrays.equals(identity.version, version(current.copy()))) {
+      closeSession(id);
+      return false;
+    }
+    return true;
   }
 
   public String getUsername(long id) {
     if (!isValidSession(id)) return null;
     SessionIdentity identity = identities.get(id);
     return identity == null ? null : identity.username;
+  }
+
+  public synchronized void invalidateUser(String username, UserMeta current) {
+    byte[] expected = current == null ? null : version(current.copy());
+    identities.forEach(
+        (id, identity) -> {
+          if (identity.username.equals(username) && !Arrays.equals(identity.version, expected))
+            closeSession(id);
+        });
+  }
+
+  public static void userChanged(String username, UserMeta user) {
+    SessionManager manager = active;
+    if (manager != null && manager.secure) manager.invalidateUser(username, user);
   }
 
   private static int permissions(UserMeta user) {

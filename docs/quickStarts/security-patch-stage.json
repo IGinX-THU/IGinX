@@ -1,6 +1,7 @@
 {
-  "stage": 1,
+  "stage": 2,
   "classes": [
+    "ClusterRegressionAcceptanceIT",
     "CodeRegistrationIT",
     "PermissionMatrixIT",
     "RootPasswordIT",

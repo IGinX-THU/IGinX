@@ -406,6 +406,7 @@ public class DefaultMetaManager implements IMetaManager {
           } else {
             cache.addOrUpdateUser(user);
           }
+          cn.edu.tsinghua.iginx.auth.SessionManager.userChanged(username, user);
         });
     for (UserMeta user : storage.loadUser(resolveUserFromConf())) {
       cache.addOrUpdateUser(user);
@@ -1372,7 +1373,7 @@ public class DefaultMetaManager implements IMetaManager {
     if (users.size() == 0) { // 待更新的用户不存在
       return false;
     }
-    UserMeta user = users.get(0);
+    UserMeta user = users.get(0).copy();
     if (password != null) {
       user.setPassword(password);
     }
@@ -1382,6 +1383,7 @@ public class DefaultMetaManager implements IMetaManager {
     try {
       storage.updateUser(user);
       cache.addOrUpdateUser(user);
+      cn.edu.tsinghua.iginx.auth.SessionManager.userChanged(username, user);
       return true;
     } catch (MetaStorageException e) {
       LOGGER.error("update user error: ", e);
@@ -1394,6 +1396,7 @@ public class DefaultMetaManager implements IMetaManager {
     try {
       storage.removeUser(username);
       cache.removeUser(username);
+      cn.edu.tsinghua.iginx.auth.SessionManager.userChanged(username, null);
       return true;
     } catch (MetaStorageException e) {
       LOGGER.error("remove user error: ", e);

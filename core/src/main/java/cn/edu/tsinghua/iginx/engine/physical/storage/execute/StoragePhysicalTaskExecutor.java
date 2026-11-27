@@ -238,8 +238,10 @@ public class StoragePhysicalTaskExecutor {
           continue;
         }
 
-        if (isCancelled(task.getSessionId())) {
-          LOGGER.warn("StoragePhysicalTask[sessionId={}] is cancelled.", task.getSessionId());
+        if (!task.getContext().isInternal() && isCancelled(task.getSessionId())) {
+          task.setResult(new TaskExecuteResult(new PhysicalException("Session has been closed")));
+          executeParentTaskIfNeed(task);
+          LOGGER.warn("StoragePhysicalTask was cancelled because its session was closed.");
           continue;
         }
 
@@ -263,6 +265,9 @@ public class StoragePhysicalTaskExecutor {
     long taskId = System.nanoTime();
     long startTime = System.currentTimeMillis();
     try {
+      if (!task.getContext().isInternal() && isCancelled(task.getSessionId())) {
+        throw new PhysicalException("Session has been closed");
+      }
       FragmentMeta fragmentMeta = task.getTargetFragment();
       boolean isDummyStorageUnit = task.isDummyStorageUnit();
       DataArea dataArea = new DataArea(storageUnit, fragmentMeta.getKeyInterval());
@@ -325,7 +330,8 @@ public class StoragePhysicalTaskExecutor {
             continue;
           }
           StoragePhysicalTask replicaTask =
-              new StoragePhysicalTask(task.getOperators(), false, false, task.getContext());
+              new StoragePhysicalTask(
+                  task.getOperators(), false, false, task.getContext().replicaContext());
           storageTaskQueues.get(replicaId).addTask(replicaTask);
           LOGGER.info("broadcasting task {} to {}", task, replicaId);
         }

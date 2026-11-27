@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.UserMeta;
 import cn.edu.tsinghua.iginx.thrift.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Test;
 
 public class SessionManagerTest {
@@ -64,6 +65,80 @@ public class SessionManagerTest {
     manager.closeSession(closed);
     assertFalse(manager.checkSession(closed, AuthType.Read));
     assertEquals(0, manager.openSession("u", "wrong"));
+  }
+
+  @Test
+  public void closeByUserAndVersion() {
+    Map<String, UserMeta> users = new ConcurrentHashMap<>();
+    users.put("u", user("u", "old"));
+    users.put("v", user("v", "old"));
+    SessionManager manager = new SessionManager(users::get, true);
+    long[] ids = {manager.openSession("u"), manager.openSession("u"), manager.openSession("u")};
+    long other = manager.openSession("v");
+    users.remove("u");
+    manager.invalidateUser("u", null);
+    for (long id : ids) assertFalse(manager.checkSession(id, AuthType.Read));
+    manager.invalidateUser("v", users.get("v").copy());
+    assertTrue(manager.checkSession(other, AuthType.Read));
+    users.get("v").setPassword("new");
+    assertFalse(manager.checkSession(other, AuthType.Read));
+    long current = manager.openSession("v", "new");
+    users.get("v").setAuths(EnumSet.of(AuthType.Read));
+    manager.invalidateUser("v", users.get("v"));
+    assertFalse(manager.checkSession(current, AuthType.Write));
+    assertTrue(manager.getSessionIds().isEmpty());
+  }
+
+  @Test
+  public void notificationKeepsSessionsOpenedWithCurrentVersion() {
+    Map<String, UserMeta> users = new ConcurrentHashMap<>();
+    users.put("u", user("u", "old"));
+    SessionManager manager = new SessionManager(users::get, true);
+    long old = manager.openSession("u", "old");
+    users.put("u", user("u", "new"));
+    long current = manager.openSession("u", "new");
+    manager.invalidateUser("u", users.get("u"));
+    assertFalse(manager.isValidSession(old));
+    assertTrue(manager.isValidSession(current));
+  }
+
+  @Test
+  public void concurrentOpenAndRevoke() throws Exception {
+    Map<String, UserMeta> users = new ConcurrentHashMap<>();
+    users.put("u", user("u", "0"));
+    users.put("v", user("v", "unchanged"));
+    SessionManager manager = new SessionManager(users::get, true);
+    long other = manager.openSession("v", "unchanged");
+    ExecutorService pool = Executors.newFixedThreadPool(8);
+    AtomicBoolean done = new AtomicBoolean();
+    List<Future<?>> futures = new ArrayList<>();
+    try {
+      for (int i = 0; i < 8; i++)
+        futures.add(
+            pool.submit(
+                () -> {
+                  while (!done.get()) {
+                    long id = manager.openSession("u");
+                    manager.checkSession(id, AuthType.Read);
+                    manager.closeSession(id);
+                  }
+                }));
+      for (int i = 1; i <= 200; i++) {
+        UserMeta user = user("u", Integer.toString(i));
+        users.put("u", user);
+        manager.invalidateUser("u", user);
+      }
+    } finally {
+      done.set(true);
+      pool.shutdown();
+    }
+    for (Future<?> future : futures) future.get(10, TimeUnit.SECONDS);
+    users.put("u", user("u", "final"));
+    manager.invalidateUser("u", users.get("u"));
+    for (long id : manager.getSessionIds())
+      if (id != other) assertFalse(manager.isValidSession(id));
+    assertTrue(manager.isValidSession(other));
+    assertEquals(java.util.Collections.singleton(other), manager.getSessionIds());
   }
 
   @Test
