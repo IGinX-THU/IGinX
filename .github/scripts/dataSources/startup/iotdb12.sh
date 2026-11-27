@@ -37,5 +37,6 @@ do
 
   sh -c "sudo sed -i 's/6667/$port/g' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"
 
-  sudo -E sh -c "cd apache-iotdb-0.12.6-server-bin-$port/; nohup sbin/start-server.sh &"
+  # sudo-rs (Ubuntu 26.04) ignores a bare -E; IoTDB 0.12 needs the JDK 8 from JAVA_HOME
+  sudo env JAVA_HOME="$JAVA_HOME" sh -c "cd apache-iotdb-0.12.6-server-bin-$port/; nohup sbin/start-server.sh &"
 done

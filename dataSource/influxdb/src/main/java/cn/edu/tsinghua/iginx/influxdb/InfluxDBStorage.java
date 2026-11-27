@@ -60,6 +60,7 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.influxdb.client.BucketsQuery;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.InfluxDBClientOptions;
@@ -67,17 +68,19 @@ import com.influxdb.client.domain.Bucket;
 import com.influxdb.client.domain.Organization;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
+import com.influxdb.exceptions.NotFoundException;
 import com.influxdb.query.FluxColumn;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
 import io.reactivex.rxjava3.core.Flowable;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -105,7 +108,17 @@ public class InfluxDBStorage implements IStorage {
   private static final String QUERY_DATA_ALL =
       "from(bucket:\"%s\") |> range(start: time(v: %s), stop: time(v: %s)) |> filter(fn: (r) => (r._measurement =%s and r._field =%s))";
 
-  private static final String DELETE_DATA = "_measurement=\"%s\" AND _field=\"%s\"";
+  private static final String DELETE_MEASUREMENT = "_measurement=\"%s\"";
+
+  private static final String DELETE_ALL_MEASUREMENTS = "";
+
+  // InfluxDB 删除接口允许的纳秒时间戳范围，超出会被服务端拒绝；删除接口的 start、stop 都包含端点
+  private static final long MIN_DELETE_KEY = Long.MIN_VALUE + 2;
+
+  private static final long MAX_DELETE_KEY = Long.MAX_VALUE - 1;
+
+  // 列出 bucket 时每页的数量，100 是 InfluxDB bucket 接口允许的最大值，再大会返回 400 错误
+  private static final int BUCKET_PAGE_SIZE = 100;
 
   private static final String SHOW_TIME_SERIES =
       "from(bucket:\"%s\") |> range(start: time(v: 0), stop: time(v: 9223372036854775807)) |> filter(fn: (r) => (r._measurement =~ /.*/ and r._field =~ /.+/)) |> first()";
@@ -177,7 +190,7 @@ public class InfluxDBStorage implements IStorage {
   }
 
   private void reloadHistoryData() {
-    List<Bucket> buckets = client.getBucketsApi().findBucketsByOrg(organization);
+    List<Bucket> buckets = findAllBucketsInOrg();
     for (Bucket bucket : buckets) {
       if (bucket.getType() == Bucket.TypeEnum.SYSTEM) {
         continue;
@@ -258,8 +271,7 @@ public class InfluxDBStorage implements IStorage {
   @Override
   public Flowable<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
     List<Column> timeseries = new ArrayList<>();
-    for (Bucket bucket :
-        client.getBucketsApi().findBucketsByOrgName(organization.getName())) { // get all the bucket
+    for (Bucket bucket : findAllBucketsInOrg()) {
       // query all the series by querying all the data with first()
 
       String unitPattern = "unit\\d{10}"; // unit后跟10个数字
@@ -423,7 +435,7 @@ public class InfluxDBStorage implements IStorage {
     KeyInterval keyInterval = dataArea.getKeyInterval();
     Filter filter = select.getFilter();
 
-    if (client.getBucketsApi().findBucketByName(storageUnit) == null) {
+    if (findBucketInOrg(storageUnit) == null) {
       LOGGER.warn("storage engine {} doesn't exist", storageUnit);
       return new TaskExecuteResult(
           new InfluxDBQueryRowStream(Collections.emptyList(), project, filter));
@@ -503,7 +515,7 @@ public class InfluxDBStorage implements IStorage {
     String storageUnit = dataArea.getStorageUnit();
     KeyInterval keyInterval = dataArea.getKeyInterval();
 
-    if (client.getBucketsApi().findBucketByName(storageUnit) == null) {
+    if (findBucketInOrg(storageUnit) == null) {
       LOGGER.warn("storage engine {} doesn't exist", storageUnit);
       return new TaskExecuteResult(
           new InfluxDBQueryRowStream(Collections.emptyList(), project, null));
@@ -563,13 +575,13 @@ public class InfluxDBStorage implements IStorage {
 
       if (bucketName.equals("*")) {
         // 通配符需要特殊判断，InfluxDB无法在bucket name上使用正则表达式匹配，并且仅查询type为user的bucket
-        List<Bucket> buckets = client.getBucketsApi().findBucketsByOrg(organization);
+        List<Bucket> buckets = findAllBucketsInOrg();
         for (Bucket bucket : buckets) {
           if (bucket.getType() == Bucket.TypeEnum.USER) {
             bucketNameList.add(bucket.getName());
           }
         }
-      } else if (client.getBucketsApi().findBucketByName(bucketName) == null) {
+      } else if (findBucketInOrg(bucketName) == null) {
         LOGGER.warn("storage engine {} doesn't exist", bucketName);
         continue;
       } else {
@@ -1250,14 +1262,9 @@ public class InfluxDBStorage implements IStorage {
       synchronized (this) {
         bucket = bucketMap.get(storageUnit);
         if (bucket == null) {
-          List<Bucket> bucketList =
-              client.getBucketsApi().findBucketsByOrgName(this.organizationName).stream()
-                  .filter(b -> b.getName().equals(storageUnit))
-                  .collect(Collectors.toList());
-          if (bucketList.isEmpty()) {
+          bucket = findBucketInOrg(storageUnit);
+          if (bucket == null) {
             bucket = client.getBucketsApi().createBucket(storageUnit, organization);
-          } else {
-            bucket = bucketList.get(0);
           }
           bucketMap.put(storageUnit, bucket);
         }
@@ -1346,14 +1353,9 @@ public class InfluxDBStorage implements IStorage {
       synchronized (this) {
         bucket = bucketMap.get(storageUnit);
         if (bucket == null) {
-          List<Bucket> bucketList =
-              client.getBucketsApi().findBucketsByOrgName(this.organizationName).stream()
-                  .filter(b -> b.getName().equals(storageUnit))
-                  .collect(Collectors.toList());
-          if (bucketList.isEmpty()) {
+          bucket = findBucketInOrg(storageUnit);
+          if (bucket == null) {
             bucket = client.getBucketsApi().createBucket(storageUnit, organization);
-          } else {
-            bucket = bucketList.get(0);
           }
           bucketMap.put(storageUnit, bucket);
         }
@@ -1432,61 +1434,243 @@ public class InfluxDBStorage implements IStorage {
     return null;
   }
 
+  /**
+   * 删除一个存储单元（对应 InfluxDB 中的一个 bucket）里的数据。
+   *
+   * <p>写入时 IGinX 的 key 作为 InfluxDB 的时间戳，路径第一级作为 measurement，其余部分作为 field。InfluxDB 的删除接口只能按时间范围和
+   * measurement 删除，无法按 field 删除，也不支持按 tag 过滤条件做精确删除。
+   *
+   * <p>一个删除请求由路径、key 范围、tag 过滤条件三部分组成，各部分的支持情况：
+   *
+   * <ul>
+   *   <li>路径：受限制，只支持以下两种，其他路径一律报错：
+   *       <ul>
+   *         <li>"*" 或 "*.*"：删除全部数据；
+   *         <li>"measurement.*"：删除整个 measurement，measurement 中不能带通配符。
+   *       </ul>
+   *       有多个路径时，按以下策略处理：
+   *       <ul>
+   *         <li>包含 "*" 或 "*.*"：删除全部数据，其他路径不再校验，即使其中有本身不支持的路径（如 "a.b"）也照样删除全部数据，不会报错；
+   *         <li>不包含 "*" 或 "*.*"：每个路径都必须是 "measurement.*"，只要有一个不是就整体报错，一条数据都不删。
+   *       </ul>
+   *   <li>key 范围：不受限制，可以不带（表示全部 key），也可以带一个或多个范围。
+   *   <li>tag 过滤条件：不支持，带了就报错。
+   * </ul>
+   *
+   * <p>可以执行的例子：
+   *
+   * <ul>
+   *   <li>{@code DELETE FROM *;}
+   *   <li>{@code DELETE FROM * WHERE key > 1 AND key <= 3;}
+   *   <li>{@code DELETE COLUMNS a.*, b.*;}
+   *   <li>{@code DELETE FROM a.* WHERE key > 1 AND key <= 3;}
+   *   <li>{@code DELETE FROM a.b, * WHERE key < 10;}：包含 "*"，删除 key 小于 10 的全部数据（a.b 本身不支持，但不影响）
+   * </ul>
+   *
+   * <p>会报错的例子（宁可拒绝，也不多删或少删）：
+   *
+   * <ul>
+   *   <li>{@code DELETE COLUMNS a.b;}：只删除一列；
+   *   <li>{@code DELETE FROM a.b WHERE key < 10;}：只删除一列，带 key 范围也不行；
+   *   <li>{@code DELETE COLUMNS *.s1;}：measurement 是通配符，要删除的是所有 measurement 下名为 s1 的列，而不是整个
+   *       measurement；
+   *   <li>{@code DELETE COLUMNS a.*, b.c;}：不包含 "*"，其中 b.c 不支持，整体报错，a.* 也不会被删除；
+   *   <li>{@code DELETE COLUMNS a.* WITH k = v;}：带 tag 过滤条件。
+   * </ul>
+   *
+   * <p>整体流程：
+   *
+   * <ol>
+   *   <li>先校验删除请求，得到要删除的 measurement 列表，不支持的请求直接返回错误，不访问 InfluxDB；
+   *   <li>查找存储单元对应的 bucket，不存在说明从未写入过数据，直接视为删除成功；
+   *   <li>没有 key 范围且删除全部数据时，直接删除整个 bucket；
+   *   <li>否则按 measurement 构造删除谓词，对每个 key 范围逐一调用删除接口（没有 key 范围时视为全部时间范围）。
+   * </ol>
+   */
   @Override
   public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
     String storageUnit = dataArea.getStorageUnit();
-    if (delete.getKeyRanges() == null || delete.getKeyRanges().size() == 0) { // 没有传任何 time range
-      Bucket bucket = bucketMap.get(storageUnit);
-      if (bucket == null) {
-        return new TaskExecuteResult(null, null);
-      }
-      bucketMap.remove(storageUnit);
-      client.getBucketsApi().deleteBucket(bucket);
-      return new TaskExecuteResult(null, null);
-    }
-    // 删除某些序列的某一段数据
-    Bucket bucket = bucketMap.get(storageUnit);
-    if (bucket == null) {
-      synchronized (this) {
-        bucket = bucketMap.get(storageUnit);
-        if (bucket == null) {
-          List<Bucket> bucketList =
-              client.getBucketsApi().findBucketsByOrgName(this.organizationName).stream()
-                  .filter(b -> b.getName().equals(storageUnit))
-                  .collect(Collectors.toList());
-          if (bucketList.isEmpty()) {
-            bucket = client.getBucketsApi().createBucket(storageUnit, organization);
-          } else {
-            bucket = bucketList.get(0);
-          }
-          bucketMap.put(storageUnit, bucket);
-        }
-      }
-    }
-    if (bucket == null) { // 没有数据，当然也不用删除
-      return new TaskExecuteResult(null, null);
+    // 第一步：校验并解析删除路径。返回 null 表示删除全部 measurement，否则为要删除的 measurement 列表
+    List<String> measurements;
+    try {
+      measurements = getDeletedMeasurements(delete.getPatterns(), delete.getTagFilter());
+    } catch (InfluxDBTaskExecuteFailureException e) {
+      // 不支持的删除请求，在真正删除之前就返回错误，保证不会删掉任何数据
+      return new TaskExecuteResult(null, e);
     }
 
-    List<InfluxDBSchema> schemas =
-        delete.getPatterns().stream().map(InfluxDBSchema::new).collect(Collectors.toList());
-    for (InfluxDBSchema schema : schemas) {
-      for (KeyRange keyRange : delete.getKeyRanges()) {
-        client
-            .getDeleteApi()
-            .delete(
-                OffsetDateTime.ofInstant(
-                    Instant.ofEpochMilli(keyRange.getActualBeginKey()), ZoneId.of("UTC")),
-                OffsetDateTime.ofInstant(
-                    Instant.ofEpochMilli(keyRange.getActualEndKey()), ZoneId.of("UTC")),
-                String.format(
-                    DELETE_DATA,
-                    FluxUtils.escapeStringLiteral(schema.getMeasurement()),
-                    FluxUtils.escapeStringLiteral(schema.getField())),
-                bucket,
-                organization);
+    try {
+      // 第二步：查找存储单元对应的 bucket
+      Bucket bucket = findBucket(storageUnit);
+      if (bucket == null) {
+        // bucket 只在第一次写入时创建，不存在说明该存储单元没有数据，无需删除
+        return new TaskExecuteResult(null, null);
       }
+      List<KeyRange> keyRanges = delete.getKeyRanges();
+      if (keyRanges == null || keyRanges.isEmpty()) {
+        // 第三步：没有 key 范围，表示删除对应路径下的全部数据（如 DELETE COLUMNS 或删除整个分片）
+        if (measurements == null) {
+          // 删除全部数据时直接删掉整个 bucket，同时清除缓存，之后再写入时会重新创建 bucket
+          bucketMap.remove(storageUnit);
+          client.getBucketsApi().deleteBucket(bucket);
+          return new TaskExecuteResult(null, null);
+        }
+        // 只删除部分 measurement 时，用 InfluxDB 允许的最大时间范围来覆盖全部数据
+        keyRanges =
+            Collections.singletonList(new KeyRange(MIN_DELETE_KEY, true, MAX_DELETE_KEY, true));
+      }
+
+      // 第四步：构造删除谓词。空谓词表示删除 bucket 内所有 measurement，
+      // 否则每个 measurement 对应一个 _measurement="xxx" 谓词（InfluxDB 删除谓词不支持 OR，只能逐个删除）
+      List<String> predicates = new ArrayList<>();
+      if (measurements == null) {
+        predicates.add(DELETE_ALL_MEASUREMENTS);
+      } else {
+        for (String measurement : measurements) {
+          // 对 measurement 名中的引号、反斜杠等字符转义，避免破坏谓词语法
+          predicates.add(
+              String.format(DELETE_MEASUREMENT, FluxUtils.escapeStringLiteral(measurement)));
+        }
+      }
+      // 第五步：对每个 key 范围、每个谓词调用一次删除接口
+      for (KeyRange keyRange : keyRanges) {
+        // 写入时 key 直接作为纳秒精度的时间戳，因此 key 范围就是纳秒时间范围。
+        // getActualBeginKey/getActualEndKey 已把开闭区间换算成闭区间，与 InfluxDB 删除接口的 start、stop
+        // 都包含端点的语义一致；再截断到 InfluxDB 允许的时间范围内，超出会被服务端拒绝
+        long begin = Math.max(keyRange.getActualBeginKey(), MIN_DELETE_KEY);
+        long end = Math.min(keyRange.getActualEndKey(), MAX_DELETE_KEY);
+        if (begin > end) {
+          // 截断后为空范围，没有可删除的数据
+          continue;
+        }
+        for (String predicate : predicates) {
+          client
+              .getDeleteApi()
+              .delete(nsToDateTime(begin), nsToDateTime(end), predicate, bucket, organization);
+        }
+      }
+    } catch (Exception e) {
+      LOGGER.error("encounter error when delete data in influxdb: ", e);
+      return new TaskExecuteResult(
+          null,
+          new InfluxDBTaskExecuteFailureException("execute delete task in influxdb failure", e));
     }
     return new TaskExecuteResult(null, null);
+  }
+
+  /**
+   * 校验删除请求，并解析出要删除的 measurement。
+   *
+   * <p>IGinX 路径写入 InfluxDB 时，第一级作为 measurement，其余部分作为 field。InfluxDB 只能按 measurement 和时间删除，不能按
+   * field 删除，所以只接受能精确映射到 measurement 的路径，其余情况抛出异常。
+   *
+   * @param patterns 要删除的路径，多个路径之间是并集关系
+   * @param tagFilter 删除时的 tag 过滤条件
+   * @return 要删除的 measurement 列表（已去重）；返回 null 表示删除存储单元内的全部 measurement
+   * @throws InfluxDBTaskExecuteFailureException 删除请求无法在 InfluxDB 中精确执行时抛出
+   */
+  static List<String> getDeletedMeasurements(List<String> patterns, TagFilter tagFilter)
+      throws InfluxDBTaskExecuteFailureException {
+    // InfluxDB 删除谓词只支持 tag 等值条件的 AND 组合，无法表达 IGinX 的通用 tag 过滤条件，统一拒绝
+    if (tagFilter != null) {
+      throw new InfluxDBTaskExecuteFailureException(
+          "InfluxDB does not support deleting data with a tag filter");
+    }
+    // 路径为空表示删除整个存储单元，例如数据压缩（compaction）后清理旧分片
+    if (patterns == null || patterns.isEmpty()) {
+      return null;
+    }
+    // 写入 InfluxDB 的路径至少有两级（measurement.field），所以 "*.*" 和 "*" 一样能匹配全部数据。
+    // 多个路径之间是并集，只要包含其中之一就等价于删除全部，其他路径无需再校验，
+    // 例如 ["a.b", "*"] 会删除全部数据而不是报错
+    if (patterns.contains("*") || patterns.contains("*.*")) {
+      return null;
+    }
+    // 用 LinkedHashSet 去重并保持原有顺序，避免对同一个 measurement 重复发送删除请求
+    Set<String> measurements = new LinkedHashSet<>();
+    for (String pattern : patterns) {
+      // 以第一个 '.' 为界，前半部分是 measurement，后半部分必须恰好是 ".*"
+      int index = pattern.indexOf('.');
+      String measurement = index > 0 ? pattern.substring(0, index) : "";
+      // 以下情况都无法精确删除，直接报错：
+      // 1. 没有 '.' 或以 '.' 开头，取不到 measurement，如 "a"、".*"；
+      // 2. measurement 中带通配符，如 "*.s1"、"*.a.*"，而 InfluxDB 删除谓词只支持等值匹配，不支持通配符；
+      // 3. '.' 之后不是 ".*"，即只删除部分 field，如 "a.b"、"a.b.*"、"a.*.c"
+      if (measurement.isEmpty()
+          || measurement.contains("*")
+          || !pattern.substring(index).equals(".*")) {
+        throw new InfluxDBTaskExecuteFailureException(
+            String.format(
+                "InfluxDB only supports deleting all data (\"*\") or whole measurements"
+                    + " (\"<measurement>.*\"), but got \"%s\"",
+                pattern));
+      }
+      measurements.add(measurement);
+    }
+    return new ArrayList<>(measurements);
+  }
+
+  /**
+   * 查找存储单元对应的 bucket，找不到时返回 null。
+   *
+   * <p>先查本地缓存；缓存未命中时（例如 IGinX 重启后缓存为空）再到本组织下按名称查询，查到后放入缓存，避免之后每次删除都发一次 HTTP 请求。
+   */
+  private Bucket findBucket(String storageUnit) {
+    Bucket bucket = bucketMap.get(storageUnit);
+    if (bucket != null) {
+      return bucket;
+    }
+    bucket = findBucketInOrg(storageUnit);
+    if (bucket != null) {
+      bucketMap.put(storageUnit, bucket);
+    }
+    return bucket;
+  }
+
+  /**
+   * 在本组织下按名称查找 bucket，找不到时返回 null。
+   *
+   * <p>bucket 名称只在同一组织内唯一，不同组织可以有同名 bucket；而且列出 bucket 的接口一次只返回一页（默认 20 个）。
+   * 因此不能先列出再在本地按名称过滤，而是把组织和名称都作为查询条件交给服务端过滤。
+   */
+  private Bucket findBucketInOrg(String name) {
+    BucketsQuery query = new BucketsQuery();
+    query.setOrgID(organization.getId());
+    query.setName(name);
+    try {
+      List<Bucket> buckets = client.getBucketsApi().findBuckets(query);
+      return buckets.isEmpty() ? null : buckets.get(0);
+    } catch (NotFoundException e) {
+      // 带组织条件查询不存在的 bucket 时，服务端返回 404 而不是空列表，客户端会抛出该异常
+      return null;
+    }
+  }
+
+  /**
+   * 列出本组织下的全部 bucket。
+   *
+   * <p>InfluxDB 列出 bucket 的接口是分页的，一次请求最多只返回一页，所以按每页 BUCKET_PAGE_SIZE 个循环查询，
+   * 每次从已取到的数量处继续，直到某一页不满，说明已经取完。
+   */
+  private List<Bucket> findAllBucketsInOrg() {
+    List<Bucket> buckets = new ArrayList<>();
+    BucketsQuery query = new BucketsQuery();
+    query.setOrgID(organization.getId());
+    query.setLimit(BUCKET_PAGE_SIZE);
+    while (true) {
+      query.setOffset(buckets.size());
+      List<Bucket> page = client.getBucketsApi().findBuckets(query);
+      buckets.addAll(page);
+      if (page.size() < BUCKET_PAGE_SIZE) {
+        return buckets;
+      }
+    }
+  }
+
+  private static OffsetDateTime nsToDateTime(long ns) {
+    return OffsetDateTime.ofInstant(
+        Instant.ofEpochSecond(Math.floorDiv(ns, 1_000_000_000L), Math.floorMod(ns, 1_000_000_000L)),
+        ZoneOffset.UTC);
   }
 
   public static String toString(FluxTable table, FluxRecord record) {

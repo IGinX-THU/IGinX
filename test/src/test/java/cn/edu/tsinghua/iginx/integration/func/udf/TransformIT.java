@@ -41,6 +41,7 @@ import com.icegreen.greenmail.util.ServerSetup;
 import com.icegreen.greenmail.util.ServerSetupTest;
 import java.io.*;
 import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -432,44 +433,79 @@ public class TransformIT {
 
   @Test
   public void commitScheduledBatchTransformTest() {
-    LOGGER.info("commitScheduledBatchTransformTest");
-    String outputFileName =
-        OUTPUT_DIR_PREFIX + File.separator + "export_file_scheduled_batch_python_job.txt";
-    try {
-      registerTask("AddOneTransformer");
-      registerTask("SumTransformer");
+    verifyScheduledTransformResults(
+        "scheduled_stream_to_batch",
+        Arrays.asList(
+            sqlTransformTask(QUERY_SQL_3),
+            pythonTransformTask("AddOneTransformer", DataFlowType.STREAM),
+            pythonTransformTask("SumTransformer", DataFlowType.BATCH)),
+        "55,55,65",
+        false);
+  }
 
-      TaskInfo sqlTask = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
-      sqlTask.setSqlList(Collections.singletonList(QUERY_SQL_3));
-      TaskInfo addOnePyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.STREAM);
-      addOnePyTask.setPyTaskName("AddOneTransformer");
-      TaskInfo sumPyTask = new TaskInfo(TaskType.PYTHON, DataFlowType.BATCH);
-      sumPyTask.setPyTaskName("SumTransformer");
+  @Test
+  public void commitScheduledBatchWriterResetTest() {
+    // Unlike SumTransformer, applying AddOneTransformer again changes the result.
+    // Reusing the previous PemjaWriter would produce 2,2,3 on the second execution.
+    verifyScheduledTransformResults(
+        "scheduled_batch_writer_reset",
+        Arrays.asList(
+            sqlTransformTask("SELECT s1, s2 FROM us.d1 WHERE key < 1;"),
+            pythonTransformTask("AddOneTransformer", DataFlowType.BATCH)),
+        "1,1,2",
+        false);
+  }
 
-      long jobId =
-          session.commitTransformJob(
-              Arrays.asList(sqlTask, addOnePyTask, sumPyTask),
-              ExportType.FILE,
-              outputFileName,
-              "every 10 second");
-      try {
-        waitForRepeatedFileResult(outputFileName, "55,55,65", 1, 30000L);
-        waitForJobState(jobId, JobState.JOB_IDLE, 30000L);
-        // data from the previous execution must not be accumulated into the next one
-        waitForRepeatedFileResult(outputFileName, "55,55,65", 2, 30000L);
-      } finally {
-        cancelJob(jobId);
-      }
-    } catch (SessionException | InterruptedException e) {
-      LOGGER.error("Transform: execute fail. Caused by:", e);
-      fail();
-    } finally {
-      try {
-        Files.deleteIfExists(Paths.get(outputFileName));
-      } catch (IOException e) {
-        LOGGER.warn("Fail to delete result file: {}", outputFileName, e);
-      }
-    }
+  @Test
+  public void commitScheduledConsecutiveBatchTransformTest() {
+    // The second batch must clear the CollectionWriter owned by the first batch.
+    verifyScheduledTransformResults(
+        "scheduled_batch_to_batch",
+        Arrays.asList(
+            sqlTransformTask(QUERY_SQL_3),
+            pythonTransformTask("SumTransformer", DataFlowType.BATCH),
+            pythonTransformTask("AddOneTransformer", DataFlowType.BATCH)),
+        "46,46,56",
+        false);
+  }
+
+  @Test
+  public void commitScheduledBatchToStreamTransformTest() {
+    verifyScheduledTransformResults(
+        "scheduled_batch_to_stream",
+        Arrays.asList(
+            sqlTransformTask(QUERY_SQL_3),
+            pythonTransformTask("SumTransformer", DataFlowType.BATCH),
+            pythonTransformTask("AddOneTransformer", DataFlowType.STREAM)),
+        "46,46,56",
+        false);
+  }
+
+  @Test
+  public void commitScheduledStreamTransformTest() {
+    verifyScheduledTransformResults(
+        "scheduled_stream_to_stream",
+        Arrays.asList(
+            sqlTransformTask("SELECT s1, s2 FROM us.d1 WHERE key < 1;"),
+            pythonTransformTask("AddOneTransformer", DataFlowType.STREAM),
+            pythonTransformTask("AddOneTransformer", DataFlowType.STREAM)),
+        "2,2,3",
+        false);
+  }
+
+  @Test
+  public void commitScheduledBatchTemporaryTableTransformTest() {
+    TaskInfo sumTask = pythonTransformTask("SumTransformer", DataFlowType.BATCH);
+    sumTask.setOutputPrefix("scheduledbatchsum");
+    verifyScheduledTransformResults(
+        "scheduled_batch_to_sql",
+        Arrays.asList(
+            sqlTransformTask(QUERY_SQL_3),
+            pythonTransformTask("AddOneTransformer", DataFlowType.STREAM),
+            sumTask,
+            sqlTransformTask("SELECT * FROM scheduledbatchsum;")),
+        "55,55,65",
+        true);
   }
 
   @Test
@@ -1479,35 +1515,101 @@ public class TransformIT {
     assertTrue(contains);
   }
 
-  private int countFileResult(String filename, String content) {
-    if (!new File(filename).exists()) {
-      return 0;
-    }
-    int count = 0;
-    try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        if (line.contains(content)) {
-          count++;
-        }
-      }
-    } catch (IOException e) {
-      LOGGER.error("Verify repeated file export result failed.", e);
-      fail();
-    }
-    return count;
+  private TaskInfo sqlTransformTask(String sql) {
+    TaskInfo task = new TaskInfo(TaskType.SQL, DataFlowType.STREAM);
+    task.setSqlList(Collections.singletonList(sql));
+    return task;
   }
 
-  private void waitForRepeatedFileResult(
-      String filename, String content, int expectedCount, long timeoutMs)
-      throws InterruptedException {
-    long deadline = System.currentTimeMillis() + timeoutMs;
-    int count = countFileResult(filename, content);
-    while (count < expectedCount && System.currentTimeMillis() < deadline) {
-      Thread.sleep(500L);
-      count = countFileResult(filename, content);
+  private TaskInfo pythonTransformTask(String name, DataFlowType dataFlowType) {
+    TaskInfo task = new TaskInfo(TaskType.PYTHON, dataFlowType);
+    task.setPyTaskName(name);
+    return task;
+  }
+
+  private void verifyScheduledTransformResults(
+      String name, List<TaskInfo> tasks, String expectedRow, boolean temporaryTable) {
+    Assume.assumeTrue(
+        "This storage configuration does not support deterministic key comparisons",
+        needCompareResult);
+    Path outputFile = Paths.get(OUTPUT_DIR_PREFIX, "export_file_" + name + ".txt");
+    try {
+      // FileAppendWriter appends; stale output must never satisfy a new test run.
+      Files.deleteIfExists(outputFile);
+      registerTask("AddOneTransformer");
+      registerTask("SumTransformer");
+      long jobId =
+          session.commitTransformJob(
+              tasks, ExportType.FILE, outputFile.toString(), "every 5 second");
+      try {
+        for (int execution = 1; execution <= 3; execution++) {
+          waitForScheduledFileResults(jobId, outputFile, execution, temporaryTable, 30000L);
+          waitForJobState(jobId, JobState.JOB_IDLE, 30000L);
+          // Check all rows after the execution finishes, including unexpected extra rows.
+          assertEquals(
+              name + ": unexpected output after execution " + execution,
+              Collections.nCopies(execution, expectedRow),
+              readScheduledFileResults(outputFile, temporaryTable));
+        }
+      } finally {
+        cancelJob(jobId);
+      }
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Scheduled transform verification failed: {}", name, e);
+      fail(e.toString());
+    } finally {
+      try {
+        Files.deleteIfExists(outputFile);
+      } catch (IOException e) {
+        LOGGER.warn("Fail to delete result file: {}", outputFile, e);
+      }
     }
-    assertEquals(expectedCount, count);
+  }
+
+  private List<String> readScheduledFileResults(Path outputFile, boolean temporaryTable)
+      throws IOException {
+    List<String> rows = new ArrayList<>();
+    if (!Files.exists(outputFile)) {
+      return rows;
+    }
+    String content = new String(Files.readAllBytes(outputFile), StandardCharsets.UTF_8);
+    // The writer may currently be appending a row. Only inspect complete lines.
+    int lastNewline = content.lastIndexOf('\n');
+    if (lastNewline < 0) {
+      return rows;
+    }
+    for (String line : content.substring(0, lastNewline).split("\\r?\\n")) {
+      if (line.isEmpty() || line.startsWith(GlobalConstant.KEY_NAME + ",")) {
+        continue;
+      }
+      if (temporaryTable) {
+        // A temporary table adds a generated key before the Python output columns.
+        int firstComma = line.indexOf(',');
+        assertTrue("Missing temporary-table key: " + line, firstComma > 0);
+        Long.parseLong(line.substring(0, firstComma));
+        line = line.substring(firstComma + 1);
+      }
+      rows.add(line);
+    }
+    return rows;
+  }
+
+  private void waitForScheduledFileResults(
+      long jobId, Path outputFile, int expectedCount, boolean temporaryTable, long timeoutMs)
+      throws SessionException, InterruptedException, IOException {
+    long deadline = System.currentTimeMillis() + timeoutMs;
+    List<String> rows = readScheduledFileResults(outputFile, temporaryTable);
+    while (rows.size() < expectedCount && System.currentTimeMillis() < deadline) {
+      assertNotEquals(
+          "Scheduled transform failed",
+          JobState.JOB_FAILED,
+          session.queryTransformJobStatus(jobId));
+      Thread.sleep(200L);
+      rows = readScheduledFileResults(outputFile, temporaryTable);
+    }
+    assertTrue(
+        "Timed out waiting for execution " + expectedCount + "; output: " + rows,
+        rows.size() >= expectedCount);
   }
 
   private void waitForJobState(long jobId, JobState expectedState, long timeoutMs)

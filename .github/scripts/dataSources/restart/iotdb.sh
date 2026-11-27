@@ -22,7 +22,8 @@ set -e
 port=$1
 cd apache-iotdb-0.12.6-server-bin-$port/
 sudo sysctl -w net.core.somaxconn=65535
-sudo -E sh -c "nohup sbin/start-server.sh >run.log 2>&1 &"
+# sudo-rs (Ubuntu 26.04) ignores a bare -E; IoTDB 0.12 needs the JDK 8 from JAVA_HOME
+sudo env JAVA_HOME="$JAVA_HOME" sh -c "nohup sbin/start-server.sh >run.log 2>&1 &"
 
 sleep 3
 sudo lsof -i:$port

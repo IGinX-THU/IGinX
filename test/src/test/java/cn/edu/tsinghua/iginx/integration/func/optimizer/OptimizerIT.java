@@ -2017,6 +2017,8 @@ public class OptimizerIT {
             + "+-----------+-----------+-------------+-------------+\n"
             + "Total line number = 1\n");
 
-    executor.execute("delete columns test.a,test.b;");
+    if (isAbleToDelete) {
+      executor.execute("delete columns test.a,test.b;");
+    }
   }
 }
