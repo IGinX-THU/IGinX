@@ -19,14 +19,14 @@
  */
 package cn.edu.tsinghua.iginx.integration.func.auth;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,13 +36,13 @@ public class UserManagementIT {
 
   private Session rootSession;
 
-  @BeforeEach
+  @Before
   public void setUp() throws SessionException {
     rootSession = new Session("127.0.0.1", 6888, "root", "root");
     rootSession.openSession();
   }
 
-  @AfterEach
+  @After
   public void tearDown() throws SessionException {
     rootSession.closeSession();
     rootSession = null;
@@ -54,6 +54,7 @@ public class UserManagementIT {
     rootSession.executeSql("GRANT WRITE, READ TO USER root1;");
     rootSession.executeSql("GRANT READ TO USER root1;");
     rootSession.executeSql("ALTER USER root1 IDENTIFIED BY root2;");
+    rootSession.executeSql("CREATE USER filtered_user IDENTIFIED BY password;");
 
     {
       SessionExecuteSqlResult res = rootSession.executeSql("SHOW USER root, root1;");
@@ -70,6 +71,7 @@ public class UserManagementIT {
     }
 
     rootSession.executeSql("DROP USER root1;");
+    rootSession.executeSql("DROP USER filtered_user;");
 
     {
       SessionExecuteSqlResult res = rootSession.executeSql("SHOW USER;");
@@ -82,6 +84,31 @@ public class UserManagementIT {
               + "|root|Administrator|[Read, Write, Admin, Cluster]|\n"
               + "+----+-------------+-----------------------------+\n";
       assertEquals(expected, resultInString);
+    }
+  }
+
+  @Test
+  public void quotedUserNamesAuthenticateAndCanBeUpdated() throws SessionException {
+    rootSession.executeSql("CREATE USER `sql-user` IDENTIFIED BY `first-password`;");
+    try {
+      rootSession.executeSql("GRANT READ TO USER `sql-user`;");
+      Session user = new Session("127.0.0.1", 6888, "sql-user", "first-password");
+      user.openSession();
+      try {
+        user.executeSql("SHOW USER `sql-user`;");
+      } finally {
+        user.closeSession();
+      }
+      rootSession.executeSql("ALTER USER `sql-user` IDENTIFIED BY `second-password`;");
+      user = new Session("127.0.0.1", 6888, "sql-user", "second-password");
+      user.openSession();
+      try {
+        user.executeSql("SHOW USER `sql-user`;");
+      } finally {
+        user.closeSession();
+      }
+    } finally {
+      rootSession.executeSql("DROP USER `sql-user`;");
     }
   }
 }
