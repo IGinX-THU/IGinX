@@ -28,9 +28,11 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
 import cn.edu.tsinghua.iginx.transform.exec.tools.ExecutionMetaManager;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
+import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -54,10 +56,17 @@ public class IginXWriter extends ExportWriter {
   }
 
   @Override
-  public void write(BatchData batchData) {
+  public void write(BatchData batchData) throws WriteBatchException {
+    if (batchData.getRowList().isEmpty()) {
+      return;
+    }
     InsertRowRecordsReq rowRecordsReq = buildInsertRowReq(batchData);
     RequestContext ctx = contextBuilder.build(rowRecordsReq);
     executor.execute(ctx);
+    if (ctx.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
+      throw new WriteBatchException(
+          "Fail to write transform result to IGinX: " + ctx.getResult().getStatus().getMessage());
+    }
   }
 
   private InsertRowRecordsReq buildInsertRowReq(BatchData batchData) {
@@ -72,7 +81,7 @@ public class IginXWriter extends ExportWriter {
       keys[i] = startKey + i;
     }
 
-    List<Field> sortedFields = header.getFields();
+    List<Field> sortedFields = new ArrayList<>(header.getFields());
     Integer[] index = new Integer[sortedFields.size()];
     for (int i = 0; i < sortedFields.size(); i++) {
       index[i] = i;

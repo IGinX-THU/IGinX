@@ -20,12 +20,13 @@
 package cn.edu.tsinghua.iginx.transform.api;
 
 import cn.edu.tsinghua.iginx.transform.data.BatchData;
+import cn.edu.tsinghua.iginx.transform.exception.ReadBatchException;
 
 public interface Reader {
 
-  boolean hasNextBatch();
+  boolean hasNextBatch() throws ReadBatchException;
 
-  BatchData loadNextBatch();
+  BatchData loadNextBatch() throws ReadBatchException;
 
   void close();
 }

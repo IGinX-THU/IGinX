@@ -26,4 +26,8 @@ public class ReadBatchException extends TransformException {
   public ReadBatchException(String message) {
     super(message);
   }
+
+  public ReadBatchException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }
