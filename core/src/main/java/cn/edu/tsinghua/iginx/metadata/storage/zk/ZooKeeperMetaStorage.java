@@ -135,13 +135,18 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
   public ZooKeeperMetaStorage() {
     client =
-        CuratorFrameworkFactory.builder()
+        ZooKeeperSecurity.configure(
+                CuratorFrameworkFactory.builder(),
+                cn.edu.tsinghua.iginx.security.SecurityConfig.getInstance())
             .connectString(
                 ConfigDescriptor.getInstance().getConfig().getZookeeperConnectionString())
             .connectionTimeoutMs(15000)
             .retryPolicy(new RetryForever(1000))
             .build();
     client.start();
+    if (cn.edu.tsinghua.iginx.security.SecurityConfig.getInstance().get("zookeeper.user") != null) {
+      ZooKeeperSecurity.ensurePersistentLocks(client);
+    }
 
     fragmentMutex = new InterProcessMutex(client, FRAGMENT_LOCK_NODE);
     storageUnitMutex = new InterProcessMutex(client, STORAGE_UNIT_LOCK_NODE);
