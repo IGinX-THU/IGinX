@@ -41,16 +41,41 @@ def stop_tree(process):
         subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
     else:
-        try:
-            os.killpg(process.pid, signal.SIGTERM)
+        # A Controller launches this wrapper again for each class. Those nested
+        # commands start their own sessions, so killing only the outer group
+        # would leave the inner Maven/JVM running without its deadline monitor.
+        listing = subprocess.run(["ps", "-e", "-o", "pid=,ppid="],
+                                 capture_output=True, text=True, timeout=5)
+        children = {}
+        for line in listing.stdout.splitlines():
+            pid, parent = map(int, line.split())
+            children.setdefault(parent, []).append(pid)
+        pending, descendants = [process.pid], []
+        while pending:
+            pid = pending.pop()
+            descendants.append(pid)
+            pending.extend(children.get(pid, []))
+        groups = {process.pid}
+        for pid in descendants:
             try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
+                groups.add(os.getpgid(pid))
+            except ProcessLookupError:
                 pass
-            # Descendants can outlive a launcher even if the launcher has exited.
-            os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
+        groups.discard(os.getpgrp())
+        for group in groups:
+            try:
+                os.killpg(group, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
             pass
+        for group in groups:
+            try:
+                os.killpg(group, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
     process.wait(timeout=10)
 
 
