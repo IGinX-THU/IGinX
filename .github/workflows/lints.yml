@@ -6,6 +6,10 @@ on:
 permissions:
     pull-requests: read
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
 jobs:
     formatting:
         runs-on: ubuntu-latest
@@ -21,7 +25,7 @@ jobs:
             - name: Check format with Maven
               shell: bash
               run: |
-                  mvn clean spotless:check
+                  python .github/scripts/test/run_bounded.py --timeout 900 --label formatting --retry-downloads 2 -- mvn clean spotless:check
     license:
         runs-on: ubuntu-latest
         steps:
@@ -34,7 +38,7 @@ jobs:
             - name: Check license headers
               shell: bash
               run: |
-                  mvn clean license:check
+                  python .github/scripts/test/run_bounded.py --timeout 900 --label license --retry-downloads 2 -- mvn clean license:check
     py-session:
         runs-on: ubuntu-latest
         steps:
@@ -48,7 +52,7 @@ jobs:
               working-directory: session_py
               run: rm -rf iginx/iginx_pyclient/thrift
             - name: generate py-session thrift
-              run: mvn clean compile -pl thrift,session_py -DskipTests
+              run: python .github/scripts/test/run_bounded.py --timeout 900 --label py-session --retry-downloads 2 -- mvn clean compile -pl thrift,session_py -DskipTests
             - name: check py-session difference
               working-directory: session_py
               run: git diff --minimal --exit-code
@@ -62,7 +66,9 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     analyze-required-lint-check:
-        if: always()
+        # Superseded runs must not turn cancelled prerequisites into lint failures.
+        # Real failures still run this required check and remain blocking.
+        if: ${{ !cancelled() }}
         needs: # List of jobs that must pass. Add more jobs if needed.
             - formatting
             - license
