@@ -51,7 +51,7 @@ public class Job {
 
   private long sessionId;
 
-  private JobState state;
+  private volatile JobState state;
   private final AtomicBoolean active;
   private long startTime;
   private long endTime;
