@@ -228,8 +228,23 @@ public class TransformJobManager {
       }
       throw new TransformException(err);
     }
+    // Since a terminal state is set before the runner is removed from jobRunnerMap,
+    // runner == null may mean the job has already finished, failed or closed.
+    // A runner may also not have been published during startup; the null branch above
+    // reports that case separately.
+    //
+    // Since job state is set before the runner is removed from jobRunnerMap,
+    // even if runner != null, there are still possibilities that
+    // job state is FINISHED/FAILING/FAILED or CLOSING/CLOSED.
+    // We cannot avoid this race by reading the state before writing it.
+    //
+    // The atomic active flag signals cancellation to running stages, but does not
+    // synchronize state transitions or guarantee that temporary-table cleanup is done.
+    // Thus, guard the state check and transition with the same job monitor used by
+    // execution and completion callbacks. Wait for cleanup outside this monitor.
     boolean failed = false;
     synchronized (job) {
+      // This guard also excludes UNKNOWN and other unsupported states.
       switch (job.getState()) {
         case JOB_RUNNING:
         case JOB_CREATED:
