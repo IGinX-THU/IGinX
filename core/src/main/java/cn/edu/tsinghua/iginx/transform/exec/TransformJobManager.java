@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
 public class TransformJobManager {
   private static final Logger LOGGER = LoggerFactory.getLogger(TransformJobManager.class);
 
-  private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
+  private final IMetaManager metaManager;
 
   private final Map<Long, Job> jobMap;
 
@@ -76,6 +76,11 @@ public class TransformJobManager {
   private static final String JobYamlDir = config.getDefaultScheduledTransformJobDir();
 
   private TransformJobManager() {
+    this(DefaultMetaManager.getInstance());
+  }
+
+  TransformJobManager(IMetaManager metaManager) {
+    this.metaManager = metaManager;
     this.jobMap = new ConcurrentHashMap<>();
     this.jobRunnerMap = new ConcurrentHashMap<>();
     this.threadPool = Executors.newFixedThreadPool(config.getTransformTaskThreadPoolSize());
@@ -223,74 +228,49 @@ public class TransformJobManager {
       }
       throw new TransformException(err);
     }
-    // Since job state is set to FINISHED/FAILING/FAILED before runner removed from
-    // jobRunnerMap,
-    // if runner == null, we can confirm that job state is not RUNNING or CREATED.
-    //
-    // Since job state is set before runner removed from jobRunnerMap,
-    // even if runner != null, there are still possibilities that
-    // job state is FINISHED/FAILING/FAILED.
-    // Even worse, we cannot simply avoid this by read before write because of concurrency.
-    // Thus, we add an atmoic Boolean field to Job to avoid concurrency.
-
-    // This guard is not reliable under concurrency,
-    // but can exclude UNKNOWN state and show our intention
-    switch (job.getState()) { // won't be null
-      case JOB_RUNNING:
-      case JOB_CREATED:
-        // atomic guard
-        if (!job.getActive().compareAndSet(true, false)) {
-          throw new TransformException("Cannot set active status of job with id: " + jobId + ".");
-        }
-      case JOB_PARTIALLY_FAILING:
-        // wait for job to finish clean up
-        try {
-          long waitTime = 10 * 1000; // 10 seconds max waiting time
-          while (job.getState() == JobState.JOB_PARTIALLY_FAILING && waitTime > 0) {
-            waitTime -= 1000;
-            Thread.sleep(1000);
-          }
-          if (job.getState() == JobState.JOB_PARTIALLY_FAILED) {
-            throw new TransformException(
-                "One execution of job with id: "
-                    + jobId
-                    + " is still failing after 10 seconds. Please check server.");
-          }
-        } catch (InterruptedException e) {
-          throw new TransformException(
-              "One execution of job with id: "
-                  + jobId
-                  + " is failing or failed yet cannot be removed. Please check server.",
-              e);
-        }
-      case JOB_PARTIALLY_FAILED:
-      case JOB_IDLE:
-        // reorder as Normal run: [set-ING,] close, set-ED, remove[, set end time, log time cost].
-        job.setState(JobState.JOB_CLOSING);
-        runner.close();
+    boolean failed = false;
+    synchronized (job) {
+      switch (job.getState()) {
+        case JOB_RUNNING:
+        case JOB_CREATED:
+        case JOB_PARTIALLY_FAILING:
+        case JOB_PARTIALLY_FAILED:
+        case JOB_IDLE:
+        case JOB_CLOSING:
+          // A timed-out/interrupted cancellation can be retried while still CLOSING.
+          job.setState(JobState.JOB_CLOSING);
+          job.getActive().set(false);
+          break;
+        case JOB_FAILED:
+        case JOB_FAILING:
+          failed = true;
+          break;
+        case JOB_CLOSED:
+          throw new TransformException("Job with id: " + jobId + " has closed.");
+        default:
+          return false;
+      }
+    }
+    if (failed) {
+      try {
+        removeFailedScheduleJob(jobId);
+      } catch (Exception e) {
+        throw new TransformException(
+            "Job with id: " + jobId + " is failing or failed yet cannot be removed.", e);
+      }
+      throw new TransformException("Job had failed and was removed.");
+    }
+    // Do not hold the job monitor while closing: execution needs it to finish cleanup.
+    runner.close();
+    synchronized (job) {
+      if (job.getState() != JobState.JOB_CLOSED) {
         job.setState(JobState.JOB_CLOSED);
         removeJob(jobId);
         job.setEndTime(System.currentTimeMillis());
         LOGGER.info("Job id={} cost {} ms.", job.getJobId(), job.getEndTime() - job.getStartTime());
-        return true;
-      case JOB_FAILED:
-      case JOB_FAILING:
-        try {
-          removeFailedScheduleJob(jobId);
-        } catch (Exception e) {
-          throw new TransformException(
-              "Job with id: " + jobId + " is failing or failed yet cannot be removed.", e);
-        }
-        // automatically remove failed tasks, but throw warning
-        throw new TransformException("Job had failed and was removed.");
-      case JOB_CLOSING:
-      case JOB_CLOSED:
-        // this job had received cancellation request and didn't finish yet.
-        // finish: job runner should be null
-        throw new TransformException("Job is still closing. Please query again later.");
-      default:
-        return false;
+      }
     }
+    return true;
   }
 
   /** 当任务的所有执行周期都结束，将其信息删除 */
@@ -299,8 +279,8 @@ public class TransformJobManager {
     Job job = pair.k;
     JobRunner runner = pair.v;
     if (job.getState() == JobState.JOB_FINISHED) {
-      removeJob(jobId);
       runner.close();
+      removeJob(jobId);
       return;
     }
     throw new TransformException(
@@ -321,8 +301,8 @@ public class TransformJobManager {
           "Job with id: " + jobId + " is still failing after 10 seconds. Please check server.");
     }
     if (job.getState() == JobState.JOB_FAILED) {
-      removeJob(jobId);
       runner.close();
+      removeJob(jobId);
     } else {
       throw new TransformException(
           "Job with id: " + jobId + "is supposed to be FAILED. Current state: " + job.getState());

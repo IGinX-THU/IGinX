@@ -42,21 +42,24 @@ import org.slf4j.LoggerFactory;
 public class ScheduledJob implements org.quartz.Job {
   private static final Logger LOGGER = LoggerFactory.getLogger(ScheduledJob.class);
 
-  private final ContextBuilder contextBuilder = ContextBuilder.getInstance();
-
-  private final StatementExecutor executor = StatementExecutor.getInstance();
-
   @Override
   public void execute(JobExecutionContext context) throws JobExecutionException {
     Job job = (Job) context.getMergedJobDataMap().get("job");
     List<Runner> runnerList = (List<Runner>) context.getMergedJobDataMap().get("runnerList");
-
-    job.setState(JobState.JOB_RUNNING);
-    boolean stopOnFailure = job.isStopOnFailure();
-    if (!job.getActive().compareAndSet(false, true)) {
-      throw getJobException(
-          "Cannot set active status of job: " + job.getJobId() + ".", null, stopOnFailure);
+    JobRunner jobRunner = (JobRunner) context.getMergedJobDataMap().get("jobRunner");
+    if (!jobRunner.beginExecution()) {
+      return;
     }
+    try {
+      execute(job, runnerList, jobRunner);
+    } finally {
+      jobRunner.endExecution();
+    }
+  }
+
+  private void execute(Job job, List<Runner> runnerList, JobRunner jobRunner)
+      throws JobExecutionException {
+    boolean stopOnFailure = job.isStopOnFailure();
     try {
       // [important] the temp table that will be used to store mid-stage result, must be set before
       // run
@@ -68,56 +71,58 @@ public class ScheduledJob implements org.quartz.Job {
         runner.run();
         runner.close();
       }
-      if (job.getActive().compareAndSet(true, false)) {
-        // wait for next execution
-        // if a trigger has finished all execution, TransformTriggerListener will handle work
-        // left.
-        job.setState(JobState.JOB_IDLE);
-        job.setException(null);
-      }
     } catch (Exception e) {
-      if (job.getActive().compareAndSet(true, false)) {
-        job.setState(stopOnFailure ? JobState.JOB_FAILING : JobState.JOB_PARTIALLY_FAILING);
+      synchronized (job) {
+        job.getActive().set(false);
+        if (!jobRunner.isClosing()) {
+          job.setState(stopOnFailure ? JobState.JOB_FAILING : JobState.JOB_PARTIALLY_FAILING);
+        }
         job.setException(e);
-        List<Exception> closeExceptions = new ArrayList<>();
-        for (Runner runner : runnerList) {
-          try {
-            runner.close();
-          } catch (TransformException closeException) {
-            LOGGER.error("Can't close runner for job: {}", job.getJobId(), closeException);
-            closeExceptions.add(closeException);
-          }
-        }
-        closeExceptions.forEach(e::addSuppressed);
-        // Quartz will automatically unschedule
-        // all triggers associated with this job
-        // so that it does not run again
-        throw getJobException(
-            "Unexpected error occurred during execution of job: " + job.getJobId(),
-            e,
-            stopOnFailure);
       }
+      List<Exception> closeExceptions = new ArrayList<>();
+      for (Runner runner : runnerList) {
+        try {
+          runner.close();
+        } catch (TransformException closeException) {
+          LOGGER.error("Can't close runner for job: {}", job.getJobId(), closeException);
+          closeExceptions.add(closeException);
+        }
+      }
+      closeExceptions.forEach(e::addSuppressed);
+      // Quartz will automatically unschedule all triggers if stopOnFailure is set.
       throw getJobException(
-          "Cannot set active status of job: " + job.getJobId() + ".", e, stopOnFailure);
+          "Unexpected error occurred during execution of job: " + job.getJobId(), e, stopOnFailure);
     } finally {
-      if (job.isTempTableUsed()) {
-        // clear temp table
-        ExecuteStatementReq req =
-            new ExecuteStatementReq(
-                0,
-                "DELETE COLUMNS "
-                    + ExecutionMetaManager.getTempTableNames().stream()
-                        .map(s -> s + ".*")
-                        .collect(Collectors.joining(", "))
-                    + ";");
-        RequestContext IginxContext = contextBuilder.build(req);
-        executor.execute(IginxContext);
-        if (IginxContext.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
-          LOGGER.error(
-              "Cannot clear temp tables {} for transform job.",
-              ExecutionMetaManager.getTempTableNames());
-        }
+      clearTempTables(job);
+    }
+    synchronized (job) {
+      job.getActive().set(false);
+      if (!jobRunner.isClosing()) {
+        // Publish IDLE only after this execution's cleanup has completed.
+        job.setException(null);
+        job.setState(JobState.JOB_IDLE);
       }
+    }
+  }
+
+  protected void clearTempTables(Job job) {
+    if (!job.isTempTableUsed()) {
+      return;
+    }
+    ExecuteStatementReq req =
+        new ExecuteStatementReq(
+            0,
+            "DELETE COLUMNS "
+                + ExecutionMetaManager.getTempTableNames().stream()
+                    .map(s -> s + ".*")
+                    .collect(Collectors.joining(", "))
+                + ";");
+    RequestContext context = ContextBuilder.getInstance().build(req);
+    StatementExecutor.getInstance().execute(context);
+    if (context.getResult().getStatus().code != RpcUtils.SUCCESS.code) {
+      LOGGER.error(
+          "Cannot clear temp tables {} for transform job.",
+          ExecutionMetaManager.getTempTableNames());
     }
   }
 

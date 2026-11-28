@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.transform.exec.tools;
 
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.transform.exception.TransformException;
+import cn.edu.tsinghua.iginx.transform.exec.JobRunner;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import org.quartz.JobExecutionContext;
@@ -59,30 +60,37 @@ public class TransformTriggerListener extends TriggerListenerSupport {
       JobExecutionContext context,
       Trigger.CompletedExecutionInstruction triggerInstructionCode) {
     Job job = (Job) context.getMergedJobDataMap().get("job");
-    Exception jobException = job.getException();
-    if (jobException != null) {
-      // failed in this execution
-      if (job.isStopOnFailure()) {
-        job.setState(JobState.JOB_FAILED);
-        LOGGER.error("Job {} has failed. Detailed information:", job.getJobId(), jobException);
+    JobRunner runner = (JobRunner) context.getMergedJobDataMap().get("jobRunner");
+    synchronized (job) {
+      // Completion callbacks can arrive after cancellation has started or even returned.
+      if (runner.isClosing()) {
+        return;
+      }
+      Exception jobException = job.getException();
+      if (jobException != null) {
+        // failed in this execution
+        if (job.isStopOnFailure()) {
+          job.setState(JobState.JOB_FAILED);
+          LOGGER.error("Job {} has failed. Detailed information:", job.getJobId(), jobException);
+          try {
+            TransformJobManager.getInstance().removeFailedScheduleJob(job.getJobId());
+          } catch (TransformException | InterruptedException e) {
+            throw new RuntimeException(e);
+          }
+        } else {
+          // failed but continue to next execution
+          LOGGER.error("One execution of job {} failed.", job.getJobId(), jobException);
+          job.setState(JobState.JOB_PARTIALLY_FAILED);
+        }
+      } else if (trigger.getNextFireTime() == null) {
+        // whole schedule completes
+        job.setState(JobState.JOB_FINISHED);
+        LOGGER.info("Job {} has completed all executions.", job.getJobId());
         try {
-          TransformJobManager.getInstance().removeFailedScheduleJob(job.getJobId());
-        } catch (TransformException | InterruptedException e) {
+          TransformJobManager.getInstance().removeFinishedScheduleJob(job.getJobId());
+        } catch (TransformException e) {
           throw new RuntimeException(e);
         }
-      } else {
-        // failed but continue to next execution
-        LOGGER.error("One execution of job {} failed.", job.getJobId(), jobException);
-        job.setState(JobState.JOB_PARTIALLY_FAILED);
-      }
-    } else if (trigger.getNextFireTime() == null) {
-      // whole schedule completes
-      job.setState(JobState.JOB_FINISHED);
-      LOGGER.info("Job {} has completed all executions.", job.getJobId());
-      try {
-        TransformJobManager.getInstance().removeFinishedScheduleJob(job.getJobId());
-      } catch (TransformException e) {
-        throw new RuntimeException(e);
       }
     }
   }
