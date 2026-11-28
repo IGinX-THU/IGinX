@@ -75,7 +75,13 @@ public class StorageManager {
     }
     LOGGER.debug("Testing connection for id={}, {}", id, meta);
     LOGGER.debug(storageMap.keySet().toString());
-    return storageMap.get(id).k.testConnection(meta);
+    // Metadata removal and local connection release can complete at different times.
+    Pair<IStorage, ThreadPoolExecutor> storage = storageMap.get(id);
+    if (storage == null) {
+      LOGGER.debug("No local storage connection for id={}", id);
+      return false;
+    }
+    return storage.k.testConnection(meta);
   }
 
   public static Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(StorageEngineMeta meta) {
